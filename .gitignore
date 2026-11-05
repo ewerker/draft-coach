@@ -1,0 +1,11 @@
+/runtime/
+/references/
+/.venv/
+/.env
+/.env.*
+!/.env.example
+__pycache__/
+*.py[cod]
+*.log
+*.sqlite*
+*.zip

@@ -1,0 +1,319 @@
+{
+  "method": "Visuelle Auswertung im Chat; Referenzdaten, keine automatische lokale Erkennung",
+  "units": {
+    "method": "Visuelle Auswertung im Chat; Referenzdaten, keine automatische lokale Erkennung",
+    "screenshots": [
+      "einheiten-teil-1.png",
+      "einheiten-teil-2.png",
+      "einheiten-teil-3.png"
+    ],
+    "count": 27,
+    "number_fields": {
+      "bottom_badge": "Zahl unten links; vermutete Kartenstärke, noch zu bestätigen",
+      "blue_star": "Zahl oben rechts; Bedeutung noch zu bestätigen"
+    },
+    "active_lineup": [
+      "Spinne",
+      "Agent B",
+      "Zerstörer",
+      "Merlinor"
+    ],
+    "units": [
+      {
+        "name": "Spinne",
+        "visible_name": "Spinne",
+        "blue_star": 5,
+        "bottom_badge": 9,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Agent B",
+        "visible_name": "Agent B",
+        "blue_star": 7,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-3.png"
+      },
+      {
+        "name": "Zerstörer",
+        "visible_name": "Verwüster",
+        "blue_star": 8,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Merlinor",
+        "visible_name": "Merlinor",
+        "blue_star": 10,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Ritter",
+        "visible_name": "Ritter",
+        "blue_star": 5,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Kupid",
+        "visible_name": "Kupid",
+        "blue_star": 7,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Gans",
+        "visible_name": "Gans",
+        "blue_star": 4,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "TNT",
+        "visible_name": "TNT",
+        "blue_star": 9,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Schnecke",
+        "visible_name": "Schnecke",
+        "blue_star": 8,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Assassine",
+        "visible_name": "Assassine",
+        "blue_star": 10,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Splime",
+        "visible_name": "Splime",
+        "blue_star": 5,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Königlop",
+        "visible_name": "Königlop",
+        "blue_star": 8,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Ingenieur",
+        "visible_name": "Ingenieur",
+        "blue_star": 7,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Maulwurf",
+        "visible_name": "Maulwurf",
+        "blue_star": 7,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Bienenkorb",
+        "visible_name": "Bientank",
+        "blue_star": 6,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-1.png"
+      },
+      {
+        "name": "Schildling",
+        "visible_name": "Schildling",
+        "blue_star": 9,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Parasit",
+        "visible_name": "Parasit",
+        "blue_star": 10,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Sniper",
+        "visible_name": "Sniper",
+        "blue_star": 7,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Blutrebe",
+        "visible_name": "Blutrebe",
+        "blue_star": 6,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Spartheus",
+        "visible_name": "Spartheus",
+        "blue_star": 11,
+        "bottom_badge": 13,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Sixshoot",
+        "visible_name": "Sixshoot",
+        "blue_star": 4,
+        "bottom_badge": 10,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Totem",
+        "visible_name": "Totem",
+        "blue_star": 4,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Boomling",
+        "visible_name": "Boomling",
+        "blue_star": 7,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Obergeist",
+        "visible_name": "Obergeist",
+        "blue_star": 4,
+        "bottom_badge": 7,
+        "source": "einheiten-teil-3.png"
+      },
+      {
+        "name": "Drakling",
+        "visible_name": "Drakling",
+        "blue_star": 6,
+        "bottom_badge": 11,
+        "source": "einheiten-teil-2.png"
+      },
+      {
+        "name": "Kapitän",
+        "visible_name": "Kapitän",
+        "blue_star": 10,
+        "bottom_badge": 13,
+        "source": "einheiten-teil-3.png"
+      },
+      {
+        "name": "Astra",
+        "visible_name": "Astra",
+        "blue_star": 1,
+        "bottom_badge": 6,
+        "source": "einheiten-teil-3.png"
+      }
+    ],
+    "notes": [
+      "Agent B zeigt in Teil 1 und 2 unten 10, in Teil 3 unten 11. Der neueste sichtbare Wert wird verwendet; Originalaufnahmen bleiben erhalten.",
+      "Astra ist im bisher gelesenen Base44-Kartenkatalog nicht enthalten.",
+      "Verwüster wird als Zerstörer, Bientank als Bienenkorb normalisiert.",
+      "Zusammenführung erfolgt anhand der Kartenidentität; keine Addition wiederholter Karten."
+    ]
+  },
+  "spells": {
+    "method": "Visuelle Auswertung im Chat; Referenzdaten, keine automatische lokale Erkennung",
+    "screenshots": [
+      "zauber-teil-1.png",
+      "zauber-teil-2.png"
+    ],
+    "count": 16,
+    "active_loadout": [
+      "Meuchelbrigade",
+      "Minenfeld",
+      "Wächtertürme"
+    ],
+    "spells": [
+      {
+        "name": "Meuchelbrigade",
+        "bottom_badge": 9,
+        "selected": true
+      },
+      {
+        "name": "Minenfeld",
+        "bottom_badge": 9,
+        "selected": true
+      },
+      {
+        "name": "Wächtertürme",
+        "bottom_badge": 9,
+        "selected": true
+      },
+      {
+        "name": "Steinhaut",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "¡ZAS!",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Grabesbogenschützen",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Wilder Überfall",
+        "bottom_badge": 9,
+        "selected": false
+      },
+      {
+        "name": "Säureexplosion",
+        "bottom_badge": 9,
+        "selected": false
+      },
+      {
+        "name": "Feensegen",
+        "bottom_badge": 11,
+        "selected": false
+      },
+      {
+        "name": "Pfeilsturm",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Wachs-Experiment",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Volltreffer",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Meteorschauer",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Schildkrötenplan",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Upgrade-Roulette",
+        "bottom_badge": 10,
+        "selected": false
+      },
+      {
+        "name": "Grabesruf",
+        "bottom_badge": 5,
+        "selected": false
+      }
+    ],
+    "notes": [
+      "Alle 16 Zauber mit lesbarer unterer Zahl erfasst.",
+      "Meuchelbrigade zeigt eine verfügbare Aufwertung.",
+      "Überlappende Karten werden nach Identität zusammengeführt und nicht doppelt gezählt."
+    ]
+  }
+}

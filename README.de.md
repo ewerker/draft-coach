@@ -1,0 +1,55 @@
+# Draft Coach
+
+[English](README.md)
+
+Draft Coach ist ein lokaler Begleiter für **Draft Showdown**. Er holt Android-Screenshots per ADB, erkennt sichtbare Wahlangebote mit OpenCV und bewertet sie anhand bearbeitbarer Taktikregeln. Du bedienst ihn im Browser. Die Bildverarbeitung läuft auf dem Host-PC.
+
+## Was der Coach kann
+
+| Bereich | Funktionen |
+| --- | --- |
+| **Aufnahme** | USB-Debugging, geschütztes WLAN-Pairing und WLAN-Einrichtung über USB. Manuelle Aufnahme, Leertaste, Automodus und optionale Sprachbefehle. |
+| **Draft und Schlacht** | Erkennt viele Einheiten, Kartenpositionen, Mengen, Aufwertungen, Verdopplungen und sichtbare Kartenwerte. Zeigt das letzte relevante Bild und markiert die Empfehlung. |
+| **Bedienung** | Tipps vorlesen, Klicks akustisch melden, das Gerät im Screenshot antippen und auf Wunsch geprüfte Tipps automatisch antippen. |
+| **Vorbereitung** | Überlappende Aufnahmen der Einheiten- und Zaubersammlung zusammenführen und aktive Aufstellungen erfassen. Wiederholt sicher gelesene höhere Kartenwerte können Stufe und Sterne in der Sammlung aktualisieren. |
+| **Taktik** | Regeln suchen, anlegen, gewichten, testen, ändern und löschen. Die Schnellauskunft beantwortet Fragen zu Kontern und Synergien aus dem lokalen Lexikon. Eine Websuche lässt sich separat öffnen. |
+| **Archiv** | Partieergebnisse erfassen. Am Host-PC abgeschlossene Partien mit bis zu fünf vorhandenen Belegbildern je Partie ins SQLite-Archiv übernehmen und eine Sicherung herunterladen. |
+
+## In wenigen Schritten starten
+
+1. **Node.js ab 22.16**, **Python 3.12** und die **Android SDK Platform Tools** installieren. `node` und `adb` müssen auffindbar sein. Alternativ lässt sich der ADB-Pfad in `.env` angeben.
+2. Im Projektordner ausführen:
+
+   ```powershell
+   py -3.12 -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
+   ```
+
+3. Am Host-PC [http://127.0.0.1:4317/](http://127.0.0.1:4317/) öffnen und über **Handy verbinden** ein Gerät auswählen. Die Probeaufnahme zeigt, ob die Verbindung klappt.
+4. Optional `powershell -NoProfile -ExecutionPolicy Bypass -File .\install-desktop.ps1` ausführen. Die beiden Desktop-Verknüpfungen starten und stoppen den Coach. Vorhandene gleichnamige Verknüpfungen zeigen danach auf diesen Projektordner. Speichere ein offenes Partieergebnis vor dem Beenden in der Webseite.
+
+Die Erkennung startet mit der mitgelieferten Kalibrierung. Vollständige Referenzbilder für Galerie und Benchmark lassen sich aus der privaten Sicherung nach `references/` kopieren. Die mitgelieferte Sammlung dient als Beispiel. Über **Vorbereitung** übernimmst du deine eigenen Daten.
+
+## Heimnetz und Datensicherung
+
+- **Host-PC** · [http://127.0.0.1:4317/](http://127.0.0.1:4317/)
+- **Anderes Gerät im Heimnetz** · `http://<LAN-IP-des-Host-PCs>:4317/`. Dafür `.env.example` nach `.env` kopieren, `COACH_LAN_ADDRESS` setzen und den Coach neu starten. Die Anmeldung verwendet standardmäßig `coach` und das erzeugte Passwort aus `runtime/lan-passwort.txt`. HTTP mit Basic Auth ist für ein vertrauenswürdiges privates Netz gedacht. **Admin · Archiv** ist am Host-PC erreichbar.
+
+Unter `runtime/` liegen Sammlung, eigene Regeln, Protokolle, Aufnahmen und die SQLite-Datenbank. Sichere diesen Ordner getrennt. Der SQLite-Download enthält die eingebetteten Belegbilder. Der laufende Aufnahmepuffer rotiert. Für einen Umzug beide Instanzen stoppen und die gewünschten Dateien kopieren. Das SQLite-Archiv gehört in `runtime/Draft-Coach.sqlite3`.
+
+## Grenzen und Entwicklung
+
+Die Erkennung hängt von Bildschirmgeometrie, Animationen und Kalibrierung ab. Im Zauberfenster erkennt der Coach derzeit Plätze und sichtbare Stufen. Zaubernamen, ein vollständiger Feldbestand und eine belastbare Kampfstärkeformel sind offen. Die Gewichte sind änderbare Einschätzungen. Prüfe automatische Klicks zuerst auf deinem Gerät. Browser-Spracherkennung kann einen Dienst des Browseranbieters nutzen. Die optionale Websuche übermittelt die Frage beim Öffnen der Suche.
+
+`npm test` startet die Node-Regressionstests. `python vision.py --file <Bild>` prüft eine einzelne Aufnahme. Mit den privaten Referenzen baut `python vision.py --build-calibration` die Vorlagen neu und `python benchmark.py` misst die Erkennung. `node smoke.mjs` benötigt einen laufenden Coach, Referenzbilder und ein ADB-Gerät.
+
+| Datei oder Ordner | Aufgabe |
+| --- | --- |
+| `public/` | Weboberfläche, Rahmen, Audio, Taktikeditor und Archivverwaltung |
+| `server.mjs`, `pipeline.mjs` | HTTP, ADB, Aufnahmesteuerung und Python-Prozess |
+| `vision.py`, `data/calibration.npz` | OpenCV-Erkennung und abgeleitete Vorlagen |
+| `advice.mjs`, `quick-advice.mjs`, `data/` | Empfehlungen, Schnellauskunft und Startdaten |
+| `archive.mjs`, `data/archive-schema.sql` | SQLite-Import, Belegbilder und Sicherung |
+
+Eigenständiges Fanprojekt zu Draft Showdown. Spielnamen und visuelle Elemente gehören ihren jeweiligen Rechteinhabern.

@@ -1,0 +1,98 @@
+{
+  "method": "5 Wiederholungen je Bild, persistenter lokaler Prozess; inklusive Bildlesen und Größenanpassung, ohne ADB, Browser, Programmstart oder Empfehlung. Kleine bekannte Beispielsammlung, kein unabhängiger Genauigkeitsnachweis. Kampf-Beschriftungen sind auf genau diesem Kampf-Referenzbild kalibriert.",
+  "results": [
+    {
+      "image": "schlacht-teil-1.png",
+      "phase": "deck_choice",
+      "expected_names": [
+        "Drakling",
+        "Merlinor",
+        "Obergeist"
+      ],
+      "actual_names": [
+        "Drakling",
+        "Merlinor",
+        null
+      ],
+      "correct_names": 2,
+      "total_names": 3,
+      "expected_orange": [
+        11,
+        11,
+        7
+      ],
+      "actual_orange": [
+        11,
+        11,
+        7
+      ],
+      "correct_orange": 3,
+      "median_vision_ms": 39.1,
+      "max_vision_ms": 40.3,
+      "notes": []
+    },
+    {
+      "image": "schlacht-teil-2.png",
+      "phase": "deck_choice",
+      "expected_names": [
+        "Boomling",
+        "Ritter",
+        "Kapitän"
+      ],
+      "actual_names": [
+        "Boomling",
+        "Ritter",
+        "Kapitän"
+      ],
+      "correct_names": 3,
+      "total_names": 3,
+      "expected_orange": [
+        11,
+        10,
+        13
+      ],
+      "actual_orange": [
+        11,
+        10,
+        13
+      ],
+      "correct_orange": 3,
+      "median_vision_ms": 47.6,
+      "max_vision_ms": 48.1,
+      "notes": []
+    },
+    {
+      "image": "kampf-spielstaerke-1.png",
+      "phase": "battle_choice",
+      "expected_names": [
+        "Boomling",
+        "Astra",
+        "Astra"
+      ],
+      "actual_names": [
+        "Boomling",
+        "Astra",
+        "Astra"
+      ],
+      "correct_names": 3,
+      "total_names": 3,
+      "expected_orange": [
+        11,
+        6,
+        6
+      ],
+      "actual_orange": [
+        11,
+        6,
+        6
+      ],
+      "correct_orange": 3,
+      "median_vision_ms": 158.5,
+      "max_vision_ms": 162.0,
+      "notes": [
+        "Aktionsleser kennt bisher nur die drei Referenzbeschriftungen; andere Aktionen bleiben unbekannt.",
+        "Spielfeld-Zählung noch nicht automatisiert. Überlappende Figuren werden nicht als sicher gezählt."
+      ]
+    }
+  ]
+}

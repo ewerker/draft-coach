@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Draft Coach · Lokal</title><link rel="stylesheet" href="/style.css"></head>
+<body><header><div class="brand"><span class="mark">D</span><div><strong>Draft Coach</strong><small>Lokales Erkennungslabor</small></div></div><div class="header-status"><a href="#setup" id="connection" class="pill" role="status">ADB wird geprüft …</a><span id="ready" class="pill">Erkennung startet</span></div></header>
+<main><section class="intro"><div><p class="eyebrow">VOM BILDSCHIRM ZUR ENTSCHEIDUNG</p><h1>Ein Wort. Ein neuer Blick.</h1><p>„Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.<br>Die Bilderkennung arbeitet lokal im Hintergrund.</p></div><div class="mode"><label for="mode">Modus</label><select id="mode"><option value="arena">Schlacht · gesamte Sammlung</option><option value="draft">Draft · eigene Aufstellung</option><option value="prep">Vorbereitung · Sammlung aufnehmen</option><option value="quick">Schnellauskunft · Taktiklexikon</option></select><button id="open-tactics" class="small" type="button" aria-controls="tactics-panel" aria-expanded="false">Taktikregeln</button><small id="mode-hint">Zauber immer nur aus deiner Auswahl.</small></div></section>
+<nav class="admin-nav" aria-label="Verwaltung"><button id="open-admin" type="button" class="small" hidden>Admin · Archiv</button></nav>
+<section id="admin-panel" class="panel" aria-labelledby="admin-title" hidden>
+  <div class="panel-head"><h2 id="admin-title">Admin · Archiv</h2><button id="close-admin" type="button" class="small">Zurück zum Spiel</button></div>
+  <p>Das SQLite-Archiv sammelt abgeschlossene Partien, Klickprotokolle und ausgewählte Belegbilder. Pro neuer Partie übernimmt der Coach bis zu fünf noch vorhandene Bilder.</p>
+  <p id="archive-summary" role="status"></p>
+  <div class="tactics-actions">
+    <button id="archive-import" type="button" class="primary" disabled>Neue Partien übernehmen</button>
+    <button id="archive-refresh" type="button">Stand aktualisieren</button>
+    <a id="archive-backup" href="/api/admin/archiv/sicherung" download>SQLite-Sicherung herunterladen</a>
+  </div>
+  <p class="muted">Die Sicherung enthält das SQLite-Archiv samt eingebetteten Belegbildern. Die bearbeitbaren Taktikregeln werden separat gespeichert.</p>
+  <p id="archive-message" role="status"></p>
+  <h3>Zuletzt archivierte Partien</h3>
+  <ul id="archive-games"></ul>
+</section>
+<section id="quick-panel" class="panel quick" aria-labelledby="quick-title" hidden>
+  <div class="panel-head"><h2 id="quick-title">Schnellauskunft</h2><span class="pill">Lokales Taktiklexikon</span></div>
+  <div class="quick-examples" aria-label="Beispielfragen">
+    <button type="button" class="small">Was tue ich gegen Darklings?</button>
+    <button type="button" class="small">Was hilft gegen Schwärme?</button>
+    <button type="button" class="small">Wer hat Synergie mit Drakling?</button>
+  </div>
+  <div id="quick-history" class="quick-history" role="log" aria-label="Fragen und Antworten"></div>
+  <form id="quick-form">
+    <label for="quick-question">Deine Taktikfrage</label>
+    <div class="quick-input"><input id="quick-question" maxlength="500" required placeholder="Was hilft gegen Parasit?"><button class="primary" type="submit">Fragen</button></div>
+  </form>
+  <p><a id="quick-web" target="_blank" rel="noopener noreferrer" hidden>Frage im Web recherchieren</a></p>
+</section><section id="tactics-panel" class="panel" aria-labelledby="tactics-title" hidden>
+  <div class="panel-head"><h2 id="tactics-title">Taktikregeln <span id="tactics-total" class="pill"></span></h2><button id="close-tactics" type="button" class="small">Zurück zum Spiel</button></div>
+  <p class="muted">Eine Notiz hält Wissen fest. Eine Testregel zeigt eine Vorschau. Eine aktive Regel beeinflusst den Tipp.</p>
+  <p id="tactics-sources" class="muted"></p>
+  <div class="tactics-layout">
+  <div>
+  <div class="tactics-actions">
+    <label>Regeln durchsuchen <input id="tactics-search" type="search" placeholder="z. B. Verwüster, Kapitän"></label>
+    <label>Status filtern <select id="tactics-filter"><option value="">Alle</option><option value="aktiv">Aktiv</option><option value="test">Testvorschau</option><option value="notiz">Notiz</option></select></label>
+    <button id="new-tactic" type="button">Neue Erkenntnis</button>
+  </div>
+  <p id="tactics-found" class="muted" role="status"></p>
+  <div id="tactics-list" class="tactics-list"></div>
+  </div>
+  <form id="tactics-form">
+    <h3 id="tactics-form-title">Neue Erkenntnis</h3>
+    <div class="tactics-fields">
+      <label class="tactics-wide">Titel <input name="title" maxlength="100" required></label>
+      <label class="tactics-wide">Beobachtung oder Begründung <textarea name="reason" rows="3" maxlength="1500" required></textarea></label>
+      <label>Modus <select name="mode"><option value="beide">Draft und Schlacht</option><option value="draft">Draft</option><option value="arena">Schlacht</option></select></label>
+      <label>Wahlfenster <select name="phase"><option value="alle">Alle</option><option value="deck_choice">Deckwahl</option><option value="battle_choice">Kampfwahl</option><option value="spell_choice">Zauberauswahl</option></select></label>
+      <label>Diese Angebotskarte <select name="offer"></select></label>
+      <label>Wenn diese Gegnerfigur bekannt ist <select name="enemy"></select></label>
+      <label>Gewicht in Punkten <input name="weight" type="number" min="-20" max="20" step="1" value="0" required></label>
+      <label>Status <select name="status"><option value="notiz">Notiz</option><option value="test">Testvorschau</option><option value="aktiv">Aktiv</option></select></label>
+    </div>
+    <p class="muted">Plus wertet das Angebot auf, Minus wertet es ab. Mehrere passende Regeln können zusammen bis zu 25 Punkte verändern.</p>
+    <p id="tactics-message" role="status"></p>
+    <div class="tactics-actions"><button type="submit" class="primary">Speichern</button><button id="delete-tactic" type="button" class="danger" hidden>Regel löschen</button></div>
+  </form>
+  </div>
+</section>
+<div id="game-view"><details class="panel setup" id="setup"><summary>Handy verbinden · USB oder WLAN <span class="pill" id="setup-connection" role="status">ADB wird geprüft …</span></summary><p>Wähle den Verbindungsweg und gib das Gerät frei. Der Coach vermisst danach automatisch ein Probebild.</p><div class="setup-tabs"><button id="tab-usb">USB-Kabel</button><button id="tab-pair">Geschütztes WLAN-Pairing</button><button id="tab-legacy">WLAN über USB aktivieren</button></div><div id="setup-usb"><h3>USB verbinden</h3><p>Handy per Kabel anschließen, USB-Debugging in den Entwickleroptionen aktivieren und die Freigabe auf dem Handy bestätigen. „Unauthorized“ bedeutet, dass diese Freigabe noch fehlt.</p></div><div id="setup-pair" hidden><h3>WLAN-Pairing ab Android 11</h3><p>Auf dem Handy: Entwickleroptionen → Debugging über WLAN → Gerät mit Kopplungscode koppeln. Beide Geräte müssen im selben vertrauenswürdigen WLAN sein.</p><label>Pairing-Adresse inklusive Port <input id="pair-address" placeholder="192.168.1.36:12345" autocomplete="off"></label><label>Sechsstelliger Kopplungscode <input id="pair-code" inputmode="numeric" maxlength="6" autocomplete="off"></label><button id="pair">Koppeln</button><p>Wenn der PC unter „Gekoppelte Geräte“ steht, ist die Freigabe bereits erteilt. Weiter mit Schritt 2.</p></div><div id="setup-legacy" hidden><h3>WLAN mithilfe des USB-Kabels</h3><p>Zuerst unter „USB-Kabel“ ein freigegebenes USB-Gerät auswählen. Dieser Weg aktiviert einen ADB-Port im WLAN ohne den TLS-Schutz des Android-Pairings. Nur im vertrauenswürdigen privaten WLAN verwenden.</p><button id="enable-wifi">WLAN-Port 5555 ausdrücklich aktivieren</button><button id="usb-only">WLAN-Debugging beenden / USB-Modus</button></div><form id="setup-wifi-connect" hidden><h3>2. WLAN-Verbindung herstellen</h3><p>Öffne am Gerät die Hauptseite „Debugging über WLAN“. Übernimm die Angabe unter „IP-Adresse und Port“ von dieser Seite.</p><label for="device">IP-Adresse und Port des Geräts</label><div class="connection"><input id="device" placeholder="192.168.1.50:40123" autocomplete="off" required><button id="connect" type="submit">Verbinden</button></div></form><button id="scan-devices">Geräte suchen</button><div id="devices"></div><p id="setup-message" role="status"></p><p id="device-probe" class="muted" role="status">Warte auf ein verbundenes Gerät.</p><button id="probe">Probeaufnahme wiederholen</button></details>
+<section class="control" aria-label="Aufnahme steuern">
+  <button id="capture" class="primary"><span id="capture-label">Manuell aufnehmen</span> <kbd>Leertaste</kbd></button>
+  <button id="auto" type="button">Automodus starten</button>
+  <button id="mic">Mikrofon einschalten</button>
+  <button id="stop" class="quiet">Stopp</button>
+  <label class="auto" id="intermediate-control" title="Wirkt auf Aufnahmen aus dem Automodus."><input type="checkbox" id="show-intermediates"> Zwischenbilder anzeigen</label>
+  <label class="auto" id="auto-tap-control" hidden><input type="checkbox" id="auto-tap"> Tipp automatisch antippen</label>
+  <label class="auto" id="read-tip-control" hidden><input type="checkbox" id="read-tip"> Tipp vorlesen</label>
+  <span id="activity" role="status">Bereit</span>
+  <span id="auto-tap-status" class="muted" role="status"></span><button id="test-audio" type="button" class="small">Ton testen</button><span id="audio-status" class="muted" role="status"></span>
+</section>
+<dialog id="match-outcome" class="panel" aria-labelledby="match-outcome-title">
+  <form method="dialog">
+    <h2 id="match-outcome-title">Wie ist die Partie ausgegangen?</h2>
+    <p id="match-outcome-error" role="alert" hidden></p>
+    <div class="match-outcome-actions">
+      <button value="gewonnen">Gewonnen</button>
+      <button value="verloren">Verloren</button>
+      <button value="abgebrochen">Partie abgebrochen</button>
+      <button value="skip" class="quiet" autofocus>Ohne Angabe</button>
+    </div>
+  </form>
+</dialog>
+<div id="error" role="alert" hidden></div>
+<section class="panel preparation" id="preparation" hidden>
+  <div class="panel-head"><h2>Sammlung und Aufstellung aufnehmen</h2><span class="pill" id="prep-count">0 Bilder</span></div>
+  <label for="prep-kind">Was möchtest du aufnehmen?</label>
+  <select id="prep-kind">
+    <optgroup label="Sammlung"><option value="units">Sammlung · Einheiten</option><option value="spells">Sammlung · Zauber</option></optgroup>
+    <optgroup label="Aktive Aufstellung"><option value="deck-units">Aufstellung · Einheiten</option><option value="deck-spells">Aufstellung · Zauber</option></optgroup>
+  </select>
+  <p>Wähle die Aufnahmeart und nutze den Aufnahmebutton oder sage „Jetzt“. Scrolle für Sammlungsbilder mit etwas Überlappung weiter.</p>
+  <h2>Sammlung</h2>
+  <div id="prep-images"></div>
+  <h2>Aktive Aufstellung</h2>
+  <p>Zeige die ausgewählten Einheiten oder Zauber oben im jeweiligen Spielbildschirm vollständig an. Wähle oben die passende Aufnahmeart und nimm je ein Bild auf.</p>
+  <div id="deck-images"></div>
+  <h2>Sammlung und Aufstellung zusammenführen</h2>
+  <p id="saved-collection"></p>
+  <button id="import-collection" type="button">Aufnahmen auswerten</button>
+  <p id="import-status" role="status"></p>
+  <div id="import-review" hidden></div>
+  <button id="apply-collection" type="button" class="primary" hidden>Geprüfte Sammlung übernehmen</button>
+</section>
+<section class="panel preparation" id="reference-panel" hidden><div class="panel-head"><h2>Referenzbilder testen</h2><span class="muted">Lokale Bilderkennung</span></div><div id="references" class="references"></div></section>
+<section class="workspace"><article class="panel screen"><div class="panel-head"><h2 id="screen-heading">Letzte Aufnahme</h2><span id="phase" class="pill">Noch kein Bild</span></div><div id="image-empty">Nimm ein Bild auf oder wähle eine Referenz.</div><div class="image-wrap" hidden><img id="screenshot" alt="Aufgenommener Handybildschirm"><svg id="overlay" viewBox="0 0 1080 2340" aria-label="Erkannte Bildbereiche"></svg></div><div id="image-caption" class="muted"></div><div id="image-tap-status" class="muted" role="status"></div></article>
+<div class="right">
+  <article class="panel">
+    <div class="panel-head"><h2>Wahlangebote</h2></div>
+    <div id="advice" class="advice wait">Warte auf Auswahl</div>
+    <div id="offers" class="offers"><p>Noch keine Angebote erkannt.</p></div>
+    <p id="heart-score" class="pill" hidden></p><p id="tactic-feedback" class="muted" hidden></p><div id="board"></div><p id="enemy-events" class="muted" hidden></p><div id="notes" class="notes"></div>
+  </article>
+  <details class="panel">
+    <summary>Auswertung und Sprachsteuerung</summary>
+    <div class="metrics"><div><span>Aufnahme</span><strong id="capture-time">—</strong></div><div><span>Erkennung</span><strong id="vision-time">—</strong></div><div><span>Bild bis Ergebnis</span><strong id="total-time">—</strong></div></div>
+    <p id="source" class="muted">Bilderkennung und Bewertung laufen lokal. Die Browser-Spracherkennung kann einen externen Dienst verwenden.</p>
+    <p id="voice" class="muted">Sprachbefehle: Jetzt / Klick / Start → eine Aufnahme. Stopp → Mikrofon und Automatik aus.</p>
+    <p class="muted">Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vollständig berücksichtigt.</p>
+  </details>
+</div></section>
+<section class="panel measurement"><h2>Messprotokoll</h2><div id="history" class="history">Noch keine Messungen.</div></section>
+</div></main><footer id="collection-footer">Draft Coach · Prototyp</footer><script type="module" src="/app.js"></script></body></html>

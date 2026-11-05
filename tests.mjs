@@ -1,0 +1,114 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {LatestQueue} from './pipeline.mjs';
+import {allowedNames,observeDraftLineup,recommend} from './advice.mjs';
+const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
+const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
+test('latest waiting image replaces intermediate image; stale result is not published',async()=>{
+  let release;const gate=new Promise(r=>release=r);const runs=[],published=[];
+  const q=new LatestQueue(async j=>{runs.push(j.id);if(j.id===1)await gate;return j.id;},(j,r)=>published.push(r),()=>assert.fail());
+  q.push({id:1});q.push({id:2});q.push({id:3});release();
+  await new Promise(r=>setTimeout(r,20));assert.deepEqual(runs,[1,3]);assert.deepEqual(published,[3]);
+});
+test('older captured image cannot replace a newer reference job',async()=>{
+  const seen=[];const q=new LatestQueue(async j=>j.id,(j,r)=>seen.push(r),()=>{});q.supersede(5);q.push({id:4});await q.drain();assert.deepEqual(seen,[]);
+});
+test('Draft uses selected figures; both modes restrict spells to selection',()=>{
+  const draft=allowedNames(collection,'draft'),arena=allowedNames(collection,'arena');assert(draft.has('Merlinor'));assert(!draft.has('TNT'));assert(arena.has('TNT'));assert(!arena.has('Feensegen'));assert(arena.has('Minenfeld'));
+});
+test('recommendation only names a visible offer',()=>{
+  const a=recommend({enemy:[{name:'Kupid'}],offers:[{name:'Ritter',action:'add'},{name:'Kapitän',action:'add'}]},'arena',collection,db);assert(a.best);assert(['Ritter','Kapitän'].includes(a.best.name));
+});
+test('unknown card, unknown action and multiplication without counts withhold the tip',()=>{
+  for(const offer of [{name:null,action:'add'},{name:'Astra',action:'add'},{name:'TNT',action:'unknown'},{name:'TNT',action:'multiply'}])assert.equal(recommend({enemy:[],offers:[offer]},'arena',collection,db).best,null);
+});
+test('a forbidden Draft offer withholds a complete recommendation',()=>{
+  const a=recommend({enemy:[{name:'Kupid'}],offers:[{name:'TNT',action:'add'},{name:'Merlinor',action:'add'}]},'draft',collection,db);assert.equal(a.best,null);
+});
+test('tactics change ranking only in the matching mode and phase and only in the selected rule status',()=>{
+  const snapshot={phase:'battle_choice',enemy:[{name:'Agent B'}],offers:[{name:'Ritter',action:'add'},{name:'Merlinor',action:'add'}]};
+  const plain=recommend(snapshot,'arena',collection,db);
+  const target=plain.evaluated.find(card=>card.name!==plain.best.name).name;
+  const rule={title:'Test',reason:'Gegner bekannt',offer:target,enemy:'Agent B',mode:'arena',phase:'battle_choice',weight:20,status:'test'};
+  const run=(result=snapshot,mode='arena',status='test',trial=false)=>recommend(result,mode,collection,db,false,[{...rule,status}],trial);
+  assert.equal(run().best.name,plain.best.name);
+  assert.equal(run(snapshot,'arena','notiz',true).best.name,plain.best.name);
+  assert.equal(run(snapshot,'arena','test',true).best.name,target);
+  assert.equal(run(snapshot,'arena','aktiv').best.name,target);
+  assert.equal(run({...snapshot,enemy:[]},'arena','aktiv').evaluated.find(card=>card.name===target).delta,0);
+  assert.equal(run({...snapshot,phase:'deck_choice'},'arena','aktiv').evaluated.find(card=>card.name===target).delta,0);
+  assert.equal(run(snapshot,'draft','aktiv').evaluated.find(card=>card.name===target).rules?.length??0,0);
+});
+test('a custom rule for a recognized card outside the rules catalog stays provisional',()=>{
+  const rule={title:'Astra',reason:'Eigene Beobachtung',offer:'Astra',enemy:'',mode:'beide',phase:'alle',weight:10,status:'aktiv'};
+  const snapshot={phase:'battle_choice',offers:[{name:'Astra',action:'add'}]};
+  const result=recommend(snapshot,'arena',collection,db,false,[rule]);
+  assert.equal(result.best,null);
+  assert.equal(result.provisional.name,'Astra');
+  const doubled=recommend({...snapshot,offers:[{name:'Astra',action:'multiply'}]},'arena',collection,db,false,[rule]);
+  assert.equal(doubled.best,null);
+  assert.equal(doubled.provisional.name,'Astra');
+});
+test('fallback chooses the strongest visible spell slot and a fixed position when values are open',()=>{
+  const result={phase:'spell_choice',offers:[{name:null,position:0,action:'spell',orange:{value:10}},
+    {name:null,position:2,action:'spell',orange:{value:11}}]};
+  const advice=recommend(result,'draft',collection,db);
+  assert.equal(advice.best,null);
+  assert.equal(advice.fallback.position,2);
+  const unknown=[0,1,2].map(position=>({name:null,position,action:'unknown'}));
+  assert.equal(recommend({phase:'battle_choice',offers:unknown},'arena',collection,db).fallback.position,1);
+  assert.equal(recommend({phase:'battle',offers:unknown},'arena',collection,db).fallback,null);
+});
+test('recognized additions count once in normal and fallback battle rankings',()=>{
+  const ritter={name:'Ritter',action:'add',quantity:1};
+  const offers=[ritter,{...ritter,quantity:3}];
+  const score=result=>recommend({phase:'battle_choice',offers:result},'arena',collection,db);
+  const full=score(offers);
+  assert.equal(full.best.index,1);
+  assert.equal(full.best.score-full.evaluated[0].score,4);
+  const partial=score([...offers,{name:null,action:'unknown'}]);
+  assert.equal(partial.fallback.index,1);
+  assert.equal(partial.fallback.score,full.best.score);
+});
+test('battle prefers reinforcement over +2 but respects small stacks and strong counters',()=>{
+  const add={name:'Ritter',action:'add',quantity:2};
+  const pick=(offers,own=[],enemy=[],matchups=[])=>recommend({phase:'battle_choice',offers,own,enemy},'arena',collection,matchups).best;
+  for(const action of ['multiply','upgrade']){
+    assert.equal(pick([add,{...add,action,quantity:null}]).index,1);
+  }
+  assert.equal(pick([add,{...add,action:'upgrade'}],[{name:'Ritter'}]).index,0);
+  assert.equal(pick([{name:'Spartheus',action:'upgrade'},{name:'Sniper',action:'add',quantity:2}],
+    [],[{name:'Schnecke'}],db).name,'Sniper');
+});
+test('recognized Astra reinforcement can win a close draft comparison without bespoke matchup data',()=>{
+  const draft=structuredClone(collection);
+  draft.units.active_lineup=['Astra','Merlinor','Zerstörer','Assassine'];
+  const enemy=[{name:'Drakling'},{name:'Splime'}];
+  const astra={name:'Astra',orange:{value:7}};
+  const pick=offers=>recommend({phase:'battle_choice',enemy,offers},'draft',draft,db);
+  const doubled=pick([{...astra,action:'multiply',quantity:2},{...astra,action:'upgrade'},
+    {name:'Merlinor',action:'add',quantity:1}]);
+  assert.equal(doubled.best,null);
+  assert.equal(doubled.fallback.index,0);
+  const upgraded=pick([{...astra,action:'upgrade'},{...astra,action:'add',quantity:2},
+    {name:'Zerstörer',action:'add',quantity:2}]);
+  assert.equal(upgraded.fallback.index,0);
+});
+test('draft learns from distinct normal offers and can already recommend a newly observed unit',()=>{
+  const tracker={seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
+  const owned=new Set(collection.units.units.map(card=>card.name));
+  const offer=(name,position)=>({name,position,nameSource:'Kartenbeschriftung',similarity:.85,captionMargin:.15,action:'add',quantity:2});
+  const frame=(names,deckEvidence=true)=>({phase:'battle_choice',deckEvidence,offers:names.map(offer)});
+  const first=frame(['Blutrebe','Merlinor','Assassine']);
+  observeDraftLineup(tracker,frame(['TNT','Sniper','Kapitän'],false),owned);
+  assert.equal(tracker.seen.size,0);
+  assert.equal(observeDraftLineup(tracker,first,owned),null);
+  assert.equal(observeDraftLineup(tracker,first,owned),null);
+  assert.equal(tracker.counts.get('Blutrebe'),1);
+  const a=recommend({...first,observedDraftUnits:[...tracker.seen]},'draft',collection,db);
+  assert.notEqual(a.evaluated[0].score,null);
+  assert.equal(observeDraftLineup(tracker,frame(['Zerstörer','Assassine','Blutrebe']),owned),null);
+  assert.deepEqual(new Set(observeDraftLineup(tracker,frame(['Merlinor','Zerstörer','Assassine']),owned)),
+    new Set(['Blutrebe','Merlinor','Assassine','Zerstörer']));
+});
