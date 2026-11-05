@@ -1407,5 +1407,16 @@
     "enemy": "",
     "weight": 20,
     "status": "aktiv"
+  },
+  {
+    "id": "kapitaen-gegen-verwuester",
+    "title": "Kapitän gegen Verwüster abwerten",
+    "reason": "Spielerbeobachtung: Herangezogene Verwüsterfässer können direkt an der Kapitänsreihe explodieren. Eng stehende Kapitäne können beim Heranziehen in die Fläche geraten.",
+    "mode": "beide",
+    "phase": "battle_choice",
+    "offer": "Kapitän",
+    "enemy": "Zerstörer",
+    "weight": -12,
+    "status": "aktiv"
   }
 ]
