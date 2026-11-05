@@ -189,7 +189,7 @@ function withObservedEnemies(result,job){
   for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,event);
   if(result.enemyEvent)enemy.set(result.enemyEvent.name,result.enemyEvent);
   const observedDraftUnits=activeMatch.draftObservation?[...activeMatch.draftObservation.seen]:[];
-  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
+  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
 }
 function newDraftObservation(){
   return {seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
@@ -401,8 +401,9 @@ async function tapRecommendation(job,item,choice,selection=null){
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],Math.min(2500,sendTime));
     outcome='gesendet';reason=undefined;
     lastTappedChoice=choice;
-    if(item.phase==='battle_choice'&&job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
-      activeMatch.pendingReinforcement={choice,offer};
+    if(job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
+      if(item.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer};
+      if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
     }
     lastCardTap={id:job.id,index:best.index,name:best.name,choice,matchId:job.matchId};
     if(job.tapGeneration===tapGeneration)tapMessage=selection?(best.name??'Position '+(offer.position+1))+' · Auswahl an das Handy gesendet.':best.name+' automatisch angetippt.';
@@ -466,6 +467,7 @@ function selectDevice(target) {
     lastTappedChoice=null;
     if(lastCardTap)lastCardTap.choice=null;
     activeMatch?.enemyEvents.clear();
+    activeMatch?.ownDeckPicks.clear();
     activeMatch?.ownReinforcements.clear();
     if(activeMatch)activeMatch.pendingReinforcement=null;
     activeMatch?.enemyDeck.clear();
@@ -544,7 +546,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   let match, captureDone;
   if(!probe&&!preparationKind){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),heartTimeline:[],
-      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],ownReinforcements:new Map(),pendingReinforcement:null,
+      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),pendingReinforcement:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
     captureDone=Promise.withResolvers();
@@ -682,8 +684,9 @@ async function tapImage({id,u,v}){
       const choice=choiceSignature(result,true);
       if(choice&&result===state.current){
         lastTappedChoice=choice;
-        if(result.phase==='battle_choice'&&result.matchId&&activeMatch?.id===result.matchId){
-          activeMatch.pendingReinforcement={choice,offer:card};
+        if(result.matchId&&activeMatch?.id===result.matchId){
+          if(result.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer:card};
+          if(result.phase==='deck_choice'&&card.name)activeMatch.ownDeckPicks.add(card.name);
         }
       }
       lastCardTap={id,index,name:card.name,choice:result===state.current?choice:null,matchId:result.matchId};

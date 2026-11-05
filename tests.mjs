@@ -140,3 +140,10 @@ test('a tracked group makes upgrading more valuable than adding two troops',()=>
   assert.equal(pick({}),'TNT');
   assert.equal(pick(Object.fromEntries(counts)),'Parasit');
 });
+
+test('deck choice favors a ranged unit when Sixshoot and Captain are already selected',()=>{
+  const offers=['Königlop','Sniper','Boomling'].map(name=>({name,action:'add',orange:{value:name==='Sniper'?11:12}}));
+  const pick=ownDeckPicks=>recommend({phase:'deck_choice',offers,ownDeckPicks},'arena',collection,db).best.name;
+  assert.equal(pick(['Sixshoot','Kapitän','Totem']),'Sniper');
+  assert.equal(pick(['Sixshoot','Kapitän','Merlinor']),'Königlop');
+});

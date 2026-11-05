@@ -60,6 +60,9 @@ export function observeChosenReinforcement(counts, offer){
     counts.set(offer.name,previous*offer.quantity);
 }
 
+const deckRanged=new Set(['Merlinor','Kupid','Sniper']);
+const deckBacklineAccess=new Set(['Agent B','Assassine','Maulwurf']);
+
 export function recommend(result, mode, collection, db, extended=false, rules=[], includeTests=false) {
   const allowed=allowedNames(collection,mode,extended||[1,2].includes(result.specialStep));
   if(mode==='draft'){
@@ -69,6 +72,9 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const enemy=(result.enemy||[]).filter(c=>c.name).map(c=>c.name);
   const strengths=new Map([...collection.units.units,...collection.spells.spells].map(c=>[c.name,c.bottom_badge]));
   const warnings=[];
+  const ownDeck=new Set([...(result.ownDeckPicks??[]),...(result.own??[]).map(card=>card.name)]);
+  const hasRanged=[...ownDeck].some(name=>deckRanged.has(name));
+  const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));
   const evaluated=(result.offers||[]).map((offer,index)=>{
     const reinforcement=reinforcementValue(result,offer);
     const applied=rules.filter(rule=>rule.offer===offer.name&&
@@ -99,6 +105,15 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       why=ruleOnly?'Ersatzwertung nach Kartenstufe und sichtbarer Aktion. Für diese Figur fehlen eigene Matchup-Daten.':
         enemy.length?'Eigene Kartenstufe als Ausgangswert. Für diese Karte ist kein passender Konter hinterlegt.':
         'Einfacher Einstieg nach eigener Kartenstärke. Keine gegnerischen Karten sicher erkannt.';
+    }
+    if(result.phase==='deck_choice'&&!hasRanged){
+      if(deckRanged.has(offer.name)){
+        score+=hasBacklineAccess?10:18;
+        why+=' Fernkampf ergänzt das Deck und kann Ziele aus der Distanz erreichen.';
+      }else if(!hasBacklineAccess&&deckBacklineAccess.has(offer.name)){
+        score+=10;
+        why+=' Direkter Zugriff auf die gegnerische Hinterreihe ergänzt das Deck.';
+      }
     }
     const additions=visibleAdditions(result,offer);
     if(additions){
