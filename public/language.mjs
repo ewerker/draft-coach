@@ -201,6 +201,25 @@ Rechts|Right
 Wählen|Choose
 Zauber|Spell
 Einheiten|Units
+Ausgewählte Einheiten|Selected units
+Ausgewählte Zauber|Selected spells
+Noch keine Aufnahme.|No captures yet.
+Karte|Card
+Vorhanden|Owned
+Stärke|Level
+Aufstellung|Lineup
+Auswertung|Analysis
+Keine Karten erkannt.|No cards detected.
+Ein Sammlungsimport läuft bereits.|A collection import is already running.
+Nimm zuerst Sammlungs- oder Aufstellungsbilder auf.|Capture your collection or lineup first.
+Bitte warte, bis der Sammlungsimport fertig ist.|Wait for the collection import to finish.
+Die Aufstellung enthält zu viele ausgewählte Karten.|The lineup contains too many selected cards.
+Sammlungsaufnahme nicht gefunden.|Collection capture not found.
+Deckwahl · Beginn|Deck selection · Start
+Deckwahl · Gegner sichtbar|Deck selection · Opponent visible
+Spielfeld · Einblendung|Battlefield · Banner
+Spielfeld · Figuren|Battlefield · Units
+Kampf · Wahlangebote|Battle · Available choices
 Verwaltung|Administration
 Erkannte Bildbereiche|Recognised image regions
 Aufgenommener Handybildschirm|Captured phone screen
@@ -291,6 +310,7 @@ Verdopplung|Double
 Figuren hinzufügen|Add units
 Figuren|units
 Einheiten|units
+Zauber|spells
 Bilder|images
 Aufnahmen|captures
 Belegbilder|evidence images
@@ -323,10 +343,37 @@ Du|You
 Tipp|Recommendation
 `.trim().split('\n').map(line=>line.split('|')));
 const fragmentPattern=new RegExp('(?<![\\p{L}\\p{N}])(?:'+[...fragments.keys()].map(escapeRegExp).join('|')+')(?![\\p{L}\\p{N}])','gu');
+const preparationLabels=new Map([
+  ['Einheiten','Units'],['Zauber','Spells'],
+  ['Ausgewählte Einheiten','Selected units'],['Ausgewählte Zauber','Selected spells']
+]);
+function translatePreparation(text){
+  const reference=/^Sammlung · (Einheiten|Zauber) (\d+)$/.exec(text);
+  if(reference)return 'Collection · '+preparationLabels.get(reference[1])+' '+reference[2];
+  const capture=/^Aufnahme (\d+)$/.exec(text);
+  if(capture)return 'Capture '+capture[1];
+  const gallery=/^(Ausgewählte Einheiten|Ausgewählte Zauber|Einheiten|Zauber) · (\d+|Aufnahme \d+)( löschen)?$/.exec(text);
+  if(gallery){
+    const label=preparationLabels.get(gallery[1])+' · '+gallery[2].replace('Aufnahme ','Capture ');
+    return gallery[3]?'Delete '+label:label;
+  }
+  const deckWarning=/^Aufstellung (Einheiten|Zauber): (\d+) von (\d+) erkannt\. Bisherige Auswahl prüfen\.$/.exec(text);
+  if(deckWarning)return `${preparationLabels.get(deckWarning[1])} lineup: ${deckWarning[2]} of ${deckWarning[3]} detected. Review your previous selection.`;
+  if(text.startsWith('Aktiver Stand · ')){
+    return displayNames(text,'en').replace('Aktiver Stand · ','Current collection · ')
+      .replace(/(\d+) Einheiten und (\d+) Zauber/,'$1 units and $2 spells')
+      .replace('Einheiten:','Units:').replace('Zauber:','Spells:').replaceAll('keine ausgewählt','none selected');
+  }
+  const reviewLabel=/^(Stärke (.+)|(.+) (vorhanden|in Aufstellung))$/.exec(text);
+  if(reviewLabel){
+    if(reviewLabel[2])return 'Level for '+displayNames(reviewLabel[2],'en');
+    return displayNames(reviewLabel[3],'en')+(reviewLabel[4]==='vorhanden'?' owned':' in lineup');
+  }
+}
 export function translate(text,language){
   if(language!=='en'||typeof text!=='string')return text;
   const core=text.trim();
   if(!core)return text;
-  const english=ui.get(core)??displayNames(core,'en').replace(fragmentPattern,word=>fragments.get(word));
+  const english=ui.get(core)??translatePreparation(core)??displayNames(core,'en').replace(fragmentPattern,word=>fragments.get(word));
   return english===core?text:text.replace(core,()=>english);
 }
