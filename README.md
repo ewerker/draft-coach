@@ -12,6 +12,14 @@ Examples of the Android game screens the Coach works with. The first row in each
 | --- | --- | --- |
 | <img src="docs/screenshots/unit-collection.png" width="220" alt="Draft Showdown unit collection and active unit lineup"> | <img src="docs/screenshots/deck-selection.png" width="220" alt="Three unit offers on the Draft Showdown deck selection screen"> | <img src="docs/screenshots/spell-collection.png" width="220" alt="Draft Showdown spell collection and active spell lineup"> |
 
+### How the Coach marks its recommendations
+
+These reference captures were analysed locally and rendered with the Coach's own overlay. Thin outlines show detected regions. The thick dashed outline highlights the recommended card.
+
+| Yellow dashes · fallback recommendation | Green dashes · recommendation |
+| --- | --- |
+| <img src="docs/screenshots/coach-detection-1.png" width="300" alt="Coach analysis with a yellow dashed outline around Merlinor"> | <img src="docs/screenshots/coach-detection-2.png" width="300" alt="Coach analysis with a green dashed outline around Captain"> |
+
 ## What it can do
 
 | Area | Features |

@@ -12,6 +12,14 @@ Diese Spielansichten nutzt der Coach als Eingabe. In den beiden Sammlungen steht
 | --- | --- | --- |
 | <img src="docs/screenshots/unit-collection.png" width="220" alt="Einheitensammlung mit aktiver Aufstellung in Draft Showdown"> | <img src="docs/screenshots/deck-selection.png" width="220" alt="Drei Figurenangebote bei der Deckwahl in Draft Showdown"> | <img src="docs/screenshots/spell-collection.png" width="220" alt="Zaubersammlung mit aktiver Aufstellung in Draft Showdown"> |
 
+### So markiert der Coach seine Auswertung
+
+Die folgenden Referenzaufnahmen wurden mit der lokalen Erkennung und der originalen Rahmenanzeige des Coachs ausgewertet. Dünne Rahmen markieren erkannte Bereiche. Der kräftige gestrichelte Rahmen zeigt, welche Karte der Coach empfiehlt.
+
+| Gelb gestrichelt · Versuchstipp | Grün gestrichelt · Empfehlung |
+| --- | --- |
+| <img src="docs/screenshots/coach-detection-1.png" width="300" alt="Coach-Auswertung der Deckwahl mit gelb gestricheltem Rahmen um Merlinor"> | <img src="docs/screenshots/coach-detection-2.png" width="300" alt="Coach-Auswertung der Deckwahl mit grün gestricheltem Rahmen um Kapitän"> |
+
 ## Was der Coach kann
 
 | Bereich | Funktionen |
