@@ -32,8 +32,6 @@
 #match-outcome::backdrop{background:#0b101bcc}
 .match-outcome-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
 #match-outcome-error{color:#ffd7d7}
-#open-tactics{margin-left:8px}
-#open-tactics[aria-expanded=true]{border-color:var(--accent);color:var(--accent)}
 .tactics-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:24px}
 .tactics-list{max-height:55vh;min-height:140px;overflow:auto;margin:12px 0;padding-right:6px}
 .tactics-row{display:grid;gap:4px;width:100%;text-align:left;margin-bottom:6px}
@@ -57,6 +55,9 @@
 .quick-entry{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
 .quick-entry small,.quick-entry a{display:inline-block;margin-left:8px}
 .quick a{color:#bcd4ff}
-.admin-nav:has(button:not([hidden])){margin-bottom:12px}
+.intro .mode{min-width:0;max-width:100%}
+.intro .mode select{width:100%}
+.help-panel li,.help-panel dd{margin-bottom:10px;line-height:1.6}
+.help-panel details{border-top:1px solid var(--line);padding-top:12px}
 #archive-backup{color:#bcd4ff;align-self:center;padding:8px}
 #archive-games li{margin-block:8px}

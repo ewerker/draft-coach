@@ -146,21 +146,32 @@ $('capture').onclick=async()=>{
   });
 };
 let coachView='game';
+let gameMode=$('mode').value;
+const viewHints={quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Partien archivieren und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
 function showCoachView(view){
   coachView=view;
   $('game-view').hidden=view!=='game';
   $('quick-panel').hidden=view!=='quick';
   $('tactics-panel').hidden=view!=='tactics';
   $('admin-panel').hidden=view!=='admin';
-  $('open-tactics').setAttribute('aria-expanded',String(view==='tactics'));
+  $('help-panel').hidden=view!=='help';
+  $('mode').value=view==='game'?gameMode:view;
+  if(viewHints[view])$('mode-hint').textContent=viewHints[view];
   if(view==='quick')$('quick-question').focus();
+  if(view==='help')$('help-title').focus();
 }
 $('mode').onchange=()=>{
   speech?.cancel();
   spokenChoice='';
   const mode=$('mode').value;
-  if(mode==='quick'){showCoachView('quick');return;}
+  if(Object.hasOwn(viewHints,mode)){
+    showCoachView(mode);
+    if(mode==='admin')void updateArchive();
+    if(mode==='tactics')void openTactics();
+    return;
+  }
   showCoachView('game');
+  if(mode===gameMode){void refresh();return;}
   return action(async()=>{
     await post('/api/settings',{mode,autoTap:mode!=='prep'&&preferences.autoTap===true});
     rememberPreferences({mode});
@@ -353,7 +364,7 @@ document.addEventListener('keydown',e=>{if(e.code==='Space'&&coachView==='game'&
 const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung'};
 const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
-$('open-admin').hidden=!config.localAdmin;
+if(config.localAdmin)$('organization-options').append(new Option('Admin · Archiv','admin'));
 let archiveBusy=false;
 function renderArchive(data){
   const size=new Intl.NumberFormat('de',{maximumFractionDigits:1}).format(data.bytes/1024/1024);
@@ -388,8 +399,9 @@ async function updateArchive(importGames=false){
   }catch(error){message.textContent=error.message;}
   finally{archiveBusy=false;$('archive-refresh').disabled=false;}
 }
-$('open-admin').onclick=()=>{showCoachView('admin');void updateArchive();};
-$('close-admin').onclick=()=>{showCoachView('game');void refresh();};
+function returnToGame(){showCoachView('game');$('mode').focus();void refresh();}
+$('close-admin').onclick=returnToGame;
+$('close-help').onclick=returnToGame;
 $('archive-refresh').onclick=()=>updateArchive();
 $('archive-import').onclick=()=>updateArchive(true);
 let quickSubjects=[];
@@ -496,14 +508,15 @@ function renderTacticList(){
 }
 $('tactics-search').oninput=renderTacticList;
 $('tactics-filter').onchange=renderTacticList;
-$('open-tactics').onclick=()=>action(async()=>{
-  const response=await fetch('/api/taktikregeln');
-  if(!response.ok)throw Error('Taktikregeln konnten nicht geladen werden.');
-  renderTactics(await response.json());
-  editTactic();
-  showCoachView('tactics');
-});
-$('close-tactics').onclick=()=>{showCoachView('game');void refresh();};
+async function openTactics(){
+  try{
+    const response=await fetch('/api/taktikregeln');
+    if(!response.ok)throw Error('Taktikregeln konnten nicht geladen werden.');
+    renderTactics(await response.json());
+    editTactic();
+  }catch(error){$('tactics-message').textContent=error.message;}
+}
+$('close-tactics').onclick=returnToGame;
 $('new-tactic').onclick=()=>{if(!changingTactic){editTactic();tacticsForm.elements.namedItem('title').focus();}};
 $('delete-tactic').onclick=async()=>{
   const rule=listedTactics.find(entry=>entry.id===editingTactic);
@@ -784,7 +797,9 @@ async function refresh(){
   $('auto').disabled=state.auto||manualCapturePending||state.capturing||!state.ready||conn.status!=='device';
   $('auto').textContent=state.auto?'Automodus läuft':'Automodus starten';
   $('auto').dataset.running=String(state.auto);
-  $('mode').value=coachView==='quick'?'quick':state.mode;$('mode').disabled=state.capturing&&coachView==='game';
+  gameMode=state.mode;
+  $('mode').value=coachView==='game'?gameMode:coachView;
+  $('mode').disabled=state.capturing&&coachView==='game';
   $('prep-kind').value=state.preparationKind||'units';$('prep-kind').disabled=state.capturing;
   $('preparation').hidden=!prep;
   document.querySelector('.workspace').hidden=prep&&state.current?.source!=='reference';
@@ -794,10 +809,10 @@ async function refresh(){
   $('auto').hidden=prep;
   const draftLineup=state.activeLineup??config.collection.units.active_lineup;
   const draftExtra=state.observedDraftUnits??[];
-  $('mode-hint').textContent=prep?'Einheiten und Zauber getrennt aufnehmen.':state.mode==='draft'?
+  $('mode-hint').textContent=viewHints[coachView]??(prep?'Einheiten und Zauber getrennt aufnehmen.':state.mode==='draft'?
     (draftLineup.length?'Aktives Draft-Deck · '+displayCardNames(draftLineup.join(', ')):'Noch kein Draft-Deck übernommen.')+
     (draftExtra.length?' · Neu im Spiel erkannt: '+displayCardNames(draftExtra.join(', ')):''):
-    'Zauber immer nur aus deiner Auswahl.';
+    'Zauber immer nur aus deiner Auswahl.');
   const shots=state.preparation||[], nextPrepKey=shots.map(p=>p.file).join(',');
   if(prep&&nextPrepKey!==prepKey){
     prepKey=nextPrepKey;

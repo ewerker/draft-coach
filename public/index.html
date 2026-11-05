@@ -1,8 +1,41 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Draft Coach · Lokal</title><link rel="stylesheet" href="/style.css"></head>
 <body><header><div class="brand"><span class="mark">D</span><div><strong>Draft Coach</strong><small>Lokales Erkennungslabor</small></div></div><div class="header-status"><a href="#setup" id="connection" class="pill" role="status">ADB wird geprüft …</a><span id="ready" class="pill">Erkennung startet</span></div></header>
-<main><section class="intro"><div><p class="eyebrow">VOM BILDSCHIRM ZUR ENTSCHEIDUNG</p><h1>Ein Wort. Ein neuer Blick.</h1><p>„Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.<br>Die Bilderkennung arbeitet lokal im Hintergrund.</p></div><div class="mode"><label for="mode">Modus</label><select id="mode"><option value="arena">Schlacht · gesamte Sammlung</option><option value="draft">Draft · eigene Aufstellung</option><option value="prep">Vorbereitung · Sammlung aufnehmen</option><option value="quick">Schnellauskunft · Taktiklexikon</option></select><button id="open-tactics" class="small" type="button" aria-controls="tactics-panel" aria-expanded="false">Taktikregeln</button><small id="mode-hint">Zauber immer nur aus deiner Auswahl.</small></div></section>
-<nav class="admin-nav" aria-label="Verwaltung"><button id="open-admin" type="button" class="small" hidden>Admin · Archiv</button></nav>
+<main><section class="intro"><div><p class="eyebrow">VOM BILDSCHIRM ZUR ENTSCHEIDUNG</p><h1>Ein Wort. Ein neuer Blick.</h1><p>„Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.<br>Die Bilderkennung arbeitet lokal im Hintergrund.</p></div><div class="mode">
+  <label for="mode">Auswahl</label>
+  <select id="mode">
+    <optgroup label="Spiel">
+      <option value="arena">Schlacht</option>
+      <option value="draft">Draft</option>
+    </optgroup>
+    <optgroup label="Organisation" id="organization-options">
+      <option value="prep">Vorbereitung</option>
+      <option value="quick">Schnellauskunft</option>
+      <option value="tactics">Taktikregeln</option>
+    </optgroup>
+    <optgroup label="Hilfe"><option value="help">Hilfe / FAQ</option></optgroup>
+  </select>
+  <small id="mode-hint">Zauber immer nur aus deiner Auswahl.</small>
+</div></section>
+<section id="help-panel" class="panel help-panel" aria-labelledby="help-title" hidden>
+  <div class="panel-head"><h2 id="help-title" tabindex="-1">Hilfe / FAQ</h2><button id="close-help" type="button" class="small">Zurück zum Spiel</button></div>
+  <p>Der Coach holt einen Screenshot vom Android-Gerät, erkennt die sichtbaren Angebote und bewertet sie mit deinem Deck und den lokalen Taktikregeln. Die Empfehlung erscheint im Browser und wird im Bild markiert.</p>
+  <h3>In drei Schritten loslegen</h3>
+  <ol>
+    <li><strong>Handy verbinden.</strong> Öffne „Handy verbinden“ in einer Spielansicht. Verbinde das Gerät per USB-Debugging oder über „Geschütztes WLAN-Pairing“. Beim WLAN-Pairing verwendest du zuerst die Adresse im Kopplungsdialog und danach die Adresse auf der Hauptseite „Debugging über WLAN“. Die automatische Probeaufnahme zeigt, ob die Verbindung klappt.</li>
+    <li><strong>Sammlung und Deck erfassen.</strong> Wähle „Vorbereitung“. Nimm Einheiten und Zauber getrennt auf. Wenn du scrollst, lass die Bilder etwas überlappen. Erfasse auch die aktiven Aufstellungen, werte die Aufnahmen aus und übernimm die geprüften Daten.</li>
+    <li><strong>Spielen.</strong> Wähle „Draft“ oder „Schlacht“ passend zum Spiel. Nutze „Manuell aufnehmen“, die Leertaste oder den Automodus. Der Coach bewertet die sichtbare Wahl. Du kannst selbst wählen oder „Tipp automatisch antippen“ aktivieren.</li>
+  </ol>
+  <h3>Was kann ich ins Mikrofon sagen?</h3>
+  <dl>
+    <dt><strong>„Jetzt“, „Klick“ oder „Start“</strong></dt><dd>Löst eine einzelne Aufnahme aus. Den Automodus startest du mit dem eigenen Button.</dd>
+    <dt><strong>„Stopp“ oder „Ende“</strong></dt><dd>Beendet Mikrofon, Automodus und automatisches Antippen. Bei einer laufenden Partie kannst du anschließend das Ergebnis angeben.</dd>
+  </dl>
+  <p class="muted">Falls der Browser kein Mikrofon anbietet oder die Freigabe fehlt, nutze den Aufnahmebutton oder die Leertaste. Die Browser-Spracherkennung kann einen externen Dienst verwenden. „Tipp vorlesen“ steuert die Sprachausgabe unabhängig vom Mikrofon.</p>
+  <details><summary>Was ist der Unterschied zwischen Draft und Schlacht?</summary><p>Im Draft orientiert sich der Coach an deiner aktiven Aufstellung. In der Schlacht kann er eigene Einheiten aus der Sammlung berücksichtigen. Zauber stammen in beiden Modi normalerweise aus der aktiven Zauberauswahl.</p></details>
+  <details><summary>Was bedeuten relevante Aufnahmen?</summary><p>Im Automodus bleibt normalerweise das letzte erkannte Wahlfenster im Bild. Mit „Zwischenbilder anzeigen“ kannst du auch die Aufnahmen dazwischen sehen.</p></details>
+  <details><summary>Wo finde ich Taktikwissen und Partien?</summary><p>„Schnellauskunft“ beantwortet Fragen aus dem lokalen Lexikon. Unter „Taktikregeln“ bearbeitest du die Regeln. „Admin · Archiv“ steht am Host-PC zur Verfügung. Dort übernimmst du gespeicherte Partieergebnisse ins Archiv und lädst eine SQLite-Sicherung herunter.</p></details>
+</section>
 <section id="admin-panel" class="panel" aria-labelledby="admin-title" hidden>
   <div class="panel-head"><h2 id="admin-title">Admin · Archiv</h2><button id="close-admin" type="button" class="small">Zurück zum Spiel</button></div>
   <p>Das SQLite-Archiv sammelt abgeschlossene Partien, Klickprotokolle und ausgewählte Belegbilder. Pro neuer Partie übernimmt der Coach bis zu fünf noch vorhandene Bilder.</p>
