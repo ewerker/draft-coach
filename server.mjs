@@ -486,10 +486,7 @@ const queue=new LatestQueue(async job=>{
         const last=activeMatch.heartTimeline.at(-1);
         const {own,enemy}=result.hearts;
         if(last?.own!==own||last?.enemy!==enemy){
-          if(last){
-            match.ownReinforcements.clear();
-            match.pendingReinforcement=null;
-          }
+          // Both modes keep their formations between rounds.
           match.heartTimeline.push({captureId:job.id,own,enemy});
         }
       }
