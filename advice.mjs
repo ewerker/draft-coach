@@ -75,6 +75,8 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const ownDeck=new Set([...(result.ownDeckPicks??[]),...(result.own??[]).map(card=>card.name)]);
   const hasRanged=[...ownDeck].some(name=>deckRanged.has(name));
   const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));
+  const rearThreat=['Bienenkorb','Schnecke'].find(name=>enemy.includes(name)&&
+    (result.enemyAdditions?.[name]>=2||(result.enemy??[]).some(card=>card.name===name&&card.action==='add'&&card.quantity>=2)));
   const evaluated=(result.offers||[]).map((offer,index)=>{
     const reinforcement=reinforcementValue(result,offer);
     const applied=rules.filter(rule=>rule.offer===offer.name&&
@@ -114,6 +116,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
         score+=10;
         why+=' Direkter Zugriff auf die gegnerische Hinterreihe ergänzt das Deck.';
       }
+    }
+    if(result.phase==='battle_choice'&&rearThreat&&(deckBacklineAccess.has(offer.name)||offer.name==='Sniper')){
+      score+=14;
+      why+=` Zugriff auf die Hinterreihe ist wichtiger, weil mehrere Einheiten vom Typ ${rearThreat} beobachtet wurden.`;
     }
     const additions=visibleAdditions(result,offer);
     if(additions){

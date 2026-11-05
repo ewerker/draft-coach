@@ -189,7 +189,7 @@ function withObservedEnemies(result,job){
   for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,event);
   if(result.enemyEvent)enemy.set(result.enemyEvent.name,result.enemyEvent);
   const observedDraftUnits=activeMatch.draftObservation?[...activeMatch.draftObservation.seen]:[];
-  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
+  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
 }
 function newDraftObservation(){
   return {seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
@@ -467,6 +467,8 @@ function selectDevice(target) {
     lastTappedChoice=null;
     if(lastCardTap)lastCardTap.choice=null;
     activeMatch?.enemyEvents.clear();
+    activeMatch?.enemyAdditions.clear();
+    activeMatch?.enemyAdditionTimes.clear();
     activeMatch?.ownDeckPicks.clear();
     activeMatch?.ownReinforcements.clear();
     if(activeMatch)activeMatch.pendingReinforcement=null;
@@ -498,7 +500,16 @@ const queue=new LatestQueue(async job=>{
       }
       if(result.enemyEvent){
         const {name,action,quantity}=result.enemyEvent;
-        activeMatch.enemyEvents.set(name,{name,action,quantity});
+        match.enemyEvents.set(name,{name,action,quantity});
+        if(action==='add'&&Number.isInteger(quantity)&&quantity>0){
+          const key=JSON.stringify([name,quantity]);
+          const previous=match.enemyAdditionTimes.get(key);
+          // A banner usually stays visible across several captures.
+          if(previous===undefined||job.started-previous>4000){
+            match.enemyAdditions.set(name,(match.enemyAdditions.get(name)??0)+quantity);
+          }
+          match.enemyAdditionTimes.set(key,job.started);
+        }
       }
       await updateDraftLineup(match,result);
       if(activeMatch===match&&job.target===device)await updateOwnCardValues(match,result,job.target);
@@ -545,7 +556,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   const id=++serial,started=Date.now(),target=device,mode=state.mode,gameLanguage=state.gameLanguage,armedGeneration=tapGeneration;
   let match, captureDone;
   if(!probe&&!preparationKind){
-    activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),heartTimeline:[],
+    activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
       draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),pendingReinforcement:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
