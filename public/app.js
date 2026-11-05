@@ -164,9 +164,8 @@ function readTip(state){
   if(choice===spokenChoice)return;
   spokenChoice=choice;
   speech.cancel();
-  const label=spell?'Zaubertipp':best?'Tipp':fallback?'Versuchstipp':'Vorläufiger Tipp';
   const detail=displayNames(tip.name,language)||(level!=null?translate(`Stufe ${level}`,language):null);
-  const utterance=new SpeechSynthesisUtterance([translate(label,language),translate(position,language),detail].filter(Boolean).join('. '));
+  const utterance=new SpeechSynthesisUtterance([translate(position,language),detail].filter(Boolean).join('. '));
   utterance.lang=language==='en'?'en-US':'de-DE';
   speech.speak(utterance);
 }
