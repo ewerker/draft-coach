@@ -13,6 +13,9 @@ with np.load(Path(__file__).resolve().parent/'data'/'english-collection.npz',all
         for kind in tabs
     }
 
+with np.load(Path(__file__).resolve().parent/'data'/'english-battle.npz',allow_pickle=False) as battle:
+    battle_names = [(name,battle[f'name_{index}']) for index,name in enumerate(battle['names'].tolist())]
+
 
 def text_masks(text, heights):
     font = cv2.FONT_HERSHEY_DUPLEX

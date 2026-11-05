@@ -340,7 +340,7 @@ def recognize(path,preferred=None,language='de'):
                 x=35+c*340
                 card=classify(img,[x+25,1090,x+295,1305]); card.update(position=c,action='unknown',quantity=None)
                 card['orange']=number(img,[x+206,1022,x+259,1070]); card['blue']=number(img,[x+270,1024,x+317,1073])
-                card.update(read_battle_caption(img,x,None if special_step else preferred,card if language=='en' else None))
+                card.update(read_battle_caption(img,x,None if special_step else preferred,card,language))
                 if card['action']=='unknown':
                     caption=cv2.cvtColor(cut(img,[x+22,1385,x+300,1475]),cv2.COLOR_BGR2GRAY)
                     for pattern,name,action in legacy_captions:
@@ -464,10 +464,11 @@ def showdown_step(img):
     return None
 
 
-def read_battle_caption(img, x, preferred, icon=None):
+def read_battle_caption(img, x, preferred, icon=None, language='de'):
     footer = lettering(cut(img,[x+11,1377,x+322,1480]))
     matches = {}
-    for name,pattern in battle_names:
+    patterns=english_battle_names if language=='en' else battle_names
+    for name,pattern in patterns:
         if pattern.shape[1]>footer.shape[1] or pattern.shape[0]>footer.shape[0]:
             continue
         _,score,_,(left,top)=cv2.minMaxLoc(cv2.matchTemplate(footer,pattern,cv2.TM_CCOEFF_NORMED))
@@ -487,8 +488,8 @@ def read_battle_caption(img, x, preferred, icon=None):
                 score,left,top,width=matches[name]
                 pool_hint=True
     result={'name':None,'action':'unknown','quantity':None,'candidate':name,'similarity':round(score,3),'captionMargin':round(margin,3),'poolHint':pool_hint}
-    if score<.62 or (margin<.06 and not pool_hint):
-        english=vision_english.card_caption(footer,icon or {})
+    if score<(.70 if language=='en' else .62) or (margin<.06 and not pool_hint):
+        english=vision_english.card_caption(footer,icon or {}) if language=='en' else None
         if english is None:
             return result
         name=icon['name']
@@ -651,6 +652,11 @@ battle_names=[
     (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
     for name,mask in collection_names['units']+calibrated_names
     for scale in (.85,.90,.95,1,1.05,1.10,1.15,1.20,1.25,1.30,1.35,1.40)
+]
+english_battle_names=[
+    (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
+    for name,mask in vision_english.collection_names['units']+vision_english.battle_names
+    for scale in (.85,.90,.95,1,1.05,1.10,1.15,1.20,1.25)
 ]
 action_digits=[(value,template) for value,template in numbers if 1<=value<=9]
 for value,rows in json.loads((ROOT/'data'/'choice-digits.json').read_text(encoding='utf-8')).items():
