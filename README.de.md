@@ -4,6 +4,14 @@
 
 Draft Coach ist ein lokaler Begleiter für **Draft Showdown**. Er holt Android-Screenshots per ADB, erkennt sichtbare Wahlangebote mit OpenCV und bewertet sie anhand bearbeitbarer Taktikregeln. Du bedienst ihn im Browser. Die Bildverarbeitung läuft auf dem Host-PC.
 
+## Screenshots
+
+Diese Spielansichten nutzt der Coach als Eingabe. In den beiden Sammlungen steht die aktive Aufstellung jeweils oben.
+
+| Einheitensammlung | Deckwahl | Zaubersammlung |
+| --- | --- | --- |
+| <img src="docs/screenshots/unit-collection.png" width="220" alt="Einheitensammlung mit aktiver Aufstellung in Draft Showdown"> | <img src="docs/screenshots/deck-selection.png" width="220" alt="Drei Figurenangebote bei der Deckwahl in Draft Showdown"> | <img src="docs/screenshots/spell-collection.png" width="220" alt="Zaubersammlung mit aktiver Aufstellung in Draft Showdown"> |
+
 ## Was der Coach kann
 
 | Bereich | Funktionen |
@@ -55,3 +63,5 @@ Der Sprachumschalter wählt auch die Spielsprache für die Erkennung. Für engli
 | `archive.mjs`, `data/archive-schema.sql` | SQLite-Import, Belegbilder und Sicherung |
 
 Eigenständiges Fanprojekt zu Draft Showdown. Spielnamen und visuelle Elemente gehören ihren jeweiligen Rechteinhabern.
+
+[Versions- und Releaseablauf](RELEASING.md)

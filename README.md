@@ -4,6 +4,14 @@
 
 Draft Coach is a local companion for **Draft Showdown**. It reads the screen of an Android device via ADB, identifies visible draft and combat offers with OpenCV, and ranks those offers using editable tactical rules. The browser is the control surface. The host PC does the image processing.
 
+## Screenshots
+
+Examples of the Android game screens the Coach works with. The first row in each collection shows the active lineup.
+
+| Unit collection | Deck selection | Spell collection |
+| --- | --- | --- |
+| <img src="docs/screenshots/unit-collection.png" width="220" alt="Draft Showdown unit collection and active unit lineup"> | <img src="docs/screenshots/deck-selection.png" width="220" alt="Three unit offers on the Draft Showdown deck selection screen"> | <img src="docs/screenshots/spell-collection.png" width="220" alt="Draft Showdown spell collection and active spell lineup"> |
+
 ## What it can do
 
 | Area | Features |
@@ -51,3 +59,5 @@ The compiled calibration is included. Full reference screenshots for the optiona
 | `archive.mjs`, `data/archive-schema.sql` | SQLite import, evidence, and backup |
 
 Independent fan project for Draft Showdown. Game names and visual elements belong to their respective owners.
+
+[Release workflow](RELEASING.md)
