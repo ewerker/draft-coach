@@ -3,8 +3,21 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LatestQueue} from './pipeline.mjs';
 import {allowedNames,observeDraftLineup,recommend} from './advice.mjs';
+import {displayNames,translate} from './public/language.mjs';
+import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
 const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
+test('English display names and questions preserve German card keys',()=>{
+  assert.equal(translate('Auswahl','en'),'Choose a view');
+  assert.equal(displayNames('Verwüster, Drakling, ¡ZAS!','en'),'Waster, Whelp, ZAP!');
+  const cards=['Drakling','Schnecke','Kapitän','Agent B'];
+  const rules=[{offer:'Schnecke',enemy:'Drakling',title:'Schnecke gegen Drakling',reason:'Flächenschaden',weight:8,status:'aktiv'}];
+  const answer=quickAdvice('What counters Whelp?',cards,rules,[],[],'en');
+  assert.deepEqual(answer.subjects,['Drakling']);
+  assert.match(answer.summary,/Counters to Whelp/);
+  assert.equal(answer.entries.length,1);
+  assert.deepEqual(quickAdvice('What counters it?',cards,rules,[],answer.subjects,'en').subjects,['Drakling']);
+});
 test('latest waiting image replaces intermediate image; stale result is not published',async()=>{
   let release;const gate=new Promise(r=>release=r);const runs=[],published=[];
   const q=new LatestQueue(async j=>{runs.push(j.id);if(j.id===1)await gate;return j.id;},(j,r)=>published.push(r),()=>assert.fail());

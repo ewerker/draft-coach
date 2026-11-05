@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Draft Coach · Lokal</title><link rel="stylesheet" href="/style.css"></head>
-<body><header><div class="brand"><span class="mark">D</span><div><strong>Draft Coach</strong><small>Lokales Erkennungslabor</small></div></div><div class="header-status"><a href="#setup" id="connection" class="pill" role="status">ADB wird geprüft …</a><span id="ready" class="pill">Erkennung startet</span></div></header>
+<body><header><div class="brand"><span class="mark">D</span><div><strong>Draft Coach</strong><small>Lokales Erkennungslabor</small></div></div><div class="header-status"><select id="language" aria-label="Sprache"><option value="de" lang="de">Deutsch</option><option value="en" lang="en">English</option></select><a href="#setup" id="connection" class="pill" role="status">ADB wird geprüft …</a><span id="ready" class="pill">Erkennung startet</span></div></header>
 <main><section class="intro"><div><p class="eyebrow">VOM BILDSCHIRM ZUR ENTSCHEIDUNG</p><h1>Ein Wort. Ein neuer Blick.</h1><p>„Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.<br>Die Bilderkennung arbeitet lokal im Hintergrund.</p></div><div class="mode">
   <label for="mode">Auswahl</label>
   <select id="mode">
@@ -20,6 +20,7 @@
 <section id="help-panel" class="panel help-panel" aria-labelledby="help-title" hidden>
   <div class="panel-head"><h2 id="help-title" tabindex="-1">Hilfe / FAQ</h2><button id="close-help" type="button" class="small">Zurück zum Spiel</button></div>
   <p>Der Coach holt einen Screenshot vom Android-Gerät, erkennt die sichtbaren Angebote und bewertet sie mit deinem Deck und den lokalen Taktikregeln. Die Empfehlung erscheint im Browser und wird im Bild markiert.</p>
+  <p class="muted">Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.</p>
   <h3>In drei Schritten loslegen</h3>
   <ol>
     <li><strong>Handy verbinden.</strong> Öffne „Handy verbinden“ in einer Spielansicht. Verbinde das Gerät per USB-Debugging oder über „Geschütztes WLAN-Pairing“. Beim WLAN-Pairing verwendest du zuerst die Adresse im Kopplungsdialog und danach die Adresse auf der Hauptseite „Debugging über WLAN“. Die automatische Probeaufnahme zeigt, ob die Verbindung klappt.</li>
@@ -68,6 +69,7 @@
     <div class="quick-input"><input id="quick-question" maxlength="500" required placeholder="Was hilft gegen Parasit?"><button class="primary" type="submit">Fragen</button></div>
   </form>
   <p><a id="quick-web" target="_blank" rel="noopener noreferrer" hidden>Frage im Web recherchieren</a></p>
+  <p id="quick-language-note" class="muted" hidden>Die Erklärung stammt aus dem lokalen Wissensbestand und kann auf Deutsch vorliegen.</p>
 </section><section id="tactics-panel" class="panel" aria-labelledby="tactics-title" hidden>
   <div class="panel-head"><h2 id="tactics-title">Taktikregeln <span id="tactics-total" class="pill"></span></h2><button id="close-tactics" type="button" class="small">Zurück zum Spiel</button></div>
   <p class="muted">Eine Notiz hält Wissen fest. Eine Testregel zeigt eine Vorschau. Eine aktive Regel beeinflusst den Tipp.</p>

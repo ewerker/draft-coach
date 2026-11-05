@@ -4,8 +4,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 import cv2
 import numpy as np
-cv2.setNumThreads(2)
-IMAGES = ROOT / 'references'
+import vision_english
+cv2.setNumThreadeferences'
 CANON = {'Verwüster':'Zerstörer', 'Bientank':'Bienenkorb'}
 templates = []
 numbers = []
@@ -216,6 +216,15 @@ def deck_choice_offset(img, layout):
         return dx,dy
     return None
 
+def english_deck_offset(img):
+    region=lettering(cut(img,[120,650,960,805]))
+    score,_,top,_=vision_english.strongest(region,vision_english.deck_masks)
+    if score<.70:
+        return None
+    dy=top+650-705
+    icons=[classify(img,[75+c*350,940+dy,318+c*350,1140+dy]) for c in range(3)]
+    return (0,dy) if sum(card['name'] is not None and card['similarity']>=.66 for card in icons)>=2 else None
+
 def read_deck_caption(img,x,dy):
     region=lettering(cut(img,[x+8,1135+dy,x+304,1245+dy]))
     matches={}
@@ -277,6 +286,7 @@ def recognize(path,preferred=None):
     img=normalize_screen(raw,geometry['content'])
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
     deck=deck_choice_offset(img,geometry['layout'])
+    english_deck=deck is None and (deck:=english_deck_offset(img)) is not None
     # Deck choice has the fixed banner. Battle choices have large jagged cards.
     hsv=cv2.cvtColor(cut(img,[0,0,1080,350]),cv2.COLOR_BGR2HSV)
     red_header=float(np.mean(((hsv[:,:,0]<15)|(hsv[:,:,0]>170))&(hsv[:,:,1]>100)))
@@ -293,6 +303,8 @@ def recognize(path,preferred=None):
             card=classify(img,[x+35,940+dy,x+278,1140+dy],preferred); card.update(position=c,action='add',quantity=None)
             if geometry['layout']=='centered':
                 card.update(read_deck_caption(img,x,dy))
+            if english_deck:
+                card['experimentalLanguage']=True
             card['orange']=number(img,[x+14,1242+dy,x+69,1308+dy]); card['blue']=number(img,[x+251,885+dy,x+300,934+dy])
             offers.append(card)
         for side,y1,y2,by,oy,target in [('enemy',365,502,328,582,enemies),('own',1734,1857,1697,1949,own)]:
@@ -314,7 +326,7 @@ def recognize(path,preferred=None):
                 x=35+c*340
                 card=classify(img,[x+25,1090,x+295,1305]); card.update(position=c,action='unknown',quantity=None)
                 card['orange']=number(img,[x+206,1022,x+259,1070]); card['blue']=number(img,[x+270,1024,x+317,1073])
-                card.update(read_battle_caption(img,x,None if special_step else preferred))
+                card.update(read_battle_caption(img,x,None if special_step else preferred,card))
                 if card['action']=='unknown':
                     caption=cv2.cvtColor(cut(img,[x+22,1385,x+300,1475]),cv2.COLOR_BGR2GRAY)
                     for pattern,name,action in legacy_captions:
@@ -441,7 +453,7 @@ def showdown_step(img):
     return None
 
 
-def read_battle_caption(img, x, preferred):
+def read_battle_caption(img, x, preferred, icon=None):
     footer = lettering(cut(img,[x+11,1377,x+322,1480]))
     matches = {}
     for name,pattern in battle_names:
@@ -465,9 +477,14 @@ def read_battle_caption(img, x, preferred):
                 pool_hint=True
     result={'name':None,'action':'unknown','quantity':None,'candidate':name,'similarity':round(score,3),'captionMargin':round(margin,3),'poolHint':pool_hint}
     if score<.62 or (margin<.06 and not pool_hint):
-        return result
+        english=vision_english.card_caption(footer,icon or {})
+        if english is None:
+            return result
+        name=icon['name']
+        score,left,top,width=english
+        result.update(candidate=name,similarity=round(score,3),poolHint=False,experimentalLanguage=True)
     result['name']=name
-    result['nameSource']='Kartenbeschriftung'
+    result['nameSource']='English caption and icon' if result.get('experimentalLanguage') else 'Kartenbeschriftung'
     # Gold, blue and green variants use the same name, with different operations.
     color=cv2.cvtColor(cut(img,[x+15,1080,x+36,1240]),cv2.COLOR_BGR2HSV)
     if np.mean((color[:,:,0]>=35)&(color[:,:,0]<=90)&(color[:,:,1]>55))>.55:
@@ -662,7 +679,7 @@ elif __name__ == '__main__':
             elif req.get('geometryOnly'):
                 result={'geometry':screen_geometry(decode(req['path']))}
             else:
-                result=recognize(req['path'],set(req.get('preferred') or []))
+                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'))
             result['id']=req['id']
         except Exception as exc:
             result={'id':req.get('id') if 'req' in locals() else None,'error':str(exc)}

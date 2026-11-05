@@ -1,3 +1,5 @@
+import {EN_CARD_NAMES,displayNames} from './public/language.mjs';
+
 const normalize=text=>text.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,' ').trim();
 const aliases={
   Drakling:['draklings','darklink','darklinks','darkling','darklings','drake','drakelings','whelp','whelps'],
@@ -28,20 +30,20 @@ const combinations=[
   ['Spartheus','Totem','Das Totem unterstützt die bestehende Front. Der Nutzen hängt vom Ausbau und davon ab, ob das Totem geschützt steht.','https://www.reddit.com/r/DraftShowdown/comments/1tojy1g/made_a_tier_list_of_all_the_units_and_the_spells/']
 ];
 
-export function quickAdvice(question,cards,rules,matchups,context=[]){
+export function quickAdvice(question,cards,rules,matchups,context=[],language='de'){
   const text=normalize(question);
   const contains=(value,word)=>(' '+value+' ').includes(' '+word+' ');
   const known=new Set(cards);
-  const named=cards.filter(card=>[normalize(card),...(aliases[card]??[])].some(alias=>contains(text,alias)));
-  const synergy=/synerg|kombin|partner|zusammen|passt/.test(text);
-  const attacks=/stark gegen|gut gegen|bekampf|angreifen|kontert|kontern/.test(text);
-  const outgoing=/\bgegen wen\b/.test(text)||attacks&&!/\b(was|wer|wie|gegenmittel|hilfe)\b/.test(text);
-  const names=named.length?named:/^(und|dann)|\b(dagegen|damit|ihn|ihr|sie|ihm)\b/.test(text)
+  const named=cards.filter(card=>[normalize(card),normalize(EN_CARD_NAMES[card]??card),...(aliases[card]??[])].some(alias=>contains(text,alias)));
+  const synergy=/synerg|kombin|combin|partner|zusammen|passt|works? well with|pairs? with|pair with/.test(text);
+  const attacks=/stark gegen|gut gegen|bekampf|angreifen|kontert|kontern|good against|strong against|should .* counter/.test(text);
+  const outgoing=/\b(gegen wen|who does|what does)\b/.test(text)||attacks&&!/\b(was|wer|wie|gegenmittel|hilfe)\b/.test(text);
+  const names=named.length?named:/^(und|dann|and|then)|\b(dagegen|damit|ihn|ihr|sie|ihm|it|them|that)\b/.test(text)
     ?context.filter(card=>known.has(card)):[];
   const swarm=/schwarm|schwarme|swarm|massen/.test(text);
   if(!names.length){
-    if(swarm)return {summary:'Gegen Schwärme zählt Flächenschaden und die Unterscheidung zwischen Boden und Luft.',entries:swarmAdvice,subjects:[]};
-    return {summary:'Welche Figur oder welchen Zauber meinst du? Du kannst auch nach einem Schwarm fragen.',entries:[],subjects:[]};
+    if(swarm)return {summary:language==='en'?'Against swarms, use area damage and check whether the units are on the ground or airborne.':'Gegen Schwärme zählt Flächenschaden und die Unterscheidung zwischen Boden und Luft.',entries:swarmAdvice,subjects:[]};
+    return {summary:language==='en'?'Which unit or spell do you mean? You can also ask about swarms.':'Welche Figur oder welchen Zauber meinst du? Du kannst auch nach einem Schwarm fragen.',entries:[],subjects:[]};
   }
   const entries=[];
   for(const name of names.slice(0,3)){
@@ -83,6 +85,12 @@ export function quickAdvice(question,cards,rules,matchups,context=[]){
   }
   const unique=[...new Map(entries.map(entry=>[entry.title+' '+entry.detail,entry])).values()].slice(0,6);
   const label=names.join(', ');
+  if(language==='en'){
+    const display=displayNames(label,'en');
+    return {subjects:names,summary:unique.length
+      ?(synergy?'Combinations with ':outgoing?'Good targets for ':'Counters to ')+display+'. Quantity, upgrades and formation can change the recommendation.'
+      :'The local knowledge base has no specific entry for '+display+' for this question.',entries:unique};
+  }
   return {subjects:names,summary:unique.length
     ?(synergy?'Kombinationen mit ':outgoing?'Günstige Ziele für ':'Antworten gegen ')+label+'. Menge, Ausbaustufe und Aufstellung können den Tipp ändern.'
     :'Für '+label+' finde ich zu dieser Frage keinen konkreten Eintrag im lokalen Lexikon.',entries:unique};

@@ -26,7 +26,7 @@ Draft Coach is a local companion for **Draft Showdown**. It reads the screen of 
    powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
    ```
 
-3. Open [http://127.0.0.1:4317/](http://127.0.0.1:4317/). Use **Handy verbinden** to select a device and run a test capture. The application UI is in German.
+3. Open [http://127.0.0.1:4317/](http://127.0.0.1:4317/). Choose **Deutsch** or **English** in the header. Use **Connect phone** to select a device and run a test capture.
 4. To install Start and Stop shortcuts, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\install-desktop.ps1`. If you already have Draft Coach shortcuts, this points them at this checkout. Save an open match through the browser before stopping the server.
 
 The compiled calibration is included. Full reference screenshots for the optional gallery and benchmark can be placed in `references/` from your private backup. The default collection is example data. Import your own collection before relying on recommendations.
@@ -36,6 +36,7 @@ The compiled calibration is included. Full reference screenshots for the optiona
 - The default listener is loopback only. For access from another device, copy `.env.example` to `.env`, set `COACH_LAN_ADDRESS` to the host's LAN IP, and restart. Use `http://<host-LAN-IP>:4317/`. LAN Basic Auth uses `coach` by default and an automatically generated password in `runtime/lan-passwort.txt` if no password is configured. HTTP Basic Auth is suitable here for a trusted private network. The archive admin stays on the host's loopback address.
 - `runtime/` contains your collection, editable rules, journals, captures, and SQLite database. Back it up separately and keep it private. The SQLite download includes its embedded images. Live captures rotate. To migrate an older installation, stop both instances, copy the desired runtime files, and place the SQLite archive at `runtime/Draft-Coach.sqlite3`.
 - Detection depends on layout, animation, and calibration. The spell chooser currently detects slots and visible levels. Spell names, a complete battlefield inventory, and a reliable combat-strength formula remain open. Tactical weights are editable estimates. Validate on your device before enabling automatic taps. Browser speech recognition may use a vendor service. Optional web search sends the question only when you open the search.
+- The header language also selects the game-label recognition mode. English uses local fallback templates for some renamed cards and deck screens. These fallbacks are experimental and cannot trigger auto-tap. Stored German explanations remain available in their original language. If you switch languages while the microphone is on, enable it again to use the new voice commands.
 
 ## Development
 

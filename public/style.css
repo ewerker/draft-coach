@@ -64,3 +64,5 @@
 .help-panel details{border-top:1px solid var(--line);padding-top:12px}
 #archive-backup{color:#bcd4ff;align-self:center;padding:8px}
 #archive-games li{margin-block:8px}
+#language{padding:6px 8px;font-size:13px}
+@media(max-width:540px){header{height:auto;min-height:90px;gap:10px;padding-block:12px}.header-status{flex-wrap:wrap;justify-content:flex-end}}

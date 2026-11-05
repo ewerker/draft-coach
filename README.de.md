@@ -26,7 +26,7 @@ Draft Coach ist ein lokaler Begleiter für **Draft Showdown**. Er holt Android-S
    powershell -NoProfile -ExecutionPolicy Bypass -File .\start.ps1
    ```
 
-3. Am Host-PC [http://127.0.0.1:4317/](http://127.0.0.1:4317/) öffnen und über **Handy verbinden** ein Gerät auswählen. Die Probeaufnahme zeigt, ob die Verbindung klappt.
+3. Am Host-PC [http://127.0.0.1:4317/](http://127.0.0.1:4317/) öffnen, oben **Deutsch** oder **English** wählen und über **Handy verbinden** ein Gerät auswählen. Die Probeaufnahme zeigt, ob die Verbindung klappt.
 4. Optional `powershell -NoProfile -ExecutionPolicy Bypass -File .\install-desktop.ps1` ausführen. Die beiden Desktop-Verknüpfungen starten und stoppen den Coach. Vorhandene gleichnamige Verknüpfungen zeigen danach auf diesen Projektordner. Speichere ein offenes Partieergebnis vor dem Beenden in der Webseite.
 
 Die Erkennung startet mit der mitgelieferten Kalibrierung. Vollständige Referenzbilder für Galerie und Benchmark lassen sich aus der privaten Sicherung nach `references/` kopieren. Die mitgelieferte Sammlung dient als Beispiel. Über **Vorbereitung** übernimmst du deine eigenen Daten.
@@ -41,6 +41,8 @@ Unter `runtime/` liegen Sammlung, eigene Regeln, Protokolle, Aufnahmen und die S
 ## Grenzen und Entwicklung
 
 Die Erkennung hängt von Bildschirmgeometrie, Animationen und Kalibrierung ab. Im Zauberfenster erkennt der Coach derzeit Plätze und sichtbare Stufen. Zaubernamen, ein vollständiger Feldbestand und eine belastbare Kampfstärkeformel sind offen. Die Gewichte sind änderbare Einschätzungen. Prüfe automatische Klicks zuerst auf deinem Gerät. Browser-Spracherkennung kann einen Dienst des Browseranbieters nutzen. Die optionale Websuche übermittelt die Frage beim Öffnen der Suche.
+
+Der Sprachumschalter wählt auch die Spielsprache für die Erkennung. Für englisch beschriftete Karten und Deckfenster gibt es experimentelle lokale Vorlagen. Wenn die Erkennung auf diese Vorlagen zurückgreift, bleibt das automatische Antippen aus. Gespeicherte deutsche Begründungen bleiben im Original verfügbar. Nach einem Sprachwechsel das Mikrofon erneut einschalten, um die neuen Sprachbefehle zu verwenden.
 
 `npm test` startet die Node-Regressionstests. `python vision.py --file <Bild>` prüft eine einzelne Aufnahme. Mit den privaten Referenzen baut `python vision.py --build-calibration` die Vorlagen neu und `python benchmark.py` misst die Erkennung. `node smoke.mjs` benötigt einen laufenden Coach, Referenzbilder und ein ADB-Gerät.
 

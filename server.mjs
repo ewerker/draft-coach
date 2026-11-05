@@ -12,6 +12,7 @@ import {LatestQueue} from './pipeline.mjs';
 import {allowedNames,observeDraftLineup,observeOwnCardValues,recommend} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
+import {EN_CARD_NAMES} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
@@ -50,7 +51,7 @@ function setAutoTap(enabled){
 }
 const db=JSON.parse(await readFile(path.join(ROOT,'data','matchups.json'),'utf8'));
 const refs=[['einheiten-teil-1.png','Sammlung · Einheiten 1'],['einheiten-teil-2.png','Sammlung · Einheiten 2'],['einheiten-teil-3.png','Sammlung · Einheiten 3'],['zauber-teil-1.png','Sammlung · Zauber 1'],['zauber-teil-2.png','Sammlung · Zauber 2'],['schlacht-teil-1.png','Deckwahl · Beginn'],['schlacht-teil-2.png','Deckwahl · Gegner sichtbar'],['kampf-auswahl-1.png','Spielfeld · Einblendung'],['kampf-auswahl-2.png','Spielfeld · Figuren'],['kampf-spielstaerke-1.png','Kampf · Wahlangebote']].map(([file,title])=>({file,title})).filter(({file})=>existsSync(path.join(IMAGES,file)));
-const state={ready:false,device,mode:process.env.COACH_MODE||'arena',auto:false,capturing:false,recognizing:false,latestId:0,current:null,error:null,history:[],references:refs,preparationKind:'units',preparation:[],connection:{status:'checking'},voiceNotice:'Browser-Spracherkennung kann einen externen Dienst verwenden. Aufnahme und Bilderkennung laufen lokal.'};
+const state={ready:false,device,gameLanguage:'de',mode:process.env.COACH_MODE||'arena',auto:false,capturing:false,recognizing:false,latestId:0,current:null,error:null,history:[],references:refs,preparationKind:'units',preparation:[],connection:{status:'checking'},voiceNotice:'Browser-Spracherkennung kann einen externen Dienst verwenden. Aufnahme und Bilderkennung laufen lokal.'};
 const captureLimit=900;
 const playCaptureTimeout=6000;
 const playTapDeadline=7000;
@@ -88,7 +89,7 @@ function preparationEntry(file) {
   return match?{file,kind:match[1],timestamp:Number(match[2]),image:'/preparation/'+file}:null;
 }
 state.preparation=(await readdir(PREPARATION)).map(preparationEntry).filter(Boolean).sort((a,b)=>a.timestamp-b.timestamp);
-const worker=spawn(PYTHON,[path.join(ROOT,'vision.py')],{cwd:ROOT,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8'}});
+const worker=spawn(PYTHON,[path.join(ROOT,'vision.py')],{cwd:ROOT,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8',DRAFT_COACH_ENGLISH_NAMES:JSON.stringify(EN_CARD_NAMES)}});
 const waiting=new Map();
 worker.stderr.on('data',d=>console.error('Bildverarbeitung:',d.toString().slice(0,1500)));
 readline.createInterface({input:worker.stdout}).on('line',line=>{
@@ -102,7 +103,7 @@ function recognize(job) {
     const timer=setTimeout(()=>{waiting.delete(job.id);reject(Error('Erkennung nach 15 Sekunden abgebrochen'));worker.kill();},15000);
     const preferred=extendedPool?[]:[...allowedNames(collection,state.mode)];
     waiting.set(job.id,{resolve,reject,timer});
-    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,preferred})+'\n');
+    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,language:job.gameLanguage,preferred})+'\n');
   });
 }
 function preparationVersion() {
@@ -333,6 +334,7 @@ function choiceSignature(result,manual=false){
   ])]);
 }
 async function tapRecommendation(job,item,choice,selection=null){
+  if(!selection&&item.offers.some(offer=>offer.experimentalLanguage))return;
   const battleAuto=!selection&&item.phase==='battle_choice';
   const checkTimeout=Math.max(3500,Math.min(6500,Math.ceil(job.captureMs*1.6)));
   const verificationDeadline=selection?.deadline??job.started+playTapDeadline;
@@ -359,8 +361,9 @@ async function tapRecommendation(job,item,choice,selection=null){
       reason='Das Kontrollbild war kein gültiges PNG';return;
     }
     await writeFile(checkPath,png);
-    const checked=await recognize({id:++serial,path:checkPath});
+    const checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
     if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
+    if(!selection&&checked.offers.some(offer=>offer.experimentalLanguage))return;
     if(battleAuto){
       const fresh=checked.offers[best.index];
       if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||
@@ -515,7 +518,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   state.capturing=true;state.error=null;
   const controller=interruptible?new AbortController():null;
   if(controller)interruptibleCapture=controller;
-  const id=++serial,started=Date.now(),target=device,mode=state.mode,armedGeneration=tapGeneration;
+  const id=++serial,started=Date.now(),target=device,mode=state.mode,gameLanguage=state.gameLanguage,armedGeneration=tapGeneration;
   let match, captureDone;
   if(!probe&&!preparationKind){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),heartTimeline:[],
@@ -556,7 +559,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
     const frame={target,width:png.readUInt32BE(16),height:png.readUInt32BE(20)};
     liveFrames.set(id,frame);
     if(liveFrames.size>captureLimit)liveFrames.delete(liveFrames.keys().next().value);
-    const job={id,started,source,target,mode,matchId:match.id,frame,automatic:scheduled||state.auto,tapGeneration:armedGeneration,title:source==='wifi'?'WLAN-Aufnahme':'USB-Aufnahme',path:dest,image:'/capture/'+file,captureMs:Date.now()-started};
+    const job={id,started,source,target,mode,gameLanguage,matchId:match.id,frame,automatic:scheduled||state.auto,tapGeneration:armedGeneration,title:source==='wifi'?'WLAN-Aufnahme':'USB-Aufnahme',path:dest,image:'/capture/'+file,captureMs:Date.now()-started};
     // A scheduled request supersedes recognition only when its image is available.
     state.latestId=Math.max(state.latestId,id);
     queue.push(job);void trimRuntime().catch(error=>console.error('Aufnahmen aufräumen:',error.message));return {id};
@@ -723,7 +726,7 @@ async function handleRequest(req,res){
         if(typeof data.question!=='string'||!data.question.trim()||data.question.length>500)
           throw Error('Die Frage muss zwischen 1 und 500 Zeichen lang sein.');
         const context=Array.isArray(data.context)?data.context.slice(0,3):[];
-        return json(res,200,quickAdvice(data.question,tacticCards(),tactics,db,context));
+        return json(res,200,quickAdvice(data.question,tacticCards(),tactics,db,context,data.language));
       }
       if(url.pathname==='/api/browser/audio'){claimBrowser(client);return json(res,200,{ok:true});}
       if(url.pathname==='/api/browser/leave'){
@@ -783,6 +786,13 @@ async function handleRequest(req,res){
         const id=++serial;state.latestId=id;queue.push({id,started:Date.now(),source:'reference',title:ref.title,path:path.join(IMAGES,ref.file),image:'/reference/'+ref.file,captureMs:0});return json(res,202,{id});
       }
       if(url.pathname==='/api/settings') {
+        if(data.gameLanguage!==undefined){
+          if(!['de','en'].includes(data.gameLanguage))throw Error('Ungültige Spielsprache.');
+          if(state.gameLanguage!==data.gameLanguage){
+            setAutoTap(false);
+            state.gameLanguage=data.gameLanguage;
+          }
+        }
         if(data.restoreBrowser&&audioClient&&client!==audioClient)return json(res,200,{ok:true});
         if(data.mode!==undefined){
           if(!['draft','arena','prep'].includes(data.mode))throw Error('Ungültiger Modus');
@@ -870,9 +880,9 @@ async function handleRequest(req,res){
     if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
-    const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
+    const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));
   }catch(e){if(res.headersSent)res.destroy();else json(res,400,{error:e.message});}
 }

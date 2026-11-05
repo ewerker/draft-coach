@@ -1,3 +1,4 @@
+import {displayNames,translate} from './language.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -16,6 +17,58 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
+let language=preferences.language==='en'?'en':'de';
+const originalText=new WeakMap(),originalAttributes=new WeakMap();
+const translatedAttributes=['title','aria-label','placeholder','alt','label'];
+function localizeNode(node){
+  if(node.nodeType===Node.TEXT_NODE){
+    if(node.parentElement?.closest('.quick-user,script,style,textarea'))return;
+    const saved=originalText.get(node);
+    const source=saved?.rendered===node.data?saved.source:node.data;
+    const rendered=translate(source,language);
+    originalText.set(node,{source,rendered});
+    if(node.data!==rendered)node.data=rendered;
+    return;
+  }
+  if(node.nodeType!==Node.ELEMENT_NODE)return;
+  const saved=originalAttributes.get(node)??{};
+  for(const name of translatedAttributes){
+    const value=node.getAttribute(name);
+    if(value===null)continue;
+    const source=saved[name]?.rendered===value?saved[name].source:value;
+    const rendered=translate(source,language);
+    saved[name]={source,rendered};
+    if(value!==rendered)node.setAttribute(name,rendered);
+  }
+  originalAttributes.set(node,saved);
+}
+function localizeTree(root){
+  localizeNode(root);
+  if(root.nodeType!==Node.ELEMENT_NODE)return;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT);
+  while(walker.nextNode())localizeNode(walker.currentNode);
+}
+function applyLanguage(){
+  document.documentElement.lang=language;
+  $('language').value=language;
+  $('quick-language-note').hidden=language!=='en';
+  localizeTree(document.documentElement);
+}
+applyLanguage();
+new MutationObserver(changes=>{
+  for(const change of changes){
+    if(change.type==='childList')for(const node of change.addedNodes)localizeTree(node);
+    else localizeNode(change.target);
+  }
+}).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:translatedAttributes});
+$('language').onchange=()=>{
+  language=$('language').value==='en'?'en':'de';
+  rememberPreferences({language});
+  stopMic();
+  speech?.cancel();
+  applyLanguage();
+  void action(()=>post('/api/settings',{gameLanguage:language}));
+};
 $('read-tip').checked=preferences.readTip===true;
 $('show-intermediates').checked=preferences.showIntermediates===true;
 let tapAudio=null,lastTapSoundId=0,pendingTapSound=null;
@@ -98,9 +151,9 @@ function readTip(state){
   spokenChoice=choice;
   speech.cancel();
   const label=spell?'Zaubertipp':best?'Tipp':fallback?'Versuchstipp':'Vorläufiger Tipp';
-  const detail=displayCardNames(tip.name)||(level!=null?`Stufe ${level}`:null);
-  const utterance=new SpeechSynthesisUtterance([label,position,detail].filter(Boolean).join('. '));
-  utterance.lang='de-DE';
+  const detail=displayNames(tip.name,language)||(level!=null?translate(`Stufe ${level}`,language):null);
+  const utterance=new SpeechSynthesisUtterance([translate(label,language),translate(position,language),detail].filter(Boolean).join('. '));
+  utterance.lang=language==='en'?'en-US':'de-DE';
   speech.speak(utterance);
 }
 async function post(url,data={},signal) {
@@ -353,8 +406,8 @@ function listen(){
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!Recognition){error(Error('Dieser Browser bietet keine Spracherkennung. Bitte Chrome/Edge oder den Aufnahmebutton verwenden.'));stopMic();return;}
   if(!armed)return;
-  const rec=new Recognition();mic=rec;rec.lang='de-DE';rec.continuous=true;rec.interimResults=false;
-  rec.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(!e.results[i].isFinal)continue;const text=e.results[i][0].transcript.toLowerCase().trim();$('voice').textContent='Gehört: '+text;if(/\b(stopp?|ende)\b/.test(text)){$('stop').click();return;}if(/\b(jetzt|klick|click|start)\b/.test(text)&&Date.now()-lastVoiceAt>1200){lastVoiceAt=Date.now();$('capture').click();}}};
+  const rec=new Recognition();mic=rec;rec.lang=language==='en'?'en-US':'de-DE';rec.continuous=true;rec.interimResults=false;
+  rec.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(!e.results[i].isFinal)continue;const text=e.results[i][0].transcript.toLowerCase().trim();$('voice').textContent='Gehört: '+text;if(/\b(stopp?|ende|end)\b/.test(text)){$('stop').click();return;}if(/\b(jetzt|klick|click|start|now)\b/.test(text)&&Date.now()-lastVoiceAt>1200){lastVoiceAt=Date.now();$('capture').click();}}};
   rec.onerror=e=>{if(['not-allowed','service-not-allowed','audio-capture','network'].includes(e.error)){stopMic();error(Error('Spracherkennung nicht verfügbar ('+e.error+'). Aufnahmebutton bleibt nutzbar.'));}};
   rec.onend=()=>{if(mic===rec)mic=null;if(armed)setTimeout(listen,350);};
   try{rec.start();}catch{stopMic();error(Error('Mikrofon konnte nicht gestartet werden.'));}
@@ -372,7 +425,7 @@ function renderArchive(data){
   $('archive-import').disabled=!data.pending;
   const recent=$('archive-games');
   recent.replaceChildren(...data.recent.map(game=>{
-    const date=new Date(game.ende_ms).toLocaleString('de-DE');
+    const date=new Date(game.ende_ms).toLocaleString(language==='en'?'en-GB':'de-DE');
     const mode=game.modus==='arena'?'Schlacht':game.modus==='draft'?'Draft':game.modus;
     return textEl('li',`${date} · ${mode} · ${game.ergebnis} · ${game.aufnahmezahl} Aufnahmen · ${game.bilder} Belegbilder`);
   }));
@@ -420,7 +473,7 @@ function renderRecentQuestions(){
   $('quick-recent').hidden=!recentQuestions.length;
   $('quick-recent-count').textContent=String(recentQuestions.length);
   $('quick-recent-list').replaceChildren(...recentQuestions.map(({question,subjects})=>{
-    const needsContext=/\b(dagegen|damit|ihn|ihr|sie|ihm)\b/i.test(question)||/^(und|dann)\b/i.test(question);
+    const needsContext=/\b(dagegen|damit|ihn|ihr|sie|ihm|it|them|that)\b/i.test(question)||/^(und|dann|and|then)\b/i.test(question);
     const label=needsContext&&subjects.length?question+' · '+subjects.join(', '):question;
     const button=textEl('button',label,'small');
     button.type='button';
@@ -449,7 +502,7 @@ async function askQuick(question,context=quickSubjects){
   $('quick-web').href=search.href;
   $('quick-web').hidden=false;
   try{
-    const result=await post('/api/schnellauskunft',{question,context});
+    const result=await post('/api/schnellauskunft',{question,context,language});
     if(result.subjects.length)quickSubjects=result.subjects;
     if(result.entries.length)rememberQuestion(question,result.subjects);
     reply.append(textEl('p',result.summary));
@@ -496,7 +549,7 @@ function editTactic(rule){
   $('tactics-form-title').textContent=rule?'Erkenntnis bearbeiten':'Neue Erkenntnis';
   tacticsForm.reset();
   if(rule)for(const name of ['title','reason','mode','phase','offer','enemy','weight','status'])
-    tacticsForm.elements.namedItem(name).value=['title','reason'].includes(name)?displayCardNames(rule[name]):rule[name];
+    tacticsForm.elements.namedItem(name).value=rule[name];
   $('tactics-message').textContent=rule?.evidence?.length?'Belegbilder im Archiv · '+rule.evidence.join(', '):'';
   $('delete-tactic').hidden=!rule;
   for(const row of $('tactics-list').querySelectorAll('button'))
@@ -521,7 +574,7 @@ function renderTacticList(){
   const matches=listedTactics.filter(rule=>{
     if(status&&rule.status!==status)return false;
     const text=[rule.title,rule.offer,rule.enemy,rule.reason].filter(Boolean).join(' ');
-    const haystack=normalize(text+' '+displayCardNames(text));
+    const haystack=normalize(text+' '+displayCardNames(text)+' '+displayNames(text,'en'));
     return words.every(word=>haystack.includes(word));
   }).sort((a,b)=>a.title.localeCompare(b.title,'de'));
   $('tactics-found').textContent=matches.length+' von '+listedTactics.length+' Einträgen';
@@ -964,6 +1017,7 @@ await action(async()=>{
   if(state.hasAudioClient||state.auto||state.capturing||state.recognizing)return;
   const mode=['arena','draft','prep'].includes(preferences.mode)?preferences.mode:state.mode;
   const settings={};
+  if(state.gameLanguage!==language)settings.gameLanguage=language;
   if(mode!==state.mode)settings.mode=mode;
   if(mode!=='prep'&&typeof preferences.autoTap==='boolean')settings.autoTap=preferences.autoTap;
   if(Object.keys(settings).length)await post('/api/settings',{...settings,restoreBrowser:true});
