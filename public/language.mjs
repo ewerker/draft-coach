@@ -29,8 +29,7 @@ Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…
 Erkennung startet|Starting recognition
-VOM BILDSCHIRM ZUR ENTSCHEIDUNG|FROM SCREEN TO DECISION
-Ein Wort. Ein neuer Blick.|One word. A fresh look.
+Draft Showdown mit einem Klick|Draft Showdown in one click
 „Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.|Say “Now” or “Click” to capture your phone screen.
 Die Bilderkennung arbeitet lokal im Hintergrund.|Image recognition runs locally in the background.
 Auswahl|Choose a view
