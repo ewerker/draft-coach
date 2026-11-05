@@ -7,8 +7,8 @@ export const EN_CARD_NAMES=Object.freeze({
   Spartheus:'Spartheus',Sixshoot:'Sixshoot',Totem:'Totem',Boomling:'Boomling',
   Obergeist:'Overmind',Drakling:'Whelp',Kapitän:'Captain',Astra:'Astra',
   Steinhaut:'Stone Skin','¡ZAS!':'ZAP!',Grabesbogenschützen:'Grave Archers',
-  'Wilder Überfall':'Wilder Überfall',Säureexplosion:'Acid Burst',Feensegen:'Fairy Blessing',
-  Pfeilsturm:'Storm of Arrows','Wachs-Experiment':'Wachs-Experiment',Volltreffer:'Blast Out',
+  'Wilder Überfall':'Savage Raid',Säureexplosion:'Acid Burst',Feensegen:'Fairy Blessing',
+  Pfeilsturm:'Storm of Arrows','Wachs-Experiment':'Growing Experiment',Volltreffer:'Blast Out',
   Minenfeld:'Minefield',Meuchelbrigade:'Backstab Brigade',Wächtertürme:'Sentinel Towers',
   Meteorschauer:'Meteor Shower',Schildkrötenplan:'Turtle Strategy',
   'Upgrade-Roulette':'Upgrade Roulette',Grabesruf:'Grave Recall'

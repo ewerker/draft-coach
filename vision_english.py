@@ -1,9 +1,17 @@
 """Conservative fallback for English labels without a language service."""
 import json
 import os
+from pathlib import Path
 
 import cv2
 import numpy as np
+
+with np.load(Path(__file__).resolve().parent/'data'/'english-collection.npz',allow_pickle=False) as collection:
+    tabs = {kind: collection[kind+'_tab'] for kind in ('units','spells')}
+    collection_names = {
+        kind: [(name,collection[f'{kind}_{index}']) for index,name in enumerate(collection[kind+'_names'].tolist())]
+        for kind in tabs
+    }
 
 
 def text_masks(text, heights):

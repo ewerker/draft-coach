@@ -5,7 +5,8 @@ ROOT = Path(__file__).resolve().parent
 import cv2
 import numpy as np
 import vision_english
-cv2.setNumThreadeferences'
+cv2.setNumThreads(2)
+IMAGES = ROOT / 'references'
 CANON = {'Verwüster':'Zerstörer', 'Bientank':'Bienenkorb'}
 templates = []
 numbers = []
@@ -198,11 +199,20 @@ def has_battle_card_tray(img):
     return all(np.mean(cut(img,[35+c*340,1380,355+c*340,1475]).max(axis=2)<90)>.035
                for c in range(3))
 
+def collection_tab_scores(img, kind):
+    box,anchor=([130,245,410,300],collection_anchor) if kind=='units' else ([660,245,850,300],spells_anchor)
+    return anchor_score(img,box,anchor),anchor_score(img,box,vision_english.tabs[kind])
+
+def active_collection_tab(img, kind):
+    blue=img[295,580].astype(int)
+    orange=img[295,75].astype(int)
+    return blue[0]-blue[2]>=45 if kind=='spells' else orange[2]-orange[0]>=65
+
 def has_centered_layout(img):
     return (read_hearts(img,'centered') is not None or has_spell_choice_panel(img,'centered') or has_battle_card_tray(img) or
             deck_choice_offset(img,'centered') is not None or
-            anchor_score(img,[130,245,410,300],collection_anchor)>.90 or
-            anchor_score(img,[660,245,850,300],spells_anchor)>.90)
+            max(collection_tab_scores(img,'units'))>.90 or
+            max(collection_tab_scores(img,'spells'))>.90)
 
 def deck_choice_offset(img, layout):
     if anchor_score(img,[170,690,920,775],deck_anchor)>.88:
@@ -275,7 +285,7 @@ def spell_choices(img):
                        'orange':number(img,badge)})
     return offers
 
-def recognize(path,preferred=None):
+def recognize(path,preferred=None,language='de'):
     start=time.perf_counter()
     raw=decode(path)
     geometry=screen_geometry(raw)
@@ -286,7 +296,7 @@ def recognize(path,preferred=None):
     img=normalize_screen(raw,geometry['content'])
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
     deck=deck_choice_offset(img,geometry['layout'])
-    english_deck=deck is None and (deck:=english_deck_offset(img)) is not None
+    english_deck=language=='en' and deck is None and (deck:=english_deck_offset(img)) is not None
     # Deck choice has the fixed banner. Battle choices have large jagged cards.
     hsv=cv2.cvtColor(cut(img,[0,0,1080,350]),cv2.COLOR_BGR2HSV)
     red_header=float(np.mean(((hsv[:,:,0]<15)|(hsv[:,:,0]>170))&(hsv[:,:,1]>100)))
@@ -315,6 +325,10 @@ def recognize(path,preferred=None):
                 if card['similarity']>.56 and card['name']:
                     card.update(position=c,side=side,orange=number(img,[x+7,oy+dy-23,x+48,oy+dy+23]),blue=number(img,[x+170,by+dy-19,x+205,by+dy+19]))
                     target.append(card)
+    elif active_collection_tab(img,'units') and max(collection_tab_scores(img,'units'))>.90:
+        phase='collection'
+    elif active_collection_tab(img,'spells') and max(collection_tab_scores(img,'spells'))>.90:
+        phase='spells'
     elif combat and has_spell_choice_panel(img,geometry['layout']):
         phase='spell_choice'
         offers=spell_choices(img)
@@ -326,7 +340,7 @@ def recognize(path,preferred=None):
                 x=35+c*340
                 card=classify(img,[x+25,1090,x+295,1305]); card.update(position=c,action='unknown',quantity=None)
                 card['orange']=number(img,[x+206,1022,x+259,1070]); card['blue']=number(img,[x+270,1024,x+317,1073])
-                card.update(read_battle_caption(img,x,None if special_step else preferred,card))
+                card.update(read_battle_caption(img,x,None if special_step else preferred,card if language=='en' else None))
                 if card['action']=='unknown':
                     caption=cv2.cvtColor(cut(img,[x+22,1385,x+300,1475]),cv2.COLOR_BGR2GRAY)
                     for pattern,name,action in legacy_captions:
@@ -343,11 +357,6 @@ def recognize(path,preferred=None):
             else:
                 offers=[]
         notes.append('Spielfeld-Zählung noch nicht automatisiert. Überlappende Figuren werden nicht als sicher gezählt.')
-    elif anchor_score(img,[130,245,410,300],collection_anchor)>.90:
-        phase='collection'
-        notes.append('Sammlung erkannt. Import mehrerer Ausschnitte bisher als Referenzdaten vorhanden, noch kein automatischer Import.')
-    elif anchor_score(img,[660,245,850,300],spells_anchor)>.90:
-        phase='spells'
     else: notes.append('Bildschirmtyp noch nicht sicher erkannt.')
     if phase!='battle_choice' or not all(card['name'] for card in offers):
         special_step=None
@@ -357,6 +366,8 @@ def recognize(path,preferred=None):
                    not any(card['action']=='multiply_upgrade' or (card['quantity'] or 0)>4 for card in offers) and
                    not has_comeback_label(img))
     enemy_event=read_enemy_banner(img) if phase in ('battle','battle_choice','spell_choice') else None
+    if any(card.get('experimentalLanguage') for card in offers):
+        notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     return {'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':read_hearts(img,geometry['layout']),'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
 
 def lettering(img):
@@ -561,10 +572,10 @@ def read_collection(path, kind):
     spells = kind.endswith('spells')
     category = 'spells' if spells else 'units'
     # The active tab has a saturated blue or orange fill at the left edge.
-    blue = img[295,580].astype(int)
-    orange = img[295,75].astype(int)
-    if (spells and blue[0]-blue[2]<45) or (not spells and orange[2]-orange[0]<65):
+    if not active_collection_tab(img,category):
         raise ValueError('Der gewählte Sammlungsreiter ist auf diesem Bild nicht erkennbar.')
+    german,english=collection_tab_scores(img,category)
+    names=vision_english.collection_names[category] if english>.90 and english>german else collection_names[category]
     cards = []
     deck = kind.startswith('deck-')
     starts = [95,414,733] if deck and spells else [22,282,542,802]
@@ -572,7 +583,7 @@ def read_collection(path, kind):
     for x in starts:
         region = lettering(cut(img,[x+6,top,x+248,bottom]))
         hits = []
-        for name,template in collection_names[category]:
+        for name,template in names:
             scores = cv2.matchTemplate(region,template,cv2.TM_CCOEFF_NORMED)
             while True:
                 _,score,_,(_,y)=cv2.minMaxLoc(scores)
@@ -592,7 +603,6 @@ def read_collection(path, kind):
                 value = number(img,[x+6,badge_y-25,x+63,badge_y+26])['value']
             cards.append({'name':name,'bottom_badge':value,'score':round(score,3),'x':x,'y':y})
     return sorted(cards,key=lambda c:(c['x'],c['y']) if deck else (c['y']//55,c['x']))
-
 
 def build_calibration(file):
     prepare()
