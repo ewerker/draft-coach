@@ -517,7 +517,9 @@ def read_battle_caption(img, x, preferred, icon=None, language='de'):
         if part.shape[1]<14:
             continue
         count,labels,stats,_=cv2.connectedComponentsWithStats(part)
-        glyphs=sorted((tuple(stats[k]),k) for k in range(1,count) if stats[k,4]>40 and stats[k,3]>=16)
+        # Ignore sparkles outside the card caption's text line.
+        glyphs=sorted((tuple(stats[k]),k) for k in range(1,count)
+                      if stats[k,4]>40 and stats[k,3]>=16 and abs(stats[k,1]-top)<=12)
         if len(glyphs) not in (2,3) or (operation=='multiply' and len(glyphs)!=2):
             continue
         _,sign_id=glyphs[0]
