@@ -257,6 +257,36 @@ $('read-tip').onchange=()=>{
   speech?.cancel();
 };
 $('prep-kind').onchange=()=>action(()=>post('/api/settings',{preparationKind:$('prep-kind').value}));
+$('suggest-lineup').onclick=async()=>{
+  const button=$('suggest-lineup');
+  const panel=$('lineup-suggestion');
+  button.disabled=true;
+  panel.hidden=false;
+  panel.replaceChildren();
+  try{
+    const response=await fetch('/api/preparation/recommendation');
+    if(!response.ok)throw Error('Vorschlag konnte nicht geladen werden.');
+    const suggestion=await response.json();
+    for(const [heading,cards] of [['Empfohlene Einheiten',suggestion.units],['Empfohlene Zauber',suggestion.spells]]){
+      panel.append(textEl('h3',heading));
+      if(!cards.length){
+        panel.append(textEl('p','Keine Karten gespeichert.'));
+        continue;
+      }
+      const list=document.createElement('ul');
+      for(const card of cards){
+        const level=card.bottom_badge==null?'':`Stufe ${card.bottom_badge}`;
+        const item=document.createElement('li');
+        item.append(textEl('strong',card.name),' · ');
+        if(level)item.append(textEl('span',level),' · ');
+        item.append(textEl('span',card.purpose));
+        list.append(item);
+      }
+      panel.append(list);
+    }
+  }catch(e){panel.append(textEl('p',e.message));}
+  finally{button.disabled=false;}
+};
 function showSavedCollection(collection) {
   $('collection-footer').textContent='Draft Coach · '+collection.units.units.length+' Einheiten · '+collection.spells.spells.length+' Zauber';
   $('saved-collection').textContent =

@@ -63,6 +63,38 @@ export function observeChosenReinforcement(counts, offer){
 const deckRanged=new Set(['Merlinor','Kupid','Sniper']);
 const deckBacklineAccess=new Set(['Agent B','Assassine','Maulwurf']);
 
+export function suggestLineup(collection){
+  const catalog=new Map(CARDS.map(card=>[card.name,card]));
+  const role=card=>catalog.get(card.name)?.role;
+  const strength=card=>(card.bottom_badge??catalog.get(card.name)?.strength??0)+.2*(card.blue_star??0);
+  const select=(stock,slots,limit)=>{
+    const ranked=[...stock].sort((a,b)=>strength(b)-strength(a)||a.name.localeCompare(b.name,'de'));
+    const chosen=new Map();
+    for(const [purpose,matches] of slots){
+      const card=ranked.find(card=>!chosen.has(card.name)&&matches(card));
+      if(card)chosen.set(card.name,{...card,purpose});
+    }
+    for(const card of ranked){
+      if(chosen.size>=limit)break;
+      if(!chosen.has(card.name))chosen.set(card.name,{...card,purpose:'Kartenstärke'});
+    }
+    return [...chosen.values()].map(({name,bottom_badge,blue_star,purpose})=>({name,bottom_badge,blue_star,purpose}));
+  };
+  return {
+    units:select(collection.units.units,[
+      ['Frontlinie',card=>role(card)==='Front'],
+      ['Fernkampf',card=>deckRanged.has(card.name)],
+      ['Zugriff auf die Hinterreihe',card=>deckBacklineAccess.has(card.name)||card.name==='Kapitän'],
+      ['Flächenschaden',card=>role(card)==='Fläche'],
+    ],4),
+    spells:select(collection.spells.spells,[
+      ['Flächenschaden',card=>role(card)==='Fläche'],
+      ['Schutz oder Verstärkung',card=>['Schutz','Verstärkung'].includes(role(card))],
+      ['Druck auf die Hinterreihe',card=>['Zugriff','Fernkampf'].includes(role(card))],
+    ],3),
+  };
+}
+
 export function recommend(result, mode, collection, db, extended=false, rules=[], includeTests=false) {
   const allowed=allowedNames(collection,mode,extended||[1,2].includes(result.specialStep));
   if(mode==='draft'){

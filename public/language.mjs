@@ -25,6 +25,18 @@ export function displayNames(text,language){
 }
 
 const ui=new Map(`
+Deck und Zauber vorschlagen|Suggest a deck and spells
+Der Vorschlag nutzt deine gespeicherte Sammlung. Du kannst ihn im Spiel von Hand übernehmen.|The suggestion uses your saved collection. You can apply it manually in the game.
+Vorschlag anzeigen|Show suggestion
+Empfohlene Einheiten|Suggested units
+Empfohlene Zauber|Suggested spells
+Keine Karten gespeichert.|No saved cards.
+Vorschlag konnte nicht geladen werden.|Could not load the suggestion.
+Frontlinie|Front line
+Zugriff auf die Hinterreihe|Backline access
+Schutz oder Verstärkung|Protection or reinforcement
+Druck auf die Hinterreihe|Backline pressure
+Kartenstärke|Card strength
 Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…

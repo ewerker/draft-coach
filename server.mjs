@@ -9,7 +9,7 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend} from './advice.mjs';
+import {allowedNames,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES} from './public/language.mjs';
@@ -950,6 +950,7 @@ async function handleRequest(req,res){
       await archive.sendBackup(res);
       return;
     }
+    if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
     if(url.pathname==='/api/config')return json(res,200,{token,collection,desktopControl:true,localAdmin});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
