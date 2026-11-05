@@ -64,5 +64,34 @@
 .help-panel details{border-top:1px solid var(--line);padding-top:12px}
 #archive-backup{color:#bcd4ff;align-self:center;padding:8px}
 #archive-games li{margin-block:8px}
-#language{padding:6px 8px;font-size:13px}
+#language,#theme{padding:6px 8px;font-size:13px}
 @media(max-width:540px){header{height:auto;min-height:90px;gap:10px;padding-block:12px}.header-status{flex-wrap:wrap;justify-content:flex-end}}
+:root{color-scheme:dark}
+:root[data-theme=light]{
+  color-scheme:light;
+  color:#182336;
+  background:#eef2f7;
+  --line:#c8d3e2;
+  --muted:#45566e;
+  --accent:#28613d;
+}
+[data-theme=light] header,[data-theme=light] .panel,[data-theme=light] .control{background:#fff}
+[data-theme=light] .mark{background:#c9edaa;color:#1b391d}
+[data-theme=light] button,[data-theme=light] select,[data-theme=light] input:not([type=checkbox]),[data-theme=light] textarea{
+  color:#182336;background:#edf3fb;border-color:#8396b0;
+}
+[data-theme=light] button.primary{background:#c9edaa;color:#1b391d;border-color:#7aa65d}
+[data-theme=light] button:hover,[data-theme=light] .setup-tabs button[aria-pressed=true]{background:#dce8f8;border-color:#56749d}
+[data-theme=light] button.primary:hover{background:#b9e398}
+[data-theme=light] .pill{background:#e9f0fa;color:#254671;border-color:#95a9c4}
+[data-theme=light] :is(#connection,#setup-connection)[data-status=device],
+[data-theme=light] .advice,[data-theme=light] .tactics-row[aria-pressed=true]{background:#e0f1e4;color:#214d31;border-color:#80aa89}
+[data-theme=light] :is(#connection,#setup-connection):is([data-status=missing],[data-status=offline],[data-status=error],[data-status=unauthorized]),
+[data-theme=light] .advice.wait{background:#fff2dc;color:#67400f;border-color:#c09b61}
+[data-theme=light] .offer,[data-theme=light] .reference,[data-theme=light] .quick-message{background:#f5f8fc}
+[data-theme=light] .reference .reference-run{background:transparent;border:0}
+[data-theme=light] .quick-user{border-color:#8396b0}
+[data-theme=light] :is(.quick a,#archive-backup){color:#245487}
+[data-theme=light] :is(.setup-tabs button.connected,button.listening){color:#28613d;border-color:#528261}
+[data-theme=light] :is(#error,#match-outcome-error,#delete-tactic){color:#841f32;background:#fce8ec;border-color:#b46a79}
+[data-theme=light] #match-outcome::backdrop{background:#16284380}

@@ -35,6 +35,9 @@ Ein Wort. Ein neuer Blick.|One word. A fresh look.
 Die Bilderkennung arbeitet lokal im Hintergrund.|Image recognition runs locally in the background.
 Auswahl|Choose a view
 Sprache|Language
+Farbschema|Colour theme
+Hell|Light
+Dunkel|Dark
 Spiel|Play
 Organisation|Manage
 Hilfe|Help

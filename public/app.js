@@ -4,7 +4,6 @@ const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer'
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
 const browserHeaders={'X-Coach-Client':browserId};
 const fetchState=()=>fetch('/api/state',{headers:browserHeaders,signal:AbortSignal.timeout(5000)});
-const config=await fetch('/api/config').then(r=>r.json());
 let lastId=null,lastAdvice='',current=null,mic=null,armed=false,speaking=false,lastVoiceAt=0,refsShown=false;
 let overlayKey='',offersKey='';
 let prepKey=null;
@@ -17,6 +16,20 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
+const systemTheme=matchMedia('(prefers-color-scheme: dark)');
+const themeSelect=$('theme');
+themeSelect.value=['light','dark'].includes(preferences.theme)?preferences.theme:'system';
+function applyTheme(){
+  const choice=themeSelect.value;
+  document.documentElement.dataset.theme=choice==='system'?(systemTheme.matches?'dark':'light'):choice;
+}
+applyTheme();
+systemTheme.addEventListener('change',applyTheme);
+themeSelect.onchange=()=>{
+  rememberPreferences({theme:themeSelect.value});
+  applyTheme();
+};
+const config=await fetch('/api/config').then(r=>r.json());
 let language=preferences.language==='en'?'en':'de';
 const originalText=new WeakMap(),originalAttributes=new WeakMap();
 const translatedAttributes=['title','aria-label','placeholder','alt','label'];
