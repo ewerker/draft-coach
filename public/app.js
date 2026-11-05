@@ -562,8 +562,8 @@ function editTactic(rule){
   editingTactic=rule?.id??null;
   $('tactics-form-title').textContent=rule?'Erkenntnis bearbeiten':'Neue Erkenntnis';
   tacticsForm.reset();
-  if(rule)for(const name of ['title','reason','mode','phase','offer','enemy','weight','status'])
-    tacticsForm.elements.namedItem(name).value=rule[name];
+  if(rule)for(const name of ['title','reason','mode','phase','offer','enemy','weight','status','action'])
+    tacticsForm.elements.namedItem(name).value=rule[name]??'';
   $('tactics-message').textContent=rule?.evidence?.length?'Belegbilder im Archiv · '+rule.evidence.join(', '):'';
   $('delete-tactic').hidden=!rule;
   for(const row of $('tactics-list').querySelectorAll('button'))

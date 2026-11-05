@@ -74,6 +74,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     const applied=rules.filter(rule=>rule.offer===offer.name&&
       (rule.status==='aktiv'||includeTests&&rule.status==='test')&&
       (rule.mode==='beide'||rule.mode===mode)&&(rule.phase==='alle'||rule.phase===result.phase)&&
+      (!rule.action||rule.action===offer.action||rule.action==='upgrade'&&offer.action==='multiply_upgrade')&&
       (!rule.enemy||enemy.includes(rule.enemy)));
     let ruleOnly=!CARDS.some(card=>card.name===offer.name);
     const isChoice=['deck_choice','battle_choice'].includes(result.phase);

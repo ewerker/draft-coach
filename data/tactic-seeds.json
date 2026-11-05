@@ -1395,5 +1395,17 @@
     "enemy": "Ingenieur",
     "weight": -12,
     "status": "aktiv"
+  },
+  {
+    "id": "agent-b-aufwertung",
+    "title": "Agent B bevorzugt aufwerten",
+    "reason": "Spielerbeobachtung: Die Entwicklung von Agent B ist besonders stark. Bei vergleichbaren Optionen seine Aufwertung gegenüber dem Hinzufügen oder der reinen Verdopplung bevorzugen.",
+    "mode": "beide",
+    "phase": "battle_choice",
+    "action": "upgrade",
+    "offer": "Agent B",
+    "enemy": "",
+    "weight": 20,
+    "status": "aktiv"
   }
 ]

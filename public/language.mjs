@@ -198,6 +198,10 @@ Rechte Karte|Right card
 Links|Left
 Mitte|Middle
 Rechts|Right
+Angebotsaktion|Offer action
+Alle Aktionen|All actions
+Aufwertung (auch kombiniert)|Upgrade (including combined)
+Verdopplung mit Aufwertung|Double and upgrade
 Auswahl gesendet|Choice sent
 Wählen|Choose
 Zauber|Spell
