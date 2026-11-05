@@ -198,6 +198,7 @@ Rechte Karte|Right card
 Links|Left
 Mitte|Middle
 Rechts|Right
+Auswahl gesendet|Choice sent
 Wählen|Choose
 Zauber|Spell
 Einheiten|Units

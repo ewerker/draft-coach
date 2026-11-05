@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,observeDraftLineup,recommend} from './advice.mjs';
+import {allowedNames,observeChosenReinforcement,observeDraftLineup,recommend} from './advice.mjs';
 import {displayNames,translate} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
@@ -124,4 +124,19 @@ test('draft learns from distinct normal offers and can already recommend a newly
   assert.equal(observeDraftLineup(tracker,frame(['Zerstörer','Assassine','Blutrebe']),owned),null);
   assert.deepEqual(new Set(observeDraftLineup(tracker,frame(['Merlinor','Zerstörer','Assassine']),owned)),
     new Set(['Blutrebe','Merlinor','Assassine','Zerstörer']));
+});
+
+test('a tracked group makes upgrading more valuable than adding two troops',()=>{
+  const counts=new Map();
+  observeChosenReinforcement(counts,{name:'Parasit',action:'multiply',quantity:2});
+  assert.equal(counts.has('Parasit'),false);
+  observeChosenReinforcement(counts,{name:'Parasit',action:'add',quantity:4});
+  observeChosenReinforcement(counts,{name:'Parasit',action:'multiply',quantity:2});
+  const offers=[{name:'Parasit',action:'upgrade'},{name:'TNT',action:'add',quantity:2}];
+  const enemy=[{name:'Drakling'},{name:'TNT'}];
+  const rules=[{offer:'TNT',enemy:'Drakling',phase:'battle_choice',mode:'beide',weight:5,status:'aktiv'}];
+  const pick=ownReinforcements=>recommend({phase:'battle_choice',offers,enemy,ownReinforcements},
+    'arena',collection,db,false,rules).best.name;
+  assert.equal(pick({}),'TNT');
+  assert.equal(pick(Object.fromEntries(counts)),'Parasit');
 });

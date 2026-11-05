@@ -150,6 +150,7 @@ function readTip(state){
     spokenChoice='';
     return;
   }
+  if(frame.sentChoice)return;
   const {best,fallback,provisional}=frame.advice;
   const tip=best??fallback??provisional;
   if(!tip)return;
@@ -733,7 +734,7 @@ async function chooseOffer(result,card){
   }finally{choosingOffer=false;}
 }
 function canChoose(result,card){
-  return result.source!=='reference'&&!result.reviewed&&card.box?.length===4&&
+  return result.source!=='reference'&&!result.reviewed&&!result.sentChoice&&card.box?.length===4&&
     ['deck_choice','battle_choice','spell_choice'].includes(result.phase);
 }
 function offerKey(result,card){
@@ -744,8 +745,8 @@ function draw(result,sentTap){
   const groups=['offers','enemy','own'];
   const best=result.advice?.best;
   const tentative=result.advice?.fallback??result.advice?.provisional;
-  const tip=best??tentative;
-  const sentIndex=sentTap?.id===result.id?sentTap.index:null;
+  const tip=result.sentChoice??best??tentative;
+  const sentIndex=result.sentChoice?.index??(sentTap?.id===result.id?sentTap.index:null);
   const key=JSON.stringify([result.geometry,tip?.index,!!best,sentIndex,groups.map(group=>(result[group]||[]).map(card=>[card.box,!!card.name]))]);
   if(key===overlayKey)return;
   overlayKey=key;
@@ -768,7 +769,7 @@ function draw(result,sentTap){
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       const sent=group==='offers'&&index===sentIndex;
       const highlighted=group==='offers'&&index===tip?.index;
-      const stroke=highlighted?(best?'#60f394':'#ffdc58'):(card.name?'#bcf388':'#b7c1cf');
+      const stroke=highlighted?(best||sent?'#60f394':'#ffdc58'):(card.name?'#bcf388':'#b7c1cf');
       for(const [key,value] of Object.entries({x,y,width:right-x,height:bottom-y,fill:'none',stroke,'stroke-width':highlighted?12:5,rx:8}))
         rect.setAttribute(key,value);
       if(highlighted){
@@ -979,7 +980,7 @@ async function refresh(){
     $('advice').classList.add('wait');
     renderOffers({offers:[]});
   }
-  if(c){current=c;const pending=state.latestId>c.id;const a=JSON.stringify([c.phase,c.advice,c.expired,pending,filterImages]);if(c.id!==lastId){lastId=c.id;$('image-empty').hidden=true;document.querySelector('.image-wrap').hidden=false;$('screenshot').src=c.image;$('phase').textContent=phaseNames[c.phase]||c.phase;$('image-caption').textContent=c.source==='reference'?c.title+' · Gespeichertes Testbild':c.title;$('capture-time').textContent=(c.captureMs/1000).toFixed(2)+' s';$('vision-time').textContent=Math.round(c.visionMs)+' ms';$('total-time').textContent=(c.ageMs/1000).toFixed(2)+' s';renderOffers(c);}draw(c,state.lastCardTap);
+  if(c){current=c;const pending=state.latestId>c.id;const a=JSON.stringify([c.phase,c.advice,c.sentChoice,c.expired,pending,filterImages]);if(c.id!==lastId){lastId=c.id;$('image-empty').hidden=true;document.querySelector('.image-wrap').hidden=false;$('screenshot').src=c.image;$('phase').textContent=phaseNames[c.phase]||c.phase;$('image-caption').textContent=c.source==='reference'?c.title+' · Gespeichertes Testbild':c.title;$('capture-time').textContent=(c.captureMs/1000).toFixed(2)+' s';$('vision-time').textContent=Math.round(c.visionMs)+' ms';$('total-time').textContent=(c.ageMs/1000).toFixed(2)+' s';renderOffers(c);}else if(a!==lastAdvice&&c.sentChoice)renderOffers(c);draw(c,state.lastCardTap);
     if(a!==lastAdvice){
       lastAdvice=a;
       const {best,provisional,fallback}=c.advice;
@@ -987,7 +988,9 @@ async function refresh(){
       const advice=$('advice');
       advice.classList.toggle('wait',!best||pending||c.expired);
       let label,detail;
-      if((c.expired||pending&&filterImages)&&(best||fallback||provisional)){
+      if(c.sentChoice){
+        label=['Auswahl gesendet',pos[c.offers[c.sentChoice.index]?.position??c.sentChoice.index],c.sentChoice.name].filter(Boolean).join(' · ');
+      }else if((c.expired||pending&&filterImages)&&(best||fallback||provisional)){
         const previous=best??fallback??provisional;
         label=[best?'Letzter Tipp':'Letzter Versuchstipp',pos[previous.position??previous.index],previous.name].filter(Boolean).join(' · ');
         detail=['Zuletzt angezeigtes Wahlfenster.',previous.reason].filter(Boolean).join(' ');

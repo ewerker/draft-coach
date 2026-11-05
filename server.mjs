@@ -9,7 +9,7 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,observeDraftLineup,observeOwnCardValues,recommend} from './advice.mjs';
+import {allowedNames,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES} from './public/language.mjs';
@@ -189,7 +189,7 @@ function withObservedEnemies(result,job){
   for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,event);
   if(result.enemyEvent)enemy.set(result.enemyEvent.name,result.enemyEvent);
   const observedDraftUnits=activeMatch.draftObservation?[...activeMatch.draftObservation.seen]:[];
-  return {...result,enemy:[...enemy.values()],observedDraftUnits};
+  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
 }
 function newDraftObservation(){
   return {seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
@@ -305,6 +305,14 @@ async function persistTactics(next,affectsAdvice){
   } finally {savingTactics=false;}
 }
 function record(job,result) {
+  const match=activeMatch;
+  if(job.matchId&&job.matchId===match?.id&&job.target===device&&match.pendingReinforcement){
+    const next=choiceSignature(result,true);
+    if(result.phase==='battle'||(next&&result.offers.every(offer=>offer.name&&offer.action!=='unknown')&&next!==match.pendingReinforcement.choice)){
+      observeChosenReinforcement(match.ownReinforcements,match.pendingReinforcement.offer);
+      match.pendingReinforcement=null;
+    }
+  }
   result=withObservedEnemies(result,job);
   const ageMs=Date.now()-job.started;
   const expired=job.source!=='reference' && ageMs>6000;
@@ -320,17 +328,20 @@ function record(job,result) {
   }
   if(job.source!=='reference'&&job.tapGeneration===tapGeneration){
     const choice=choiceSignature(item,item.phase==='battle_choice');
-    if(choice&&lastTappedChoice!==choice)lastTappedChoice=null;
-    if(['battle','collection','spells'].includes(item.phase))lastTappedChoice=null;
-    if(choice)void tapRecommendation(job,item,choice);
+    const recognizedChoice=cardChoice&&item.offers.every(offer=>offer.name&&offer.action!=='unknown');
+    if((recognizedChoice&&lastTappedChoice!==cardChoice)||['battle','collection','spells'].includes(item.phase)){
+      lastTappedChoice=null;
+      if(lastCardTap)lastCardTap.choice=null;
+    }
+    if(choice&&(!lastTappedChoice||recognizedChoice))void tapRecommendation(job,item,choice);
   }
 }
-function choiceSignature(result,manual=false){
+function choiceSignature(result,manual=false,verifyBadges=false){
   const phases=manual?['deck_choice','battle_choice','spell_choice']:['deck_choice','battle_choice'];
   if(!phases.includes(result.phase)||!result.offers.length||
      result.offers.some(offer=>!manual&&(!offer.name||offer.action==='unknown')))return null;
   return JSON.stringify([result.phase,result.offers.map(offer=>[
-    offer.position,offer.name,offer.action,offer.quantity,offer.orange?.value,offer.blue?.value
+    offer.position,offer.name,offer.action,offer.quantity,verifyBadges||offer.action==='spell'?offer.orange?.value:null,verifyBadges?offer.blue?.value:null
   ])]);
 }
 async function tapRecommendation(job,item,choice,selection=null){
@@ -368,7 +379,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       const fresh=checked.offers[best.index];
       if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||
          fresh.action!==offer.action||fresh.quantity!==offer.quantity)return;
-    }else if(choiceSignature(checked,!!selection)!==choice)return;
+    }else if(choiceSignature(checked,!!selection,true)!==choiceSignature(item,!!selection,true))return;
     const verified=selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
       automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false));
     const box=checked.offers[best.index]?.box;
@@ -385,11 +396,14 @@ async function tapRecommendation(job,item,choice,selection=null){
     const y=Math.round(top+(box[1]+box[3])*contentHeight/(2*referenceHeight));
     const sendTime=verificationDeadline-Date.now();
     if(x<0||x>=width||y<0||y>=height||sendTime<=0||!isCurrent())return;
-    lastTappedChoice=choice;
     coordinates=[x,y];
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],Math.min(2500,sendTime));
     outcome='gesendet';reason=undefined;
-    lastCardTap={id:job.id,index:best.index};
+    lastTappedChoice=choice;
+    if(item.phase==='battle_choice'&&job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
+      activeMatch.pendingReinforcement={choice,offer};
+    }
+    lastCardTap={id:job.id,index:best.index,name:best.name,choice,matchId:job.matchId};
     if(job.tapGeneration===tapGeneration)tapMessage=selection?(best.name??'Position '+(offer.position+1))+' · Auswahl an das Handy gesendet.':best.name+' automatisch angetippt.';
     return true;
   }catch(error){
@@ -448,7 +462,11 @@ async function scanDevices() {
 }
 function selectDevice(target) {
   if(target!==device){
+    lastTappedChoice=null;
+    if(lastCardTap)lastCardTap.choice=null;
     activeMatch?.enemyEvents.clear();
+    activeMatch?.ownReinforcements.clear();
+    if(activeMatch)activeMatch.pendingReinforcement=null;
     activeMatch?.enemyDeck.clear();
     if(activeMatch?.draftObservation)activeMatch.draftObservation=newDraftObservation();
   }
@@ -467,7 +485,11 @@ const queue=new LatestQueue(async job=>{
         const last=activeMatch.heartTimeline.at(-1);
         const {own,enemy}=result.hearts;
         if(last?.own!==own||last?.enemy!==enemy){
-          activeMatch.heartTimeline.push({captureId:job.id,own,enemy});
+          if(last){
+            match.ownReinforcements.clear();
+            match.pendingReinforcement=null;
+          }
+          match.heartTimeline.push({captureId:job.id,own,enemy});
         }
       }
       for(const card of result.enemy||[]){
@@ -524,7 +546,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   let match, captureDone;
   if(!probe&&!preparationKind){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),heartTimeline:[],
-      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],
+      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],ownReinforcements:new Map(),pendingReinforcement:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
     captureDone=Promise.withResolvers();
@@ -658,7 +680,16 @@ async function tapImage({id,u,v}){
       await new Promise(resolve=>setTimeout(resolve,60));
     if(state.capturing||generation!==tapGeneration||frame.target!==device)throw Error('Klick abgebrochen. Bitte erneut versuchen.');
     await execAdb(['-s',frame.target,'shell','input','tap',String(x),String(y)],2500);
-    if(index>=0)lastCardTap={id,index};
+    if(index>=0){
+      const choice=choiceSignature(result,true);
+      if(choice&&result===state.current){
+        lastTappedChoice=choice;
+        if(result.phase==='battle_choice'&&result.matchId&&activeMatch?.id===result.matchId){
+          activeMatch.pendingReinforcement={choice,offer:card};
+        }
+      }
+      lastCardTap={id,index,name:card.name,choice:result===state.current?choice:null,matchId:result.matchId};
+    }
   }catch(error){
     entry.ergebnis='abgebrochen';entry.grund=error.message;
     throw error;
@@ -670,6 +701,8 @@ async function tapImage({id,u,v}){
   return {ok:true};
 }
 function stopMatch(){
+  lastTappedChoice=null;
+  if(lastCardTap)lastCardTap.choice=null;
   setAuto(false);
   setAutoTap(false);
   if(activeMatch){
@@ -865,7 +898,13 @@ async function handleRequest(req,res){
       const hearts=(activeMatch??stoppedMatch)?.heartTimeline.at(-1)??null;
       const activeLineup=collection.units.active_lineup;
       const observedDraftUnits=[...(activeMatch?.draftObservation?.seen??[])].filter(name=>!activeLineup.includes(name));
-      return json(res,200,{...state,latestRelevant:relevantView,enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      const showSent=item=>{
+        if(!item||!lastCardTap)return item;
+        const sameChoice=lastCardTap.choice&&item.matchId&&item.matchId===lastCardTap.matchId&&
+          choiceSignature(item,true)===lastCardTap.choice;
+        return item.id===lastCardTap.id||sameChoice?{...item,sentChoice:{index:lastCardTap.index,name:lastCardTap.name}}:item;
+      };
+      return json(res,200,{...state,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
