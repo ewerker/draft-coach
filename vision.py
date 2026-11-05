@@ -210,19 +210,22 @@ def active_collection_tab(img, kind):
 
 def has_centered_layout(img):
     return (read_hearts(img,'centered') is not None or has_spell_choice_panel(img,'centered') or has_battle_card_tray(img) or
-            deck_choice_offset(img,'centered') is not None or
+            deck_choice_offset(img,'centered') is not None or deck_choice_offset(img,'centered','en') is not None or
             max(collection_tab_scores(img,'units'))>.90 or
             max(collection_tab_scores(img,'spells'))>.90)
 
-def deck_choice_offset(img, layout):
-    if anchor_score(img,[170,690,920,775],deck_anchor)>.88:
+def deck_choice_offset(img, layout, language='de'):
+    english=language=='en'
+    anchor=vision_english.deck_anchor if english else deck_anchor
+    if anchor_score(img,[170,690,920,775],anchor)>.88:
         return (0,0)
     if layout!='centered':
         return None
     region=lettering(cut(img,[110,628,950,808]))
-    _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(region,deck_label_anchor,cv2.TM_CCOEFF_NORMED))
-    dx,dy=x+110-196,y+628-705
-    if score>.48 and abs(dx)<=45 and abs(dy)<=65:
+    label=vision_english.deck_label if english else deck_label_anchor
+    _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(region,label,cv2.TM_CCOEFF_NORMED))
+    dx,dy=x+110-(334 if english else 196),y+628-705
+    if score>(.60 if english else .48) and abs(dx)<=45 and abs(dy)<=65:
         return dx,dy
     return None
 
@@ -235,10 +238,11 @@ def english_deck_offset(img):
     icons=[classify(img,[75+c*350,940+dy,318+c*350,1140+dy]) for c in range(3)]
     return (0,dy) if sum(card['name'] is not None and card['similarity']>=.66 for card in icons)>=2 else None
 
-def read_deck_caption(img,x,dy):
+def read_deck_caption(img,x,dy,language='de'):
     region=lettering(cut(img,[x+8,1135+dy,x+304,1245+dy]))
     matches={}
-    for name,pattern in battle_names:
+    patterns=english_battle_names if language=='en' else battle_names
+    for name,pattern in patterns:
         if pattern.shape[0]>region.shape[0] or pattern.shape[1]>region.shape[1]:
             continue
         score=cv2.minMaxLoc(cv2.matchTemplate(region,pattern,cv2.TM_CCOEFF_NORMED))[1]
@@ -295,7 +299,7 @@ def recognize(path,preferred=None,language='de'):
                 'visionMs':round((time.perf_counter()-start)*1000,1)}
     img=normalize_screen(raw,geometry['content'])
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
-    deck=deck_choice_offset(img,geometry['layout'])
+    deck=deck_choice_offset(img,geometry['layout'],language)
     english_deck=language=='en' and deck is None and (deck:=english_deck_offset(img)) is not None
     # Deck choice has the fixed banner. Battle choices have large jagged cards.
     hsv=cv2.cvtColor(cut(img,[0,0,1080,350]),cv2.COLOR_BGR2HSV)
@@ -311,8 +315,8 @@ def recognize(path,preferred=None,language='de'):
         for c in range(3):
             x=40+c*350+dx
             card=classify(img,[x+35,940+dy,x+278,1140+dy],preferred); card.update(position=c,action='add',quantity=None)
-            if geometry['layout']=='centered':
-                card.update(read_deck_caption(img,x,dy))
+            if geometry['layout']=='centered' or language=='en':
+                card.update(read_deck_caption(img,x,dy,language))
             if english_deck:
                 card['experimentalLanguage']=True
             card['orange']=number(img,[x+14,1242+dy,x+69,1308+dy]); card['blue']=number(img,[x+251,885+dy,x+300,934+dy])

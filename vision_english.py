@@ -15,6 +15,8 @@ with np.load(Path(__file__).resolve().parent/'data'/'english-collection.npz',all
 
 with np.load(Path(__file__).resolve().parent/'data'/'english-battle.npz',allow_pickle=False) as battle:
     battle_names = [(name,battle[f'name_{index}']) for index,name in enumerate(battle['names'].tolist())]
+    deck_anchor = battle['deck_anchor']
+    deck_label = battle['deck_label']
 
 
 def text_masks(text, heights):
