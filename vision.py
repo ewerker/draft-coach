@@ -278,13 +278,19 @@ def read_hearts(img, layout='full'):
             return {'own':sum(own),'enemy':sum(enemy)}
     return None
 
-def spell_choices(img):
+def spell_choices(img,language):
     offers=[]
     for position,x in enumerate((180,540,900)):
         badge=[x+104,1025,x+162,1075]
         if not has_orange_badge(img,badge):
             continue
-        offers.append({'name':None,'position':position,'action':'spell','quantity':None,
+        caption=lettering(cut(img,[x-155,1290,x+155,1450]))
+        patterns=english_spell_names if language=='en' else german_spell_names
+        scores=sorted(((vision_english.strongest(caption,masks)[0],name) for name,masks in patterns.items()),reverse=True)
+        score,name=scores[0]
+        if score<.67 or score-scores[1][0]<.10:
+            name=None
+        offers.append({'name':name,'position':position,'action':'spell','quantity':None,
                        'box':[x-145,1080,x+145,1460],
                        'orange':number(img,badge)})
     return offers
@@ -336,7 +342,7 @@ def recognize(path,preferred=None,language='de'):
         phase='spells'
     elif combat and has_spell_choice_panel(img,geometry['layout']):
         phase='spell_choice'
-        offers=spell_choices(img)
+        offers=spell_choices(img,language)
     elif combat or battle_cards:
         # A dimmed comeback overlay can make the header too red, even with three visible cards.
         phase='battle' if combat else 'unknown'
@@ -373,7 +379,12 @@ def recognize(path,preferred=None,language='de'):
     enemy_event=read_enemy_banner(img,language) if phase in ('battle','battle_choice','spell_choice') else None
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
-    return {'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
+    spell_button=None
+    if phase=='battle_choice' and hearts is not None:
+        star=cut(img,[950,1627,1020,1702])
+        if cv2.matchTemplate(star,spell_button_star,cv2.TM_SQDIFF_NORMED)[0,0]<.025:
+            spell_button=[950,1627,1020,1702]
+    return {'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
 
 def lettering(img):
     return ((img.min(axis=2)>200)&(np.ptp(img,axis=2)<45)).astype(np.uint8)
@@ -647,6 +658,18 @@ with np.load(calibration_file,allow_pickle=False) as calibration:
                zip(calibration['template_names'],calibration['template_sources'],calibration['template_features'])]
     numbers=list(zip(calibration['digit_values'].tolist(),calibration['digit_features']))
     collection_names={kind:[(name,calibration[f'{kind}_{index}'])
+def spell_caption_patterns(names):
+    patterns={}
+    for name,mask in names:
+        patterns.setdefault(name,[]).extend(
+            cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)
+            for scale in (.8,.9,1,1.1,1.2,1.3,1.4,1.5,1.6,1.75))
+    return patterns
+
+with np.load(ROOT/'data'/'spell-captions.npz',allow_pickle=False) as captions:
+    verified_spell_names=[(name,captions[f'name_{i}']) for i,name in enumerate(captions['names'].tolist())]
+german_spell_names=spell_caption_patterns(collection_names['spells']+verified_spell_names)
+english_spell_names=spell_caption_patterns(vision_english.collection_names['spells'])
                             for index,name in enumerate(calibration[kind+'_names'])] for kind in ('units','spells')}
     legacy_captions=[(calibration[f'legacy_{index}'],name,action)
                      for index,name,action in [(0,'Boomling','add'),(1,'Astra','add'),(2,'Astra','multiply')]]
@@ -681,6 +704,7 @@ banner_names.extend((name,cv2.resize(banner_mask(rows),None,fx=scale,fy=scale,in
 english_banner_names=[
     (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
     for name,mask in vision_english.banner_names for scale in (.94,1,1.06,1.12)]
+spell_button_star=decode(ROOT/'data'/'spells-button.png')
 banner_glyphs={key:normalize(banner_mask(rows)*255,40) for key,rows in banner_samples['glyphs'].items()}
 banner_digits=action_digits+[(int(key),mask) for key,mask in banner_glyphs.items() if key.isdigit()]
 multiply_sign=cv2.warpAffine(plus_sign,cv2.getRotationMatrix2D((20,20),45,1),(40,40))

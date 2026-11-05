@@ -328,7 +328,8 @@ function record(job,result) {
     if(recentChoiceFrames.length>8)recentChoiceFrames.pop();
   }
   if(job.source!=='reference'&&job.tapGeneration===tapGeneration){
-    const choice=choiceSignature(item,item.phase==='battle_choice');
+    const openedSpell=activeMatch?.id===job.matchId&&Date.now()<(activeMatch?.spellOpenedUntil??0);
+    const choice=choiceSignature(item,item.phase==='battle_choice'||openedSpell&&item.phase==='spell_choice');
     const recognizedChoice=cardChoice&&item.offers.every(offer=>offer.name&&offer.action!=='unknown');
     if((recognizedChoice&&lastTappedChoice!==cardChoice)||['battle','collection','spells'].includes(item.phase)){
       lastTappedChoice=null;
@@ -345,17 +346,25 @@ function choiceSignature(result,manual=false,verifyBadges=false){
     offer.position,offer.name,offer.action,offer.quantity,verifyBadges||offer.action==='spell'?offer.orange?.value:null,verifyBadges?offer.blue?.value:null
   ])]);
 }
+function shouldOpenSpell(item,match){
+  return state.auto&&match?.id===item.matchId&&!match.spellOpenedUntil&&item.phase==='battle_choice'&&item.spellButton&&
+    collection.spells.active_loadout.length>0&&item.hearts?.own>0&&(item.hearts.own<item.hearts.enemy||!item.advice.best);
+}
 async function tapRecommendation(job,item,choice,selection=null){
-  if(!selection&&item.offers.some(offer=>offer.experimentalLanguage))return;
+  const openSpell=!selection&&shouldOpenSpell(item,activeMatch);
+  const chooseSpell=!selection&&item.phase==='spell_choice'&&activeMatch?.id===job.matchId&&
+    Date.now()<(activeMatch?.spellOpenedUntil??0)&&!activeMatch.spellChosen;
+  if(!selection&&!openSpell&&item.offers.some(offer=>offer.experimentalLanguage))return;
   const battleAuto=!selection&&item.phase==='battle_choice';
   const checkTimeout=Math.max(3500,Math.min(6500,Math.ceil(job.captureMs*1.6)));
   const verificationDeadline=selection?.deadline??job.started+playTapDeadline;
   const isCurrent=()=>job.tapGeneration===tapGeneration&&job.target===device&&job.mode===state.mode&&
     Date.now()-lastClientSeen<10000&&(selection?Date.now()<selection.deadline:
       autoTap&&!manualTapPending&&job.id===state.latestId&&Date.now()<verificationDeadline);
-  const best=selection?{index:selection.index,name:item.offers[selection.index]?.name}:automaticPick(item,item.advice);
+  const best=openSpell?{index:-1,name:null}:selection?{index:selection.index,name:item.offers[selection.index]?.name}:
+    chooseSpell?automaticSpell(item,item.advice):automaticPick(item,item.advice);
   if(!best||!isCurrent()||(!selection&&(item.expired||Date.now()-job.started>6000))||lastTappedChoice===choice||state.capturing)return;
-  const offer=item.offers[best.index];
+  const offer=openSpell?{name:null,box:item.spellButton}:item.offers[best.index];
   if(offer?.name!==best.name||(!selection&&offer.poolHint)||offer.box?.length!==4)return;
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
@@ -375,15 +384,17 @@ async function tapRecommendation(job,item,choice,selection=null){
     await writeFile(checkPath,png);
     const checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
     if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
-    if(!selection&&checked.offers.some(offer=>offer.experimentalLanguage))return;
-    if(battleAuto){
+    if(!selection&&!openSpell&&checked.offers.some(offer=>offer.experimentalLanguage))return;
+    if(openSpell){
+      if(!shouldOpenSpell({...checked,matchId:job.matchId,advice:calculateAdvice(withObservedEnemies(checked,job),false)},activeMatch))return;
+    }else if(battleAuto){
       const fresh=checked.offers[best.index];
       if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||
          fresh.action!==offer.action||fresh.quantity!==offer.quantity)return;
-    }else if(choiceSignature(checked,!!selection,true)!==choiceSignature(item,!!selection,true))return;
-    const verified=selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
-      automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false));
-    const box=checked.offers[best.index]?.box;
+    }else if(choiceSignature(checked,!!selection||chooseSpell,true)!==choiceSignature(item,!!selection||chooseSpell,true))return;
+    const verified=openSpell?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
+      automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false),chooseSpell);
+    const box=openSpell?checked.spellButton:checked.offers[best.index]?.box;
     if(verified?.index!==best.index||verified.name!==best.name||(!selection&&checked.offers[best.index]?.poolHint)||
        box?.length!==4||box.some(n=>!Number.isFinite(n)))return;
     const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
@@ -400,13 +411,19 @@ async function tapRecommendation(job,item,choice,selection=null){
     coordinates=[x,y];
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],Math.min(2500,sendTime));
     outcome='gesendet';reason=undefined;
+    if(openSpell){
+      if(activeMatch?.id===job.matchId)activeMatch.spellOpenedUntil=Date.now()+12000;
+      if(job.tapGeneration===tapGeneration)tapMessage='Zauberauswahl geöffnet.';
+      return true;
+    }
     lastTappedChoice=choice;
     if(job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
       if(item.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer};
+      if(chooseSpell)activeMatch.spellChosen=true;
       if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
     }
     lastCardTap={id:job.id,index:best.index,name:best.name,choice,matchId:job.matchId};
-    if(job.tapGeneration===tapGeneration)tapMessage=selection?(best.name??'Position '+(offer.position+1))+' · Auswahl an das Handy gesendet.':best.name+' automatisch angetippt.';
+    if(job.tapGeneration===tapGeneration)tapMessage=selection?(best.name??'Position '+(offer.position+1))+' · Auswahl an das Handy gesendet.':(best.name??'Zauber')+' automatisch angetippt.';
     return true;
   }catch(error){
     outcome=coordinates?'fehler':'abgebrochen';reason=error.message;
@@ -422,13 +439,19 @@ async function tapRecommendation(job,item,choice,selection=null){
       autoTapResult={id:job.id,outcome};
     }
     const entry={zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
-      aufnahme:job.id,karte:best.name,position:best.index+1,ergebnis:outcome,grund:reason,koordinaten:coordinates,
+      aufnahme:job.id,karte:best.name,position:openSpell?undefined:best.index+1,aktion:openSpell?'zauber-oeffnen':chooseSpell?'zauber-waehlen':undefined,ergebnis:outcome,grund:reason,koordinaten:coordinates,
       gegner:item.enemy?.map(({name,action,quantity})=>({name,action,quantity})),
       bewertung:item.advice?.evaluated[best.index]};
     await appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n').catch(error=>console.error('Antipp-Protokoll:',error.message));
   }
 }
-function automaticPick(result,advice){
+function automaticSpell(result,advice){
+  const ranked=advice.evaluated.filter(card=>card.name&&Number.isFinite(card.score)&&
+    collection.spells.active_loadout.includes(card.name)).sort((a,b)=>b.score-a.score||a.index-b.index);
+  return ranked[0]??null;
+}
+function automaticPick(result,advice,chooseSpell=false){
+  if(chooseSpell)return automaticSpell(result,advice);
   if(result.phase!=='battle_choice')return advice.best;
   const tip=advice.best??advice.fallback;
   if(!tip||!tip.name||advice.evaluated[tip.index]?.score==null)return null;
