@@ -406,10 +406,37 @@ $('archive-refresh').onclick=()=>updateArchive();
 $('archive-import').onclick=()=>updateArchive(true);
 let quickSubjects=[];
 const quickForm=$('quick-form');
-quickForm.onsubmit=async event=>{
-  event.preventDefault();
+const quickRecentKey='draft-coach-recent-questions';
+const quickRecentLimit=10;
+let recentQuestions=[];
+try{
+  const saved=JSON.parse(localStorage.getItem(quickRecentKey));
+  if(Array.isArray(saved))recentQuestions=saved.filter(item=>
+    typeof item?.question==='string'&&item.question.trim()&&item.question.length<=500&&
+    Array.isArray(item.subjects)&&item.subjects.every(name=>typeof name==='string')
+  ).slice(0,quickRecentLimit);
+}catch{}
+function renderRecentQuestions(){
+  $('quick-recent').hidden=!recentQuestions.length;
+  $('quick-recent-count').textContent=String(recentQuestions.length);
+  $('quick-recent-list').replaceChildren(...recentQuestions.map(({question,subjects})=>{
+    const needsContext=/\b(dagegen|damit|ihn|ihr|sie|ihm)\b/i.test(question)||/^(und|dann)\b/i.test(question);
+    const label=needsContext&&subjects.length?question+' · '+subjects.join(', '):question;
+    const button=textEl('button',label,'small');
+    button.type='button';
+    button.onclick=()=>void askQuick(question,subjects);
+    return button;
+  }));
+}
+function rememberQuestion(question,subjects){
+  const key=item=>JSON.stringify([item.question.trim().toLocaleLowerCase('de').replace(/\s+/g,' ').replace(/[?!\.]+$/,''),item.subjects]);
+  const entry={question,subjects:subjects.slice(0,3)};
+  recentQuestions=[entry,...recentQuestions.filter(item=>key(item)!==key(entry))].slice(0,quickRecentLimit);
+  try{localStorage.setItem(quickRecentKey,JSON.stringify(recentQuestions));}catch{}
+  renderRecentQuestions();
+}
+async function askQuick(question,context=quickSubjects){
   const input=$('quick-question');
-  const question=input.value.trim();
   const submit=quickForm.querySelector('button[type="submit"]');
   if(!question||submit.disabled)return;
   submit.disabled=true;
@@ -418,12 +445,13 @@ quickForm.onsubmit=async event=>{
   const reply=textEl('article','','quick-message');
   history.append(reply);
   const search=new URL('https://www.google.com/search');
-  search.searchParams.set('q',['Draft Showdown',...quickSubjects,question].join(' '));
+  search.searchParams.set('q',['Draft Showdown',...context,question].join(' '));
   $('quick-web').href=search.href;
   $('quick-web').hidden=false;
   try{
-    const result=await post('/api/schnellauskunft',{question,context:quickSubjects});
+    const result=await post('/api/schnellauskunft',{question,context});
     if(result.subjects.length)quickSubjects=result.subjects;
+    if(result.entries.length)rememberQuestion(question,result.subjects);
     reply.append(textEl('p',result.summary));
     for(const entry of result.entries){
       const block=textEl('div','','quick-entry');
@@ -445,8 +473,13 @@ quickForm.onsubmit=async event=>{
     submit.disabled=false;
     history.scrollTop=history.scrollHeight;
   }
+}
+quickForm.onsubmit=event=>{
+  event.preventDefault();
+  void askQuick($('quick-question').value.trim());
 };
-for(const button of document.querySelectorAll('.quick-examples button')){
+renderRecentQuestions();
+for(const button of document.querySelectorAll('#quick-panel > .quick-examples button')){
   button.onclick=()=>{
     if(quickForm.querySelector('button[type="submit"]').disabled)return;
     $('quick-question').value=button.textContent;

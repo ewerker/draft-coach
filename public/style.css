@@ -46,6 +46,9 @@
 .tactics-fields textarea{font:inherit;color:inherit;background:#263248;border:1px solid #43506b;border-radius:8px;padding:10px;resize:vertical}
 .tactics-actions{display:flex;gap:8px;flex-wrap:wrap}
 .quick-examples,.quick-input{display:flex;gap:8px;flex-wrap:wrap}
+.quick-recent{margin-top:16px}
+.quick-recent summary{margin-bottom:8px}
+.quick-recent button{max-width:100%;overflow-wrap:anywhere;text-align:left}
 .quick-input{margin-top:8px}
 .quick-input input{flex:1;min-width:12rem}
 .quick-history{display:grid;gap:10px;max-height:55vh;overflow:auto;margin:16px 0}
