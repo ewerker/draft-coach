@@ -308,7 +308,8 @@ def recognize(path,preferred=None,language='de'):
     is_showdown=special_step is not None
     field_visible=float(np.mean(cut(img,[350,800,700,960])[:,:,1]))>115
     combat=special_step is not None or (red_header<.45 and field_visible)
-    battle_cards=(combat or field_visible) and has_battle_card_tray(img)
+    hearts=read_hearts(img,geometry['layout'])
+    battle_cards=(combat or field_visible or hearts is not None) and has_battle_card_tray(img)
     if deck is not None:
         phase='deck_choice'
         dx,dy=deck
@@ -372,7 +373,7 @@ def recognize(path,preferred=None,language='de'):
     enemy_event=read_enemy_banner(img,language) if phase in ('battle','battle_choice','spell_choice') else None
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
-    return {'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':read_hearts(img,geometry['layout']),'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
+    return {'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
 
 def lettering(img):
     return ((img.min(axis=2)>200)&(np.ptp(img,axis=2)<45)).astype(np.uint8)
