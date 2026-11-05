@@ -406,7 +406,9 @@ async function tapRecommendation(job,item,choice,selection=null){
       autoTapResult={id:job.id,outcome};
     }
     const entry={zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
-      aufnahme:job.id,karte:best.name,position:best.index+1,ergebnis:outcome,grund:reason,koordinaten:coordinates};
+      aufnahme:job.id,karte:best.name,position:best.index+1,ergebnis:outcome,grund:reason,koordinaten:coordinates,
+      gegner:item.enemy?.map(({name,action,quantity})=>({name,action,quantity})),
+      bewertung:item.advice?.evaluated[best.index]};
     await appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n').catch(error=>console.error('Antipp-Protokoll:',error.message));
   }
 }

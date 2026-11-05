@@ -369,7 +369,7 @@ def recognize(path,preferred=None,language='de'):
     deck_evidence=(phase=='battle_choice' and not is_showdown and
                    not any(card['action']=='multiply_upgrade' or (card['quantity'] or 0)>4 for card in offers) and
                    not has_comeback_label(img))
-    enemy_event=read_enemy_banner(img) if phase in ('battle','battle_choice','spell_choice') else None
+    enemy_event=read_enemy_banner(img,language) if phase in ('battle','battle_choice','spell_choice') else None
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     return {'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':read_hearts(img,geometry['layout']),'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
@@ -427,13 +427,14 @@ def enemy_banner_number(part, sign):
         digits.append(str(value))
     return int(''.join(digits))
 
-def read_enemy_banner(img):
+def read_enemy_banner(img,language='de'):
     region=enemy_banner_region(img)
     if region is None:
         return None
     label,box=region
     matches={}
-    for name,pattern in banner_names:
+    patterns=english_banner_names if language=='en' else banner_names
+    for name,pattern in patterns:
         height,width=pattern.shape
         if height>label.shape[0] or width>label.shape[1]:
             continue
@@ -674,6 +675,9 @@ banner_names=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INT
               for scale in (1.0,1.15,1.3,1.45,1.6,1.75,1.9,2.05)]
 banner_names.extend((name,cv2.resize(banner_mask(rows),None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
                     for name,rows in banner_samples['names'].items() for scale in (.94,1,1.06,1.12))
+english_banner_names=[
+    (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
+    for name,mask in vision_english.banner_names for scale in (.94,1,1.06,1.12)]
 banner_glyphs={key:normalize(banner_mask(rows)*255,40) for key,rows in banner_samples['glyphs'].items()}
 banner_digits=action_digits+[(int(key),mask) for key,mask in banner_glyphs.items() if key.isdigit()]
 multiply_sign=cv2.warpAffine(plus_sign,cv2.getRotationMatrix2D((20,20),45,1),(40,40))

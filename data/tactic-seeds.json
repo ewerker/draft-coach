@@ -1384,5 +1384,16 @@
     "enemy": "",
     "weight": 0,
     "status": "notiz"
+  },
+  {
+    "id": "assassine-gegen-ingenieur",
+    "title": "Assassine gegen Ingenieur abwerten",
+    "reason": "Ein gegnerischer Ingenieur kann den Zugriff von Assassinen auf die Hinterreihe abfangen. Weitere Assassinen oder ihre Aufwertung abwerten, sobald Ingenieur sichtbar ist.",
+    "mode": "beide",
+    "phase": "battle_choice",
+    "offer": "Assassine",
+    "enemy": "Ingenieur",
+    "weight": -12,
+    "status": "aktiv"
   }
 ]
