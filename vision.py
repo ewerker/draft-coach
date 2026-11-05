@@ -252,7 +252,7 @@ def read_deck_caption(img,x,dy,language='de'):
     margin=score-ranked[1][1]
     if score>=.72 and margin>=.08:
         return {'name':name,'candidate':name,'similarity':round(score,3),'margin':round(margin,3),
-                'poolHint':False,'nameSource':'Kartenbeschriftung'}
+                'captionMargin':round(margin,3),'poolHint':False,'nameSource':'Kartenbeschriftung'}
     return {}
 
 def read_hearts(img, layout='full'):
