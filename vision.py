@@ -185,8 +185,13 @@ def has_spell_choice_panel(img, layout='full'):
     top=(910,919) if layout=='centered' else (945,962)
     if layout=='centered' and not any(has_orange_badge(img,[x+104,1025,x+162,1075]) for x in (180,540,900)):
         return False
-    return (blue_fraction(990,1005)>.7 and blue_fraction(1550,1576)>.8 and
-            blue_fraction(*top)<.25 and blue_fraction(1592,1606)<.25)
+    if blue_fraction(990,1005)<=.7 or blue_fraction(1550,1576)<=.8:
+        return False
+    if blue_fraction(*top)<.25 and blue_fraction(1592,1606)<.25:
+        return True
+    # During a Comeback Bonus, the blue backdrop stays behind the spell cards.
+    return (blue_fraction(1592,1606)>.8 and blue_fraction(1520,1530)<.40 and
+            sum(has_orange_badge(img,[x+104,1025,x+162,1075]) for x in (180,540,900))>=2)
 
 def has_orange_badge(img,box):
     h,s,v=cv2.split(cv2.cvtColor(cut(img,box),cv2.COLOR_BGR2HSV))
@@ -340,7 +345,7 @@ def recognize(path,preferred=None,language='de'):
         phase='collection'
     elif active_collection_tab(img,'spells') and max(collection_tab_scores(img,'spells'))>.90:
         phase='spells'
-    elif combat and has_spell_choice_panel(img,geometry['layout']):
+    elif (combat or hearts is not None) and has_spell_choice_panel(img,geometry['layout']):
         phase='spell_choice'
         offers=spell_choices(img,language)
     elif combat or battle_cards:
@@ -668,8 +673,9 @@ def spell_caption_patterns(names):
 
 with np.load(ROOT/'data'/'spell-captions.npz',allow_pickle=False) as captions:
     verified_spell_names=[(name,captions[f'name_{i}']) for i,name in enumerate(captions['names'].tolist())]
+    verified_english_spell_names=[(name,captions[f'english_{i}']) for i,name in enumerate(captions['english_names'].tolist())]
 german_spell_names=spell_caption_patterns(collection_names['spells']+verified_spell_names)
-english_spell_names=spell_caption_patterns(vision_english.collection_names['spells'])
+english_spell_names=spell_caption_patterns(vision_english.collection_names['spells']+verified_english_spell_names)
                             for index,name in enumerate(calibration[kind+'_names'])] for kind in ('units','spells')}
     legacy_captions=[(calibration[f'legacy_{index}'],name,action)
                      for index,name,action in [(0,'Boomling','add'),(1,'Astra','add'),(2,'Astra','multiply')]]

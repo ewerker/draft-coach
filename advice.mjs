@@ -109,6 +109,9 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));
   const rearThreat=['Bienenkorb','Schnecke'].find(name=>enemy.includes(name)&&
     (result.enemyAdditions?.[name]>=2||(result.enemy??[]).some(card=>card.name===name&&card.action==='add'&&card.quantity>=2)));
+  const snail=enemy.includes('Schnecke');
+  const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
+  const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
   const evaluated=(result.offers||[]).map((offer,index)=>{
     const reinforcement=reinforcementValue(result,offer);
     const applied=rules.filter(rule=>rule.offer===offer.name&&
@@ -147,6 +150,18 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       }else if(!hasBacklineAccess&&deckBacklineAccess.has(offer.name)){
         score+=10;
         why+=' Direkter Zugriff auf die gegnerische Hinterreihe ergänzt das Deck.';
+      }
+    }
+    if(result.phase==='battle_choice'&&snail){
+      if(deckRanged.has(offer.name)){
+        score+=12;
+        why+=' Fernkampf kann die gegnerische Schnecke auf Distanz erreichen.';
+      }else if(offer.name==='Kapitän'&&!rangedOffer){
+        score+=14;
+        why+=' Der Haken bietet Zugriff auf die Schnecke, wenn keine Fernwaffe zur Wahl steht.';
+      }else if(offer.name==='TNT'&&(rangedOffer||captainOffer)){
+        score-=12;
+        why+=' TNT erreicht die Schnecke hinter der gegnerischen Front oft schwer.';
       }
     }
     if(result.phase==='battle_choice'&&rearThreat&&(deckBacklineAccess.has(offer.name)||offer.name==='Sniper')){
