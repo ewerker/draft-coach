@@ -916,6 +916,43 @@ function rememberQuestion(question,subjects){
   try{localStorage.setItem(quickRecentKey,JSON.stringify(recentQuestions));}catch{}
   renderRecentQuestions();
 }
+function renderQuickAiAnswer(reply,text){
+  const content=document.createElement('div');
+  content.className='quick-ai-answer';
+  content.dataset.reviewOriginal='';
+  let list=null;
+  const append=(element,line)=>{
+    for(const [index,part] of line.split(/\*\*([^*]+)\*\*/).entries()){
+      if(index%2){
+        const emphasis=document.createElement('strong');
+        emphasis.textContent=part;
+        element.append(emphasis);
+      }else element.append(part);
+    }
+  };
+  for(const raw of text.split(/\r?\n/)){
+    const line=raw.trim();
+    if(!line){list=null;continue;}
+    const bullet=/^(?:[-*•]|\d+[.)])\s+(.+)$/.exec(line);
+    if(bullet){
+      const kind=/^\d/.test(line)?'ol':'ul';
+      if(list?.localName!==kind){
+        list=document.createElement(kind);
+        content.append(list);
+      }
+      const item=document.createElement('li');
+      append(item,bullet[1]);
+      list.append(item);
+    }else{
+      list=null;
+      const heading=/^#{1,6}\s+(.+)$/.exec(line);
+      const block=document.createElement(heading?'h3':'p');
+      append(block,heading?.[1]??line);
+      content.append(block);
+    }
+  }
+  reply.append(content);
+}
 async function askQuick(question,context=quickSubjects){
   const input=$('quick-question');
   const submit=quickForm.querySelector('button[type="submit"]');
@@ -935,12 +972,8 @@ async function askQuick(question,context=quickSubjects){
     if(result.source==='ai')previousAiTurn=(question+'\n'+result.summary).slice(0,1200);
     if(result.subjects.length)quickSubjects=result.subjects;
     if(result.entries.length||result.source==='ai')rememberQuestion(question,result.subjects);
-    const answer=textEl('p',result.summary);
-    if(result.source==='ai'){
-      answer.dataset.reviewOriginal='';
-      answer.textContent=result.summary;
-    }
-    reply.append(answer);
+    if(result.source==='ai')renderQuickAiAnswer(reply,result.summary);
+    else reply.append(textEl('p',result.summary));
     for(const entry of result.entries){
       const block=textEl('div','','quick-entry');
       const status={aktiv:'Aktive Regel',test:'Testregel',notiz:'Notiz',lexikon:'Lexikon'};

@@ -56,6 +56,11 @@
 .quick-message{background:#121b29;border:1px solid var(--line);border-radius:9px;margin:0;padding:12px}
 .quick-user{justify-self:end;border-color:#43506b}
 .quick-message p{margin:0}
+.quick-ai-answer{display:grid;gap:.65rem;overflow-wrap:anywhere}
+.quick-ai-answer :is(ul,ol){margin:0;padding-inline-start:1.4rem}
+.quick-ai-answer li+li{margin-top:.35rem}
+.quick-ai-answer h3{font-size:inherit;margin:0}
+
 .quick-entry{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
 .quick-entry small,.quick-entry a{display:inline-block;margin-left:8px}
 .quick a{color:#bcd4ff}
