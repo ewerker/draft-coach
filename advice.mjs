@@ -122,6 +122,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
   const tracked=result.ownReinforcements??{};
+  const underBoomlingFire=result.phase==='battle_choice'&&enemy.includes('Boomling')&&(tracked.Parasit??0)>=4;
   const needsSwarmCover=result.phase==='battle_choice'&&enemy.includes('Gans')&&enemy.includes('Splime')&&
     ownDeck.has('Schnecke')&&(tracked.Schnecke??0)>0&&
     [...deckRanged].some(name=>(tracked[name]??0)>=4)&&(tracked.Drakling??0)<4;
@@ -191,6 +192,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     if(needsSwarmCover&&offer.name==='Drakling'&&offer.action==='add'&&offer.quantity>=3){
       score+=12;
       why+=' Fernkampf steht bereits. Draklinge ergänzen die Abwehr gegen Gänse und Splimes und entlasten die eigene Schnecke.';
+    }
+    if(underBoomlingFire&&offer.name==='Parasit'){
+      score-=14;
+      why+=' Weitere Parasiten müssen erst durch den Beschuss der Boomlinge.';
+    }else if(underBoomlingFire&&deckRanged.has(offer.name)){
+      score+=12;
+      why+=' Fernkampf ergänzt die vorhandenen Parasiten gegen den Beschuss der Boomlinge.';
     }
     const additions=visibleAdditions(result,offer);
     if(additions){

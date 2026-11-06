@@ -801,6 +801,7 @@ async function tapContinuation(job,run,step){
   if(!current())return;
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
+  let sentCoordinates=null,continuationResult=null;
   try {
     const png=await execAdb(['-s',job.target,'exec-out','screencap','-p'],3500);
     if(!current()||png.length<24)return;
@@ -812,7 +813,9 @@ async function tapContinuation(job,run,step){
        !point.every(value=>Number.isFinite(value)&&value>0&&value<1))return;
     const [left,top,width,height]=geometry.content;
     const x=Math.floor(left+point[0]*width),y=Math.floor(top+point[1]*height);
+    sentCoordinates=[x,y];
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],2500);
+    continuationResult='gesendet';
     if(continuation!==run)return;
     if(step==='reward'){
       run.rewardStep=run.step;
@@ -825,13 +828,17 @@ async function tapContinuation(job,run,step){
       run.deadline=Date.now()+30000;
     }
   } catch(error){
-    if(continuation===run){
+    continuationResult=error.message;
+    if(continuation===run&&(sentCoordinates||error.code!=='ADB_TIMEOUT')){
       setAuto(false);
       state.error=error.message;
     }
   } finally {
     await unlink(checkPath).catch(()=>{});
     state.capturing=false;
+    if(continuationResult)void appendFile(path.join(RUNTIME,'continuum.jsonl'),JSON.stringify({
+      zeit:new Date().toISOString(),aufnahme:job.id,modus:run.mode,schritt:step,koordinaten:sentCoordinates,ergebnis:continuationResult
+    })+'\n').catch(error=>console.error('Continuum-Protokoll:',error.message));
   }
 }
 

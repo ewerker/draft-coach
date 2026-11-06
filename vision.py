@@ -434,7 +434,8 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
             card['orange']=number(img,[x+14,1242+dy,x+69,1308+dy]); card['blue']=number(img,[x+251,885+dy,x+300,934+dy])
             offers.append(card)
         for side,y1,y2,by,oy,target in [('enemy',365,502,328,582,enemies),('own',1734,1857,1697,1949,own)]:
-            side_dx=(-82 if side=='enemy' else 25) if geometry['layout']=='centered' else 0
+            centered=geometry['layout']=='centered'
+            side_dx=(-82 if centered else -90) if side=='enemy' else (25 if centered else 0)
             for c in range(4):
                 x=100+c*225+side_dx
                 card=classify(img,[x+23,y1+dy,x+177,y2+dy],preferred if side=='own' else None)
