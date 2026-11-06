@@ -119,6 +119,16 @@ Wie lernt der Coach aus einer Partie?|How does the coach learn from a match?
 Speichere nach Stopp das Ergebnis. Öffne am Host-PC Partie auswerten, lade ein Wahlfenster und vergleiche Tipp und gesendeten Klick. Speichere deine bevorzugte Wahl oder eine Beobachtung als Prüffall. Neue Regeln kannst du im Replay prüfen, als Testregel übernehmen, aktivieren und zurücknehmen. Eine korrigierte rote Gegneranzeige wird als Vorlage für ihre Spielsprache gespeichert. Der optionale GPT-Entwurf verwendet die ausgewählten Textdaten und überträgt den Kartenausschnitt nur, wenn du ihn ausdrücklich auswählst.|Record the result after pressing Stop. On the host PC, open Review match, load a choice and compare the recommendation with the sent tap. Save your preferred choice or observation as a review case. Preview new rules in a replay, save them as test rules, activate them or roll them back. A corrected red enemy banner is saved as a template for that game language. The optional GPT draft uses the selected text data and sends the card crop only if you explicitly select it.
 Was enthält die Sicherung?|What does the backup contain?
 Unter Admin · Archiv übernimmst du abgeschlossene Partien und lädst die SQLite-Sicherung herunter. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek wird separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.|Under Admin · Archive, import completed matches and download the SQLite backup. It contains archived matches, tap logs, evidence images and review cases with rule history. The live tactics library is stored separately. Older images can be reviewed while they remain available or are saved as evidence.
+Frage diktieren|Dictate question
+Diktat abbrechen|Cancel dictation
+Ich höre zu …|Listening…
+Spracheingabe ist in diesem Browser nicht verfügbar.|Voice input is unavailable in this browser.
+Frage übernommen. Prüfe sie vor dem Absenden.|Question transcribed. Review it before sending.
+Mikrofonzugriff wurde nicht freigegeben.|Microphone permission was denied.
+Spracheingabe fehlgeschlagen. Du kannst die Frage eintippen.|Voice input failed. You can type your question.
+Keine Frage erkannt. Versuche es erneut.|No question recognized. Try again.
+Spracheingabe konnte nicht gestartet werden.|Could not start voice input.
+Mit Frage diktieren kannst du die Spracheingabe des Browsers nutzen. Der Coach trägt den Text ins Eingabefeld ein. Prüfe ihn vor dem Absenden.|Use Dictate question to use browser voice input. The coach fills in the question field. Review the text before sending.
 Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…

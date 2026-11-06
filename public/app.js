@@ -81,6 +81,7 @@ new MutationObserver(changes=>{
   }
 }).observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:translatedAttributes});
 $('language').onchange=()=>{
+  stopQuickDictation();
   language=$('language').value==='en'?'en':'de';
   rememberPreferences({language});
   stopMic();
@@ -226,6 +227,7 @@ let coachView='game';
 let gameMode=$('mode').value;
 const viewHints={review:'Partie auswerten',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Partien archivieren und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
 function showCoachView(view){
+  if(view!=='quick')stopQuickDictation();
   coachView=view;
   $('game-view').hidden=view!=='game';
   $('quick-panel').hidden=view!=='quick';
@@ -783,6 +785,57 @@ $('close-help').onclick=returnToGame;
 $('archive-refresh').onclick=()=>updateArchive();
 $('archive-import').onclick=()=>updateArchive(true);
 let quickSubjects=[];
+const quickMic=$('quick-mic');
+const QuickRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let quickRecognition=null;
+quickMic.disabled=!QuickRecognition;
+if(!QuickRecognition)$('quick-mic-status').textContent='Spracheingabe ist in diesem Browser nicht verfügbar.';
+function stopQuickDictation(){
+  const active=quickRecognition;
+  quickRecognition=null;
+  active?.abort();
+  quickMic.setAttribute('aria-pressed','false');
+  quickMic.classList.remove('listening');
+  quickMic.textContent='Frage diktieren';
+  if(QuickRecognition)$('quick-mic-status').textContent='';
+}
+quickMic.onclick=()=>{
+  if(quickRecognition){stopQuickDictation();return;}
+  if(!QuickRecognition)return;
+  stopMic();
+  const recognition=new QuickRecognition();
+  quickRecognition=recognition;
+  recognition.lang=language==='en'?'en-US':'de-DE';
+  recognition.continuous=false;
+  recognition.interimResults=false;
+  const status=$('quick-mic-status');
+  const finish=message=>{
+    if(quickRecognition!==recognition)return false;
+    quickRecognition=null;
+    quickMic.setAttribute('aria-pressed','false');
+    quickMic.classList.remove('listening');
+    quickMic.textContent='Frage diktieren';
+    status.textContent=message;
+    return true;
+  };
+  recognition.onresult=event=>{
+    const text=event.results[event.resultIndex]?.[0]?.transcript?.trim();
+    if(!text||!finish('Frage übernommen. Prüfe sie vor dem Absenden.'))return;
+    const input=$('quick-question');
+    input.value=text.slice(0,input.maxLength);
+    input.focus();
+  };
+  recognition.onerror=event=>finish(event.error==='not-allowed'||event.error==='service-not-allowed'?
+    'Mikrofonzugriff wurde nicht freigegeben.':'Spracheingabe fehlgeschlagen. Du kannst die Frage eintippen.');
+  recognition.onend=()=>finish('Keine Frage erkannt. Versuche es erneut.');
+  try{
+    recognition.start();
+    quickMic.setAttribute('aria-pressed','true');
+    quickMic.classList.add('listening');
+    quickMic.textContent='Diktat abbrechen';
+    status.textContent='Ich höre zu …';
+  }catch{finish('Spracheingabe konnte nicht gestartet werden.');}
+};
 const quickForm=$('quick-form');
 const quickSource=$('quick-source');
 let previousAiTurn='';
