@@ -151,6 +151,17 @@ test('a tracked group makes upgrading more valuable than adding two troops',()=>
   assert.equal(pick(Object.fromEntries(counts)),'Parasit');
 });
 
+test('eight observed Snipers increase the Agent B target to four',()=>{
+  const offers=[2,4].map(quantity=>({name:'Agent B',action:'add',quantity}));
+  const evaluate=count=>recommend({phase:'battle_choice',offers,enemy:[{name:'Sniper',action:'upgrade'}],
+    enemyAdditions:{Sniper:8},ownReinforcements:{'Agent B':count}},'arena',collection,db).evaluated;
+  const none=evaluate(0),two=evaluate(2),four=evaluate(4);
+  assert.equal(none[1].score-four[1].score,24);
+  assert.equal(two[0].score-four[0].score,12);
+  assert.match(two[0].reason,/fehlen noch 2 Agent B/);
+  assert.doesNotMatch(four[0].reason,/fehlen noch/);
+});
+
 test('reinforces swarm cover once Snail and ranged units are established against Goose and Splime',()=>{
   const offers=[{name:'Sniper',action:'add',quantity:2},{name:'Drakling',action:'add',quantity:4}];
   const threats=['Gans','Splime','Schnecke'].map(name=>({name}));

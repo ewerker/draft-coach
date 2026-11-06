@@ -653,12 +653,14 @@ const queue=new LatestQueue(async job=>{
       if(result.enemyEvent){
         const {name,action,quantity}=result.enemyEvent;
         match.enemyEvents.set(name,{name,action,quantity});
-        if(action==='add'&&Number.isInteger(quantity)&&quantity>0){
-          const key=JSON.stringify([name,quantity]);
+        if((action==='add'||name==='Sniper'&&action==='multiply')&&Number.isInteger(quantity)&&quantity>0){
+          const key=JSON.stringify([name,action,quantity]);
           const previous=match.enemyAdditionTimes.get(key);
           // A banner usually stays visible across several captures.
           if(previous===undefined||job.started-previous>4000){
-            match.enemyAdditions.set(name,(match.enemyAdditions.get(name)??0)+quantity);
+            const previousCount=match.enemyAdditions.get(name)??0;
+            if(action==='add'||previousCount>0)
+              match.enemyAdditions.set(name,action==='multiply'?previousCount*quantity:previousCount+quantity);
           }
           match.enemyAdditionTimes.set(key,job.started);
         }

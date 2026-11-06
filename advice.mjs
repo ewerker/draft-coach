@@ -122,6 +122,9 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
   const tracked=result.ownReinforcements??{};
+  const snipers=result.enemyAdditions?.Sniper??0;
+  const agentShortfall=result.phase==='battle_choice'&&enemy.includes('Sniper')&&snipers>=4?
+    Math.max(0,Math.ceil(snipers/2)-(tracked['Agent B']??0)):0;
   const underBoomlingFire=result.phase==='battle_choice'&&enemy.includes('Boomling')&&(tracked.Parasit??0)>=4;
   const needsSwarmCover=result.phase==='battle_choice'&&enemy.includes('Gans')&&enemy.includes('Splime')&&
     ownDeck.has('Schnecke')&&(tracked.Schnecke??0)>0&&
@@ -199,6 +202,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     }else if(underBoomlingFire&&deckRanged.has(offer.name)){
       score+=12;
       why+=' Fernkampf ergänzt die vorhandenen Parasiten gegen den Beschuss der Boomlinge.';
+    }
+    if(agentShortfall&&offer.name==='Agent B'&&offer.action==='add'&&offer.quantity>=2){
+      score+=6*Math.min(agentShortfall,offer.quantity,4);
+      why+=` Gegen ungefähr ${snipers} gegnerische Sniper fehlen noch ${agentShortfall} Agent B für den Angriff auf die Hinterreihe.`;
     }
     const additions=visibleAdditions(result,offer);
     if(additions){
