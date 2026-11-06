@@ -122,6 +122,9 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
   const tracked=result.ownReinforcements??{};
+  const needsSwarmCover=result.phase==='battle_choice'&&enemy.includes('Gans')&&enemy.includes('Splime')&&
+    ownDeck.has('Schnecke')&&(tracked.Schnecke??0)>0&&
+    [...deckRanged].some(name=>(tracked[name]??0)>=4)&&(tracked.Drakling??0)<4;
   const needsMerlinorCounter=result.phase==='battle_choice'&&enemy.includes('Merlinor')&&
     !enemy.some(name=>name==='Verwüster'||name==='Zerstörer')&&
     (tracked.Spartheus??0)>=6&&(tracked['Kapitän']??0)<2;
@@ -184,6 +187,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     if(needsMerlinorCounter&&offer.name==='Kapitän'&&offer.action==='add'){
       score+=26;
       why+=' Spartheus deckt bereits die Front ab. Der Kapitän kann Merlinor aus der Hinterreihe ziehen.';
+    }
+    if(needsSwarmCover&&offer.name==='Drakling'&&offer.action==='add'&&offer.quantity>=3){
+      score+=12;
+      why+=' Fernkampf steht bereits. Draklinge ergänzen die Abwehr gegen Gänse und Splimes und entlasten die eigene Schnecke.';
     }
     const additions=visibleAdditions(result,offer);
     if(additions){

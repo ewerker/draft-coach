@@ -143,6 +143,18 @@ test('a tracked group makes upgrading more valuable than adding two troops',()=>
   assert.equal(pick(Object.fromEntries(counts)),'Parasit');
 });
 
+test('reinforces swarm cover once Snail and ranged units are established against Goose and Splime',()=>{
+  const offers=[{name:'Sniper',action:'add',quantity:2},{name:'Drakling',action:'add',quantity:4}];
+  const threats=['Gans','Splime','Schnecke'].map(name=>({name}));
+  const evaluate=(ownReinforcements,enemy=threats)=>recommend({
+    phase:'battle_choice',offers,enemy,ownDeckPicks:['Schnecke','Sniper','Drakling'],ownReinforcements
+  },'arena',collection,db);
+  assert.equal(evaluate({Schnecke:4,Sniper:10}).best.name,'Drakling');
+  assert.equal(evaluate({Schnecke:4,Sniper:2}).best.name,'Sniper');
+  assert.equal(evaluate({Schnecke:4,Sniper:10,Drakling:4}).best.name,'Sniper');
+  assert.equal(evaluate({Schnecke:4,Sniper:10},[{name:'Schnecke'}]).best.name,'Sniper');
+});
+
 test('an established Spartheus frontline makes room for a Captain against Merlinor',()=>{
   const offers=[{name:'Spartheus',action:'upgrade'},{name:'Kapitän',action:'add',quantity:1}];
   const merlinor=[{name:'Merlinor'}];
