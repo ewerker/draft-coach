@@ -223,6 +223,13 @@ function error(e){
   const banner=$('error');
   banner.textContent=e.message||String(e);
   banner.hidden=false;
+  const log=$('log-errors');
+  const timestamp=new Date().toLocaleTimeString(language==='en'?'en-GB':'de-DE');
+  const entry=textEl('div','');
+  entry.append(textEl('strong','Fehler'),document.createTextNode(` · ${timestamp} · ${banner.textContent}`));
+  log.prepend(entry);
+  if(log.children.length>20)log.lastElementChild.remove();
+  log.hidden=false;
   clearTimeout(errorTimer);
   errorTimer=setTimeout(()=>{banner.hidden=true;banner.textContent='';},8000);
 }
@@ -1352,6 +1359,22 @@ function renderOfferRows(result){
 }
 let refreshRequest=0,renderedRequest=0;
 let lastServerError;
+let matchLogKey;
+function renderMatchLog(games){
+  const key=JSON.stringify([language,games]);
+  if(key===matchLogKey)return;
+  matchLogKey=key;
+  const log=$('log-matches');
+  log.hidden=!games.length;
+  log.replaceChildren(...games.map(game=>{
+    const row=document.createElement('div');
+    const date=new Date(game.ended).toLocaleString(language==='en'?'en-GB':'de-DE');
+    const gameLanguage={de:['Deutsch','German'],en:['Englisch','English']}[game.language];
+    row.append(date,' · ',reviewText(game.mode),' · ',
+      gameLanguage?.[language==='en'?1:0]??translate('Spielsprache offen',language),' · ',reviewText(game.outcome));
+    return row;
+  }));
+}
 async function refresh(){
   const request=++refreshRequest;
   const r=await fetchState();if(!r.ok)throw Error('Server nicht erreichbar');const state=await r.json();
@@ -1552,6 +1575,7 @@ async function refresh(){
   canTapImage=!prep&&conn.status==='device'&&!!current?.frame&&current.frame.target===state.device;
   screenshot.parentElement.classList.toggle('direct-tap',canTapImage);
   renderTacticFeedback(current);
+  renderMatchLog(state.recentMatchResults??[]);
   $('history').replaceChildren();for(const h of state.history)$('history').append(textEl('div',`${h.title} · ${Math.round(h.visionMs)} ms Erkennung · ${(h.ageMs/1000).toFixed(2)} s gesamt${h.expired?' · abgelaufen':''}`));
 }
 $('show-intermediates').onchange=()=>{

@@ -76,6 +76,10 @@ let lastCardTap=null;
 let lastSpellTap=null;
 let latestRelevant=null, manualTapPending=false;
 let activeMatch=null, stoppedMatch=null;
+let recentMatchResults=[];
+function matchLogEntry({id,mode,ended,outcome,language,reviewFrames}){
+  return {id,mode,ended,outcome,language:language??reviewFrames?.at(-1)?.language??null};
+}
 let continuum=false, continuation=null;
 let autoMode=false, nextModeHint=null;
 const recentChoiceFrames=[];
@@ -969,7 +973,10 @@ async function saveMatchOutcome({matchId,outcome}){
   try {
     await match.captureDone;
     const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,resultCapture}=match;
-    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,resultCapture,outcome})+'\n');
+    const game={id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,
+      reviewFrames,variantEvidence,resultCapture,outcome,language:reviewFrames.at(-1)?.language??state.gameLanguage};
+    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify(game)+'\n');
+    recentMatchResults=[matchLogEntry(game),...recentMatchResults].sort((a,b)=>b.ended-a.ended).slice(0,20);
     if(stoppedMatch===match)stoppedMatch=null;
     if(resultCapture||variantEvidence.length)void archive.archiveGames(id).catch(error=>console.error('Partiebelege:',error.message));
     return {ok:true};
@@ -1331,7 +1338,7 @@ async function handleRequest(req,res){
           choiceSignature(item,true)===lastCardTap.choice;
         return item.id===lastCardTap.id||sameChoice?{...item,sentChoice:{index:lastCardTap.index,name:lastCardTap.name}}:item;
       };
-      return json(res,200,{...state,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,recentMatchResults,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
@@ -1374,6 +1381,11 @@ async function handleRequest(req,res){
   }catch(e){if(res.headersSent)res.destroy();else json(res,400,{error:e.message});}
 }
 await archive.initializeReview();
+try{
+  recentMatchResults=(await archive.review.matches()).slice(0,20).map(matchLogEntry);
+}catch(error){
+  console.error('Partienprotokoll:',error.message);
+}
 learnedBanners=await archive.review.templates();
 const server=http.createServer(handleRequest);
 server.listen(PORT,'127.0.0.1',()=>console.log('Draft Coach: http://127.0.0.1:'+PORT));

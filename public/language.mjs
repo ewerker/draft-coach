@@ -304,7 +304,10 @@ Bild bis Ergebnis|Capture to result
 Bilderkennung und Bewertung laufen lokal. Die Browser-Spracherkennung kann einen externen Dienst verwenden.|Image recognition and recommendations run locally. Browser speech recognition may use an external service.
 Sprachbefehle: Jetzt / Klick / Start → eine Aufnahme. Stopp → Mikrofon und Automatik aus.|Voice commands: Now / Click / Start → one capture. Stop → microphone and auto capture off.
 Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vollständig berücksichtigt.|Experimental scoring. Quantities and enemy strength are only partly accounted for.
-Messprotokoll|Timing log
+Log-Protokoll|Activity log
+Partieergebnisse|Match results
+Spielsprache offen|Game language unknown
+Fehler|Error
 Noch keine Messungen.|No measurements yet.
 Draft Coach · Prototyp|Draft Coach · Prototype
 Sicher erkannt|Recognised confidently

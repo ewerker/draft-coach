@@ -6,6 +6,10 @@
 .setup-tabs{display:flex;flex-wrap:wrap;gap:8px}
 #setup-wifi-connect{margin-block:1rem}
 .measurement{margin-top:22px}
+.log-matches{max-height:145px;margin-bottom:8px}
+.log-errors{max-height:120px;margin-bottom:8px;overflow-wrap:anywhere}
+.log-errors strong{color:#ffb4b9}
+[data-theme=light] .log-errors strong{color:#982e39}
 #setup summary #setup-connection{margin-inline-start:.6rem;vertical-align:middle}
 .setup-tabs button[aria-pressed="true"]{background:#30486b;border-color:#8ab7fa}
 .setup-tabs button.connected{color:#bcf388;border-color:#bcf388}
