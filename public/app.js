@@ -1429,6 +1429,7 @@ async function refresh(){
   if(request<renderedRequest)return;
   renderedRequest=request;
   const prep=state.mode==='prep', conn=state.connection||{status:'checking'};
+  $('setup').hidden=!prep;
   if(!setupPath&&conn.transport)showSetupPath(conn.transport==='wifi'?'pair':'usb');
   const intermediates=$('show-intermediates');
   const filterImages=!prep&&!intermediates.checked&&(state.auto||state.current?.automatic);
@@ -1456,7 +1457,12 @@ async function refresh(){
   $('enemy-events').textContent=events.length?'Gegnerzüge · zuletzt je Figur · '+displayCardNames(eventLabels.join(' · ')):'';
   const connectionLabels={device:'Verbunden',missing:'Nicht verbunden',unauthorized:'Am Handy freigeben',offline:'Gerät offline',checking:'ADB wird geprüft',error:'ADB nicht erreichbar'};
   const selectedName=conn.model==='SM_A556B'?'Samsung Galaxy A55':(conn.model||conn.serial||state.device);
-  const connectionText=(connectionLabels[conn.status]||'ADB: '+conn.status)+' · '+selectedName+(conn.transport?' · '+(conn.transport==='wifi'?'WLAN':'USB'):'');
+  const connectionLabel=connectionLabels[conn.status]||'ADB: '+conn.status;
+  const connectionText=connectionLabel+' · '+selectedName+(conn.transport?' · '+(conn.transport==='wifi'?'WLAN':'USB'):'');
+  const headerConnection=$('header-connection');
+  if(headerConnection.textContent!==connectionLabel)headerConnection.textContent=connectionLabel;
+  headerConnection.dataset.status=conn.status;
+  headerConnection.title=connectionText;
   const setupConnection=$('setup-connection');
   if(setupConnection.textContent!==connectionText)setupConnection.textContent=connectionText;
   setupConnection.dataset.status=conn.status;
@@ -1651,10 +1657,12 @@ let pollError;
 async function pollState(){
   try{await refresh();pollError=null;}
   catch(e){
-    const connection=$('setup-connection');
-    connection.textContent='Lokaler Server nicht erreichbar';
-    connection.dataset.status='error';
-    connection.removeAttribute('title');
+    for(const id of ['setup-connection','header-connection']){
+      const connection=$(id);
+      connection.textContent='Lokaler Server nicht erreichbar';
+      connection.dataset.status='error';
+      connection.removeAttribute('title');
+    }
     $('capture').disabled=true;
     $('auto').disabled=true;
     canTapImage=false;

@@ -140,6 +140,12 @@ Mit Frage diktieren kannst du die Spracheingabe des Browsers nutzen. Der Coach t
 Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…
+ADB wird geprüft|Checking ADB
+Verbunden|Connected
+Nicht verbunden|Not connected
+Gerät offline|Device offline
+Am Handy freigeben|Authorize on phone
+ADB nicht erreichbar|ADB unavailable
 Erkennung startet|Starting recognition
 Draft Showdown mit einem Klick|Draft Showdown in one click
 „Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.|Say “Now” or “Click” to capture your phone screen.
@@ -162,7 +168,7 @@ Zurück zum Spiel|Back to play
 Der Coach holt einen Screenshot vom Android-Gerät, erkennt die sichtbaren Angebote und bewertet sie mit deinem Deck und den lokalen Taktikregeln. Die Empfehlung erscheint im Browser und wird im Bild markiert.|The Coach captures your Android screen, recognises visible offers and ranks them using your deck and local tactical rules. The recommendation appears in the browser and is highlighted in the screenshot.
 In drei Schritten loslegen|Get started in three steps
 Handy verbinden.|Connect your phone.
-Öffne „Handy verbinden“ in einer Spielansicht. Verbinde das Gerät per USB-Debugging oder über „Geschütztes WLAN-Pairing“. Beim WLAN-Pairing verwendest du zuerst die Adresse im Kopplungsdialog und danach die Adresse auf der Hauptseite „Debugging über WLAN“. Die automatische Probeaufnahme zeigt, ob die Verbindung klappt.|Open “Connect phone” in a play view. Connect using USB debugging or secure wireless pairing. For wireless pairing, use the address in the pairing dialog first, then the address on the main Wireless debugging page. The automatic test capture checks the connection.
+Öffne „Handy verbinden“ in der Vorbereitung. Verbinde das Gerät per USB-Debugging oder über „Geschütztes WLAN-Pairing“. Beim WLAN-Pairing verwendest du zuerst die Adresse im Kopplungsdialog und danach die Adresse auf der Hauptseite „Debugging über WLAN“. Die automatische Probeaufnahme zeigt, ob die Verbindung klappt.|Open “Connect phone” in Preparation. Connect using USB debugging or secure wireless pairing. For wireless pairing, use the address in the pairing dialog first, then the address on the main Wireless debugging page. The automatic test capture checks the connection.
 Sammlung und Deck erfassen.|Capture your collection and deck.
 Wähle „Vorbereitung“. Nimm Einheiten und Zauber getrennt auf. Wenn du scrollst, lass die Bilder etwas überlappen. Erfasse auch die aktiven Aufstellungen, werte die Aufnahmen aus und übernimm die geprüften Daten.|Choose “Setup”. Capture units and spells separately, with a little overlap when scrolling. Capture your active lineups too, then analyse the images and confirm the reviewed data.
 Spielen.|Play.
