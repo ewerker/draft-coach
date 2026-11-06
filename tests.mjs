@@ -143,6 +143,21 @@ test('a tracked group makes upgrading more valuable than adding two troops',()=>
   assert.equal(pick(Object.fromEntries(counts)),'Parasit');
 });
 
+test('an established Spartheus frontline makes room for a Captain against Merlinor',()=>{
+  const offers=[{name:'Spartheus',action:'upgrade'},{name:'Kapitän',action:'add',quantity:1}];
+  const merlinor=[{name:'Merlinor'}];
+  const evaluate=(enemy,ownReinforcements)=>recommend({phase:'battle_choice',offers,enemy,ownReinforcements},
+    'arena',collection,db).evaluated[1];
+  const early=evaluate(merlinor,{Spartheus:3});
+  const ready=evaluate(merlinor,{Spartheus:9});
+  assert.ok(ready.score>early.score);
+  assert.match(ready.reason,/aus der Hinterreihe ziehen/);
+  for(const [enemy,own] of [[merlinor,{Spartheus:9,Kapitän:2}],
+    [[...merlinor,{name:'Verwüster'}],{Spartheus:9}],[[],{Spartheus:9}]]){
+    assert.doesNotMatch(evaluate(enemy,own).reason,/aus der Hinterreihe ziehen/);
+  }
+});
+
 test('deck choice favors a ranged unit when Sixshoot and Captain are already selected',()=>{
   const offers=['Königlop','Sniper','Boomling'].map(name=>({name,action:'add',orange:{value:name==='Sniper'?11:12}}));
   const pick=ownDeckPicks=>recommend({phase:'deck_choice',offers,ownDeckPicks},'arena',collection,db).best.name;

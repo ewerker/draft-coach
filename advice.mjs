@@ -121,6 +121,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const snail=enemy.includes('Schnecke');
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
+  const tracked=result.ownReinforcements??{};
+  const needsMerlinorCounter=result.phase==='battle_choice'&&enemy.includes('Merlinor')&&
+    !enemy.some(name=>name==='Verwüster'||name==='Zerstörer')&&
+    (tracked.Spartheus??0)>=6&&(tracked['Kapitän']??0)<2;
   const evaluated=(result.offers||[]).map((offer,index)=>{
     const reinforcement=reinforcementValue(result,offer);
     const applied=rules.filter(rule=>rule.offer===offer.name&&
@@ -176,6 +180,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     if(result.phase==='battle_choice'&&rearThreat&&(deckBacklineAccess.has(offer.name)||offer.name==='Sniper')){
       score+=14;
       why+=` Zugriff auf die Hinterreihe ist wichtiger, weil mehrere Einheiten vom Typ ${rearThreat} beobachtet wurden.`;
+    }
+    if(needsMerlinorCounter&&offer.name==='Kapitän'&&offer.action==='add'){
+      score+=26;
+      why+=' Spartheus deckt bereits die Front ab. Der Kapitän kann Merlinor aus der Hinterreihe ziehen.';
     }
     const additions=visibleAdditions(result,offer);
     if(additions){
