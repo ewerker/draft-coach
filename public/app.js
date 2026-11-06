@@ -245,7 +245,7 @@ $('mode').onchange=()=>{
   if(Object.hasOwn(viewHints,mode)){
     showCoachView(mode);
     if(mode==='review')void openReview();
-    if(mode==='admin')void updateArchive();
+    if(mode==='admin'){void updateArchive();void loadAiSettings();}
     if(mode==='tactics')void openTactics();
     return;
   }
@@ -786,15 +786,54 @@ let quickSubjects=[];
 const quickForm=$('quick-form');
 const quickSource=$('quick-source');
 let previousAiTurn='';
-quickSource.value=config.quickAiEnabled?'ai':'local';
-quickSource.querySelector('[value="ai"]').disabled=!config.quickAiEnabled;
-$('quick-ai-hint').hidden=Boolean(config.quickAiEnabled);
+function updateQuickAi(enabled){
+  quickSource.value=enabled?'ai':'local';
+  quickSource.querySelector('[value="ai"]').disabled=!enabled;
+  $('quick-ai-hint').hidden=enabled;
+  $('quick-key-settings').hidden=enabled||!config.localAdmin;
+  showQuickSource();
+}
 function showQuickSource(){
   $('quick-source-label').textContent=quickSource.value==='ai'?'Standalone-KI':'Lokales Taktiklexikon';
   $('quick-language-note').hidden=language!=='en'||quickSource.value==='ai';
 }
 quickSource.onchange=showQuickSource;
-showQuickSource();
+updateQuickAi(Boolean(config.quickAiEnabled));
+$('quick-key-settings').onclick=()=>{
+  showCoachView('admin');
+  void updateArchive();
+  void loadAiSettings();
+  $('ai-key').focus();
+};
+function showAiSettings(settings){
+  $('ai-key-remove').hidden=!settings.stored;
+  $('ai-key-status').textContent=settings.enabled?
+    'KI ist eingerichtet. Der Schlüssel wird beim nächsten KI-Aufruf geprüft.':'Kein OpenAI-API-Key eingerichtet.';
+}
+async function loadAiSettings(){
+  try{
+    const response=await fetch('/api/admin/ai');
+    if(!response.ok)throw Error('KI-Einstellungen konnten nicht geladen werden.');
+    showAiSettings(await response.json());
+  }catch(error){$('ai-key-status').textContent=error.message;}
+}
+async function changeAiKey(key){
+  const form=$('ai-key-form');
+  for(const control of form.elements)control.disabled=true;
+  try{
+    const settings=await post('/api/admin/ai',{key});
+    $('ai-key').value='';
+    showAiSettings(settings);
+    updateQuickAi(settings.enabled);
+  }catch(error){$('ai-key-status').textContent=error.message;}
+  finally{for(const control of form.elements)control.disabled=false;}
+}
+$('ai-key-form').onsubmit=event=>{
+  event.preventDefault();
+  const key=$('ai-key').value.trim();
+  if(key)void changeAiKey(key);
+};
+$('ai-key-remove').onclick=()=>void changeAiKey('');
 const quickRecentKey='draft-coach-recent-questions';
 const quickRecentLimit=10;
 let recentQuestions=[];
@@ -896,7 +935,7 @@ function editTactic(rule){
     tacticsForm.elements.namedItem(name).value=rule[name]??'';
   for(const field of ['title','reason'])tacticsForm.elements.namedItem(field).value=text?.[field]??'';
   const note=$('tactics-text-language');
-  const hint=text?.stale?'Übersetzung prüfen.':rule&&!text?'Für diese Sprache fehlt der Regeltext.':
+  const hint=text?.stale?'Übersetzung prüfen.':text?.machine?'Automatisch übersetzt.':rule&&!text?'Für diese Sprache fehlt der Regeltext.':
     'Titel und Begründung gelten für die gewählte Textsprache.';
   note.replaceChildren(translate('Textsprache',language)+' · '+(language==='en'?'English':'Deutsch')+' · '+translate(hint,language));
   $('tactics-message').textContent=rule?.evidence?.length?
@@ -987,7 +1026,8 @@ tacticsForm.onsubmit=async event=>{
     const result=await post('/api/taktikregeln',{...data,id,weight:Number(data.weight),textLanguage:language});
     renderTactics(result);
     editTactic(result.rules.find(rule=>rule.id===id)??result.rules.at(-1));
-    $('tactics-message').textContent='Gespeichert.';
+    $('tactics-message').textContent=result.translation==='failed'?'Regel gespeichert. Automatische Übersetzung fehlgeschlagen.':
+      result.translation==='saved'?'Regel und automatische Übersetzung gespeichert.':'Gespeichert.';
     await refresh();
   } catch(error){$('tactics-message').textContent=error.message;}
   finally{changingTactic=false;submit.disabled=false;}

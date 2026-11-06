@@ -91,6 +91,16 @@
   </div>
   <p class="muted">Die Sicherung enthält das SQLite-Archiv samt eingebetteten Belegbildern. Die bearbeitbaren Taktikregeln werden separat gespeichert.</p>
   <p id="archive-message" role="status"></p>
+  <form id="ai-key-form" autocomplete="off">
+    <h3>OpenAI-API-Key</h3>
+    <p class="muted">Der Coach verwendet den Schlüssel für KI-Schnellauskunft und automatische Regelübersetzung. Er wird auf diesem PC gespeichert.</p>
+    <div class="tactics-actions">
+      <label>API-Key <input id="ai-key" type="password" autocomplete="new-password" maxlength="512"></label>
+      <button type="submit">Schlüssel speichern</button>
+      <button id="ai-key-remove" type="button" hidden>Gespeicherten Schlüssel entfernen</button>
+    </div>
+    <p id="ai-key-status" role="status"></p>
+  </form>
   <h3>Zuletzt archivierte Partien</h3>
   <ul id="archive-games"></ul>
 </section>
@@ -111,6 +121,7 @@
     <label for="quick-source">Antwortquelle</label>
     <select id="quick-source"><option value="local">Lokales Taktiklexikon</option><option value="ai">Standalone-KI</option></select>
     <p id="quick-ai-hint" class="muted" hidden>Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.</p>
+    <button id="quick-key-settings" type="button" class="small" hidden>API-Key einrichten</button>
     <label for="quick-question">Deine Taktikfrage</label>
     <div class="quick-input"><input id="quick-question" maxlength="500" required placeholder="Was hilft gegen Parasit?"><button class="primary" type="submit">Fragen</button></div>
   </form>

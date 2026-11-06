@@ -15,7 +15,7 @@ import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
 import {reviewReplay} from './review.mjs';
-import {answerTactics,proposeReview} from './review-gpt.mjs';
+import {answerTactics,proposeReview,translateTactic} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
 const archive=createArchive(archiveFile,RUNTIME);
@@ -41,6 +41,30 @@ let tactics=existsSync(tacticsFile)?JSON.parse(await readFile(tacticsFile,'utf8'
   const texts=seedText.get(JSON.stringify([normalizeTacticText(rule.title),normalizeTacticText(rule.reason)]));
   return {...rule,texts:texts??{de:{title:rule.title,reason:rule.reason}}};
 }):tacticSeeds;
+const apiKeyFile=path.join(RUNTIME,'openai-key.txt');
+let savedApiKey=(await readFile(apiKeyFile,'utf8').catch(error=>{
+  if(error.code==='ENOENT')return '';
+  throw error;
+})).trim();
+let savingApiKey=false;
+const openAiKey=()=>savedApiKey||process.env.OPENAI_API_KEY?.trim()||'';
+const quickModel=()=>process.env.COACH_QUICK_MODEL?.trim()||'gpt-5.4-mini';
+const aiSettings=()=>({enabled:Boolean(openAiKey()),stored:Boolean(savedApiKey),model:quickModel()});
+async function setAiKey({key}){
+  if(typeof key!=='string'||key.length>512||/\s/.test(key.trim()))throw Error('Ungültiger API-Key.');
+  if(savingApiKey)throw Error('Ein Speichervorgang läuft bereits.');
+  savingApiKey=true;
+  try{
+    const value=key.trim();
+    if(value){
+      const temporary=apiKeyFile+'.tmp';
+      await writeFile(temporary,value,{mode:0o600});
+      await rename(temporary,apiKeyFile);
+    }else await unlink(apiKeyFile).catch(error=>{if(error.code!=='ENOENT')throw error;});
+    savedApiKey=value;
+    return aiSettings();
+  }finally{savingApiKey=false;}
+}
 let savingTactics=false;
 const initialCollection=JSON.parse(await readFile(path.join(ROOT,'data','sample-collection.json'),'utf8'));
 let collection=existsSync(collectionFile)?JSON.parse(await readFile(collectionFile,'utf8')):initialCollection;
@@ -305,7 +329,21 @@ async function saveTactic(data){
   const updated=validateTactic(data);
   const previous=tactics.find(rule=>rule.id===updated.id);
   const next=previous?tactics.map(rule=>rule===previous?updated:rule):[...tactics,updated];
-  return persistTactics(next,previous?.status==='aktiv'||updated.status==='aktiv');
+  const saved=await persistTactics(next,previous?.status==='aktiv'||updated.status==='aktiv');
+  const from=updated.textLanguage,to=from==='en'?'de':'en';
+  const target=updated.texts[to];
+  if(!openAiKey()||(target&&(!target.machine||!target.stale)))return saved;
+  try{
+    const glossary=Object.fromEntries(Object.entries(EN_CARD_NAMES).map(([de,en])=>[de==='Zerstörer'?'Verwüster':de,en]));
+    const translation=await translateTactic({key:openAiKey(),model:quickModel(),from,to,text:updated.texts[from],glossary});
+    if(savingTactics||tactics.find(rule=>rule.id===updated.id)!==updated)
+      return {...tacticLibrary(),translation:'superseded'};
+    const texts={...updated.texts,[to]:translation};
+    const translated={...updated,title:texts.de.title,reason:texts.de.reason,texts};
+    return {...await persistTactics(tactics.map(rule=>rule===updated?translated:rule),false),translation:'saved'};
+  }catch{
+    return {...tacticLibrary(),translation:'failed'};
+  }
 }
 async function deleteTactic(id){
   if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');
@@ -790,12 +828,11 @@ async function saveMatchOutcome({matchId,outcome}){
     return {ok:true};
   } finally {match.saving=false;}
 }
-const quickAiEnabled=Boolean(process.env.OPENAI_API_KEY?.trim());
 let quickAiBusy=false;
-const gptReviewEnabled=!!(process.env.OPENAI_API_KEY&&process.env.COACH_REVIEW_MODEL);
+const gptReviewEnabled=()=>Boolean(openAiKey());
 let gptReviewBusy=false,gptReviewCalls=0;
 async function reviewWithGpt(data){
-  if(!gptReviewEnabled)throw Error('GPT-Analyse ist auf dem Host nicht eingerichtet.');
+  if(!gptReviewEnabled())throw Error('GPT-Analyse ist auf dem Host nicht eingerichtet.');
   if(gptReviewBusy||gptReviewCalls>=10)throw Error('Analyse läuft bereits oder das Limit von zehn Aufrufen pro Start ist erreicht.');
   gptReviewBusy=true;
   try{
@@ -819,7 +856,7 @@ async function reviewWithGpt(data){
       chosen:frame.clicks.find(click=>click.ergebnis==='gesendet')?.karte,
       tip:(advice?.best??advice?.fallback??advice?.provisional)?.name,
       playerObservation:typeof data.observation==='string'?data.observation.slice(0,1500):''};
-    const draft=await proposeReview({key:process.env.OPENAI_API_KEY,model:process.env.COACH_REVIEW_MODEL,
+    const draft=await proposeReview({key:openAiKey(),model:process.env.COACH_REVIEW_MODEL||quickModel(),
       language:data.uiLanguage,evidence,image});
     if(typeof draft.observation!=='string'||typeof draft.uncertainty!=='string')throw Error('Ungültiger Analysevorschlag.');
     const observation=[draft.observation,draft.uncertainty].filter(Boolean).join(' ').slice(0,1500);
@@ -954,6 +991,7 @@ async function handleRequest(req,res){
         return json(res,200,{ok:true});
       }
       if(url.pathname==='/api/taktikregeln')return json(res,200,await saveTactic(data));
+      if(url.pathname==='/api/admin/ai')return json(res,200,await setAiKey(data));
       if(url.pathname==='/api/admin/review/gpt')return json(res,200,await reviewWithGpt(data));
       if(url.pathname==='/api/admin/review/frame')return json(res,200,await handleReview(data,'frame'));
       if(url.pathname==='/api/admin/review/preview')return json(res,200,await handleReview(data,'preview'));
@@ -978,7 +1016,7 @@ async function handleRequest(req,res){
         const language=data.language==='en'?'en':'de';
         const local=quickAdvice(data.question,cards,tactics,db,context,language);
         if(data.source!=='ai')return json(res,200,local);
-        if(!quickAiEnabled)throw Error('KI-Schnellauskunft ist auf dem Host nicht eingerichtet.');
+        if(!openAiKey())throw Error('KI-Schnellauskunft ist auf dem Host nicht eingerichtet.');
         if(quickAiBusy)throw Error('Eine KI-Antwort läuft bereits.');
         quickAiBusy=true;
         try{
@@ -988,8 +1026,8 @@ async function handleRequest(req,res){
             offer:rule.offer,enemy:rule.enemy,action:rule.action,weight:rule.weight,status:rule.status,
             reason:tacticText(rule,language)?.reason?.replace(/https?:\/\/[^\s]+/g,'').trim()
           }));
-          const summary=await answerTactics({key:process.env.OPENAI_API_KEY.trim(),
-            model:process.env.COACH_QUICK_MODEL?.trim()||'gpt-5.4-mini',language,question:data.question,
+          const summary=await answerTactics({key:openAiKey(),
+            model:quickModel(),language,question:data.question,
             previous:typeof data.previous==='string'?data.previous.slice(0,1200):undefined,
             knowledge:{cards:cards.map(name=>[name,EN_CARD_NAMES[name]??name]),entries:local.entries,rules}});
           return json(res,200,{summary,entries:[],subjects:local.subjects,source:'ai'});
@@ -1142,9 +1180,10 @@ async function handleRequest(req,res){
       const devices=await scanDevices();
       return json(res,200,{devices,selected:device});
     }
+    if(url.pathname==='/api/admin/ai')return json(res,200,aiSettings());
     if(url.pathname==='/api/admin/review/matches'){
       const games=await archive.review.matches();
-      return json(res,200,{games:games.slice(0,50).map(({id,mode,outcome,ended})=>({id,mode,outcome,ended})),cards:tacticCards(),gpt:gptReviewEnabled});
+      return json(res,200,{games:games.slice(0,50).map(({id,mode,outcome,ended})=>({id,mode,outcome,ended})),cards:tacticCards(),gpt:gptReviewEnabled()});
     }
     if(url.pathname==='/api/admin/review/match'){
       const {id,mode,outcome,captureIds,frames}=await archive.review.match(url.searchParams.get('id'));
@@ -1165,7 +1204,7 @@ async function handleRequest(req,res){
       return;
     }
     if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
-    if(url.pathname==='/api/config')return json(res,200,{token,collection,desktopControl:true,localAdmin,quickAiEnabled});
+    if(url.pathname==='/api/config')return json(res,200,{token,collection,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
     if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}

@@ -83,6 +83,17 @@ Textsprache|Text language
 Für diese Sprache fehlt der Regeltext.|Rule text is missing in this language.
 Übersetzung prüfen.|Translation needs review.
 Titel und Begründung gelten für die gewählte Textsprache.|Title and explanation apply to the selected text language.
+OpenAI-API-Key|OpenAI API key
+Schlüssel speichern|Save key
+Gespeicherten Schlüssel entfernen|Remove saved key
+API-Key einrichten|Set up API key
+Der Coach verwendet den Schlüssel für KI-Schnellauskunft und automatische Regelübersetzung. Er wird auf diesem PC gespeichert.|The coach uses the key for AI Quick Advice and automatic rule translation. It is stored on this PC.
+KI ist eingerichtet. Der Schlüssel wird beim nächsten KI-Aufruf geprüft.|AI is configured. The key will be checked on the next AI request.
+Kein OpenAI-API-Key eingerichtet.|No OpenAI API key configured.
+KI-Einstellungen konnten nicht geladen werden.|Could not load AI settings.
+Regel gespeichert. Automatische Übersetzung fehlgeschlagen.|Rule saved. Automatic translation failed.
+Regel und automatische Übersetzung gespeichert.|Rule and automatic translation saved.
+Automatisch übersetzt.|Machine translated.
 Antwortquelle|Answer source
 Standalone-KI|Standalone AI
 Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.|Standalone AI requires an OpenAI API key on the host.
