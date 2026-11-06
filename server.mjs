@@ -484,7 +484,7 @@ function record(job,result) {
   }
   if(job.source!=='reference'&&state.mode!=='auto'&&job.tapGeneration===tapGeneration){
     const openedSpell=activeMatch?.id===job.matchId&&Date.now()<(activeMatch?.spellOpenedUntil??0);
-    const choice=choiceSignature(item,item.phase==='battle_choice'||openedSpell&&item.phase==='spell_choice');
+    const choice=choiceSignature(item,true);
     const recognizedChoice=cardChoice&&item.offers.every(offer=>offer.name&&offer.action!=='unknown');
     if((recognizedChoice&&lastTappedChoice!==cardChoice)||['battle','collection','spells'].includes(item.phase)){
       lastTappedChoice=null;
@@ -510,7 +510,7 @@ async function tapRecommendation(job,item,choice,selection=null){
   const openSpell=!selection&&shouldOpenSpell(item,activeMatch);
   const chooseSpell=!selection&&item.phase==='spell_choice'&&activeMatch?.id===job.matchId&&
     Date.now()<(activeMatch?.spellOpenedUntil??0)&&!activeMatch.spellChosen;
-  if(!selection&&!openSpell&&item.offers.some(offer=>offer.experimentalLanguage))return;
+
   const battleAuto=!selection&&item.phase==='battle_choice';
   const checkTimeout=Math.max(3500,Math.min(6500,Math.ceil(job.captureMs*1.6)));
   const verificationDeadline=selection?.deadline??job.started+playTapDeadline;
@@ -521,7 +521,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     chooseSpell?automaticSpell(item,item.advice):automaticPick(item,item.advice);
   if(!best||!isCurrent()||(!selection&&(item.expired||Date.now()-job.started>6000))||lastTappedChoice===choice||state.capturing)return;
   const offer=openSpell?{name:null,box:item.spellButton}:item.offers[best.index];
-  if(offer?.name!==best.name||(!selection&&offer.poolHint)||offer.box?.length!==4)return;
+  if(!offer||offer.name!==best.name||offer.box?.length!==4)return;
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
   let outcome='abgebrochen',reason='Wahlfenster hat sich geändert oder konnte nicht bestätigt werden',coordinates,stage='control_capture';
@@ -532,10 +532,8 @@ async function tapRecommendation(job,item,choice,selection=null){
       if(!isCurrent())return;
     }
     const direct=!selection&&!openSpell&&['deck_choice','battle_choice','spell_choice'].includes(item.phase)&&
-      item.offers.length===3&&new Set(item.offers.map(card=>card.position)).size===3&&
-      item.offers.every(card=>card.name&&!card.poolHint&&!card.experimentalLanguage&&card.visible!==false&&
-        card.action!=='unknown'&&(item.phase!=='battle_choice'||card.action==='upgrade'||
-          Number.isInteger(card.quantity)))&&!item.advice?.incompleteSlots;
+      item.offers.length===3&&[0,1,2].every(position=>item.offers.some(card=>
+        card.position===position&&card.visible!==false&&card.box?.length===4))&&!item.advice?.incompleteSlots;
     let checked=item,verified=best,box=offer.box;
     let width=item.frame?.width,height=item.frame?.height,geometry=item.geometry;
     if(!direct){
@@ -576,8 +574,6 @@ async function tapRecommendation(job,item,choice,selection=null){
       width=png.readUInt32BE(16);height=png.readUInt32BE(20);geometry=checked.geometry;
       if(JSON.stringify(item.geometry)!==JSON.stringify(geometry))return;
     }else{
-      if(offer.variantIndex&&item.offers.some((card,index)=>index!==best.index&&card.variantIndex&&
-        card.name===offer.name&&card.action===offer.action&&sameReinforcementVariant(offer,card)))return;
       stage='direct_send';
     }
     if(!geometry||geometry.width!==width||geometry.height!==height||
@@ -643,19 +639,10 @@ function automaticSpell(result,advice){
   return ranked[0]??null;
 }
 function automaticPick(result,advice,chooseSpell=false){
-  if(chooseSpell)return automaticSpell(result,advice);
-  if(result.phase==='deck_choice'){
-    if(advice.incompleteSlots||!result.offers.length||
-       result.offers.some((offer,index)=>!offer.name||offer.action!=='add'||offer.poolHint||
-         advice.evaluated[index]?.score==null))return null;
-    return advice.best??advice.fallback;
-  }
-  if(result.phase!=='battle_choice')return advice.best;
-  const tip=advice.best??advice.fallback;
-  if(!tip||!tip.name||advice.evaluated[tip.index]?.score==null)return null;
-  const offer=result.offers[tip.index];
-  if(offer.action==='add'&&!Number.isInteger(offer.quantity))return null;
-  return tip;
+  if(chooseSpell)return advice.best??advice.fallback??automaticSpell(result,advice);
+  if(!['deck_choice','battle_choice'].includes(result.phase))return advice.best;
+  if(advice.incompleteSlots)return null;
+  return advice.best??advice.fallback;
 }
 const transportOf=serial=>serial.includes(':')||serial.includes('_adb-tls')?'wifi':'usb';
 const deviceNames=new Map([['RZCXC0FWP9V','SM_A556B']]);
