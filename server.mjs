@@ -376,6 +376,18 @@ async function persistTactics(next,affectsAdvice){
     return tacticLibrary();
   } finally {savingTactics=false;}
 }
+const timingBuckets=new Map();
+const timingMinute=()=>Math.floor(Date.now()/60000);
+function recordTiming(job,result,ageMs){
+  if(job.source==='reference'||![job.captureMs,result.visionMs,ageMs].every(Number.isFinite))return;
+  const minute=timingMinute();
+  for(const key of timingBuckets.keys())if(key<=minute-60)timingBuckets.delete(key);
+  const bucket=timingBuckets.get(minute)??{minute,captureMs:0,visionMs:0,ageMs:0};
+  bucket.captureMs=Math.max(bucket.captureMs,job.captureMs);
+  bucket.visionMs=Math.max(bucket.visionMs,result.visionMs);
+  bucket.ageMs=Math.max(bucket.ageMs,ageMs);
+  timingBuckets.set(minute,bucket);
+}
 function record(job,result) {
   const match=activeMatch;
   const liveMatch=job.matchId&&job.matchId===match?.id&&job.target===device;
@@ -403,6 +415,7 @@ function record(job,result) {
   const advice=expired?{best:null,withheld:true,warnings:['Antwortfrist von 6 Sekunden überschritten.'],evaluated:[]}:calculateAdvice(result);
   const item={...job,path:undefined,...result,ageMs,expired,advice};
   state.current=item;state.error=null;
+  recordTiming(job,result,ageMs);
   if(ageMs>2000){
     state.history.unshift({id:job.id,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});
     state.history=state.history.slice(0,20);
@@ -1342,7 +1355,9 @@ async function handleRequest(req,res){
           choiceSignature(item,true)===lastCardTap.choice;
         return item.id===lastCardTap.id||sameChoice?{...item,sentChoice:{index:lastCardTap.index,name:lastCardTap.name}}:item;
       };
-      return json(res,200,{...state,recentMatchResults,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      const minute=timingMinute();
+      const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
+      return json(res,200,{...state,recentMatchResults,timingTrend,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();

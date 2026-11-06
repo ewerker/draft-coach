@@ -297,7 +297,10 @@ Nimm ein Bild auf oder wähle eine Referenz.|Capture an image or choose a refere
 Wahlangebote|Available choices
 Warte auf Auswahl|Waiting for a choice
 Noch keine Angebote erkannt.|No choices detected yet.
-Auswertung und Sprachsteuerung|Analysis and voice controls
+Live-Log|Live log
+Letzte 60 Minuten · Höchstwert je Minute|Last 60 minutes · Peak per minute
+Noch keine Live-Messwerte.|No live measurements yet.
+Höchstwert|Peak
 Aufnahme|Capture
 Erkennung|Recognition
 Bild bis Ergebnis|Capture to result

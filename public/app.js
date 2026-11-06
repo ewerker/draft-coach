@@ -504,7 +504,7 @@ function listen(){
   if(!Recognition){error(Error('Dieser Browser bietet keine Spracherkennung. Bitte Chrome/Edge oder den Aufnahmebutton verwenden.'));stopMic();return;}
   if(!armed)return;
   const rec=new Recognition();mic=rec;rec.lang=language==='en'?'en-US':'de-DE';rec.continuous=true;rec.interimResults=false;
-  rec.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(!e.results[i].isFinal)continue;const text=e.results[i][0].transcript.toLowerCase().trim();$('voice').textContent='Gehört: '+text;if(/\b(stopp?|ende|end)\b/.test(text)){$('stop').click();return;}if(/\b(jetzt|klick|click|start|now)\b/.test(text)&&Date.now()-lastVoiceAt>1200){lastVoiceAt=Date.now();$('capture').click();}}};
+  rec.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++){if(!e.results[i].isFinal)continue;const text=e.results[i][0].transcript.toLowerCase().trim();if(/\b(stopp?|ende|end)\b/.test(text)){$('stop').click();return;}if(/\b(jetzt|klick|click|start|now)\b/.test(text)&&Date.now()-lastVoiceAt>1200){lastVoiceAt=Date.now();$('capture').click();}}};
   rec.onerror=e=>{if(['not-allowed','service-not-allowed','audio-capture','network'].includes(e.error)){stopMic();error(Error('Spracherkennung nicht verfügbar ('+e.error+'). Aufnahmebutton bleibt nutzbar.'));}};
   rec.onend=()=>{if(mic===rec)mic=null;if(armed)setTimeout(listen,350);};
   try{rec.start();}catch{stopMic();error(Error('Mikrofon konnte nicht gestartet werden.'));}
@@ -1366,6 +1366,47 @@ function renderOfferRows(result){
 }
 let refreshRequest=0,renderedRequest=0;
 let lastServerError;
+let timingTrendKey;
+function renderTimingCharts(buckets){
+  if(!$('live-log').open)return;
+  const minute=Math.floor(Date.now()/60000);
+  const key=JSON.stringify([minute,language,buckets]);
+  if(key===timingTrendKey)return;
+  timingTrendKey=key;
+  const container=$('timing-charts');
+  const recent=buckets.filter(bucket=>bucket.minute>minute-60&&bucket.minute<=minute);
+  if(!recent.length){
+    container.replaceChildren(textEl('p','Noch keine Live-Messwerte.','muted'));
+    return;
+  }
+  const clock=new Intl.DateTimeFormat(language==='en'?'en-GB':'de-DE',{hour:'2-digit',minute:'2-digit'});
+  const duration=new Intl.NumberFormat(language,{maximumFractionDigits:2});
+  const seconds=ms=>duration.format(ms/1000)+' s';
+  const svgNode=(tag,attributes={})=>{
+    const node=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    for(const [name,value] of Object.entries(attributes))node.setAttribute(name,value);
+    return node;
+  };
+  container.replaceChildren(...[['captureMs','Aufnahme'],['visionMs','Erkennung'],['ageMs','Bild bis Ergebnis']].map(([field,label])=>{
+    const peak=Math.max(...recent.map(bucket=>bucket[field]));
+    const limit=Math.max(100,Math.ceil(peak/100)*100);
+    const chart=textEl('div','','timing-chart');
+    chart.append(textEl('strong',label),textEl('span',seconds(limit),'muted'));
+    const svg=svgNode('svg',{viewBox:'0 0 240 68',role:'img',
+      'aria-label':translate(label,language)+' · '+translate('Höchstwert',language)+' '+seconds(peak)});
+    for(const y of [2,34,66])svg.append(svgNode('line',{x1:0,x2:240,y1:y,y2:y}));
+    for(const bucket of recent){
+      const height=Math.max(1,bucket[field]/limit*64);
+      const bar=svgNode('rect',{x:(bucket.minute-minute+59)*4,y:66-height,width:3,height});
+      const title=svgNode('title');
+      title.textContent=clock.format(bucket.minute*60000)+' · '+seconds(bucket[field]);
+      bar.append(title);
+      svg.append(bar);
+    }
+    chart.append(svg,textEl('span',clock.format((minute-59)*60000),'muted'),textEl('span',clock.format(minute*60000),'muted'));
+    return chart;
+  }));
+}
 let matchLogKey;
 function renderMatchLog(games){
   const key=JSON.stringify([language,games]);
@@ -1583,6 +1624,7 @@ async function refresh(){
   screenshot.parentElement.classList.toggle('direct-tap',canTapImage);
   renderTacticFeedback(current);
   renderMatchLog(state.recentMatchResults??[]);
+  renderTimingCharts(state.timingTrend??[]);
   const timings=state.history.filter(entry=>entry.ageMs>2000);
   $('history').replaceChildren(...(timings.length?timings.map(h=>textEl('div',
     `${h.title} · ${Math.round(h.visionMs)} ms Erkennung · ${(h.ageMs/1000).toFixed(2)} s gesamt${h.expired?' · abgelaufen':''}`)):

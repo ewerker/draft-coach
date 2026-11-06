@@ -6,6 +6,12 @@
 .setup-tabs{display:flex;flex-wrap:wrap;gap:8px}
 #setup-wifi-connect{margin-block:1rem}
 .measurement{margin-top:22px}
+.timing-charts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.timing-chart{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:5px 8px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:.8rem}
+.timing-chart svg{display:block;width:100%;grid-column:1/-1}
+.timing-chart line{stroke:var(--line);stroke-width:1}
+.timing-chart rect{fill:var(--accent)}
+@media(max-width:640px){.timing-charts{grid-template-columns:1fr}}
 .log-matches{max-height:145px;margin-bottom:8px}
 .log-errors{max-height:120px;margin-bottom:8px;overflow-wrap:anywhere}
 .log-errors strong{color:#ffb4b9}

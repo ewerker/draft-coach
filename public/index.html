@@ -268,12 +268,11 @@
     <div id="offers" class="offers"><p>Noch keine Angebote erkannt.</p></div>
     <p id="heart-score" class="pill" hidden></p><p id="tactic-feedback" class="muted" hidden></p><div id="board"></div><p id="enemy-events" class="muted" hidden></p><div id="notes" class="notes"></div>
   </article>
-  <details class="panel">
-    <summary>Auswertung und Sprachsteuerung</summary>
+  <details class="panel" id="live-log">
+    <summary>Live-Log</summary>
     <div class="metrics"><div><span>Aufnahme</span><strong id="capture-time">—</strong></div><div><span>Erkennung</span><strong id="vision-time">—</strong></div><div><span>Bild bis Ergebnis</span><strong id="total-time">—</strong></div></div>
-    <p id="source" class="muted">Bilderkennung und Bewertung laufen lokal. Die Browser-Spracherkennung kann einen externen Dienst verwenden.</p>
-    <p id="voice" class="muted">Sprachbefehle: Jetzt / Klick / Start → eine Aufnahme. Stopp → Mikrofon und Automatik aus.</p>
-    <p class="muted">Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vollständig berücksichtigt.</p>
+    <p class="muted">Letzte 60 Minuten · Höchstwert je Minute</p>
+    <div id="timing-charts" class="timing-charts"></div>
   </details>
 </div></section>
 <section class="panel measurement"><h2>Log-Protokoll</h2>
