@@ -110,6 +110,8 @@ Im Draft kommen reguläre Einheitenangebote aus deiner aktiven Aufstellung. In d
 Wie schlage ich ein Deck und Zauber vor?|How do I get deck and spell suggestions?
 Öffne Vorbereitung und wähle Vorschlag anzeigen unter Deck und Zauber vorschlagen. Der Coach nutzt deine gespeicherte Sammlung und empfiehlt bis zu vier Einheiten und drei Zauber mit Kartenstufe und Aufgabe. Du kannst die Auswahl im Spiel übernehmen.|Open Setup and choose Show suggestion under Suggest a deck and spells. The coach uses your saved collection to suggest up to four units and three spells with their levels and roles. You can apply the selection in the game.
 Wann stoppt der Automodus von selbst?|When does auto capture stop on its own?
+Was macht der Continuum-Modus?|What does Continuum mode do?
+In der Schlacht kann der Coach nach dem Speichern zweimal Continue und anschließend Battle antippen. Die nächste Schlacht beginnt als eigene Partie. Stopp beendet die Folge jederzeit.|In Battle, the Coach can tap Continue twice and then tap Battle after saving. The next battle starts as a separate match. Press Stop at any time to end the sequence.
 Sobald der Coach zweimal dasselbe Sieg- oder Niederlagenbild erkennt, stoppt die Aufnahme und speichert das Ergebnis mit dem Endbild. Warte im Draft und in der Schlacht kurz auf die Bestätigung im Coach. Wenn sie ausbleibt, kannst du über Stopp das Ergebnis selbst angeben.|Once the Coach sees the same win or loss on two captures, it stops capturing and saves the outcome with the final screenshot. In Draft and Battle, wait briefly for confirmation in the Coach. If it does not appear, press Stop to record the result yourself.
 Was bedeuten Rahmen und Zwischenbilder?|What do the outlines and intermediate frames mean?
 Dünne Rahmen zeigen erkannte Karten. Ein grüner Tipp ist regulär bewertet. Gelb kennzeichnet einen vorläufigen Tipp oder einen Versuchstipp. Eine gesendete Auswahl wird zusätzlich markiert. Im Automodus bleibt das letzte relevante Wahlfenster sichtbar. Mit Zwischenbilder anzeigen kannst du auch die Aufnahmen dazwischen sehen.|Thin outlines show detected cards. Green marks a regular recommendation. Yellow indicates a provisional or fallback recommendation. A sent choice gets an additional marker. Auto capture keeps the last relevant choice visible. Use Show intermediate frames to see captures in between.
@@ -255,6 +257,8 @@ Mikrofon aus|Disable microphone
 Stopp|Stop
 Zwischenbilder anzeigen|Show intermediate frames
 Tipp automatisch antippen|Auto-tap recommendation
+Continuum-Modus|Continuum mode
+Continuum gestoppt. Der nächste Bildschirm wurde nicht eindeutig erkannt.|Continuum stopped. The next screen could not be verified.
 Tipp vorlesen|Read recommendation aloud
 Bereit|Ready
 Ton testen|Test sound

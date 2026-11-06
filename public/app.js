@@ -383,8 +383,10 @@ $('apply-collection').onclick=async()=>{
 $('connection').onclick=()=>{$('setup').open=true;};
 $('auto').onclick=()=>{
   armTapAudio();
-  return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:$('auto-tap').checked}));
+  return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:$('auto-tap').checked,
+    continuum:$('mode').value==='arena'&&$('continuum').checked}));
 };
+$('continuum').onchange=()=>action(()=>post('/api/settings',{continuum:$('continuum').checked}));
 $('setup-wifi-connect').onsubmit=event=>{
   event.preventDefault();
   return action(async()=>{
@@ -1328,6 +1330,8 @@ async function refresh(){
   const filterImages=!prep&&!intermediates.checked&&(state.auto||state.current?.automatic);
   const displayed=filterImages?state.latestRelevant:state.current;
   $('auto-tap-control').hidden=prep;
+  $('continuum-control').hidden=state.mode!=='arena';
+  $('continuum').checked=!!state.continuum;
   $('read-tip-control').hidden=prep;
   readTip(state);
   $('auto-tap').checked=!!state.autoTap;
@@ -1446,6 +1450,7 @@ async function refresh(){
   if(!state.auto&&displayed?.outcomeSaved){
     $('activity').textContent=reviewMessage(displayed.matchOutcome,language)+' · '+(language==='en'?'Result saved':'Ergebnis gespeichert');
   }
+  if(state.continuing)$('activity').textContent=language==='en'?'Starting the next battle…':'Nächste Schlacht wird gestartet …';
   if(state.error)error(Error(state.error));
   if(prep&&!refsShown){renderReferences(state.references);refsShown=true;}
   const c=displayed;

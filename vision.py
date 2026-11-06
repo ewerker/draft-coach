@@ -329,8 +329,36 @@ with np.load(ROOT/'data'/'match-results.npz',allow_pickle=False) as result_data:
                    for mask in (result_data[key],) for scale in (.94,1,1.06)]
 
 
+with np.load(ROOT/'data'/'battle-navigation.npz',allow_pickle=False) as navigation_data:
+    navigation_labels={name:navigation_data[name] for name in ('result','recap','home','lobby')}
+
+
+def battle_navigation(small,outcome):
+    gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
+    if outcome:
+        step,area='result',(25,283,143,347)
+    elif np.mean(small[85:250,4,1].astype(int)-small[85:250,4,2])>13:
+        step,area='recap',(25,292,143,356)
+    else:
+        lobby=gray[73:199,3:165]
+        if cv2.minMaxLoc(cv2.matchTemplate(lobby,navigation_labels['lobby'],cv2.TM_CCOEFF_NORMED))[1]<.86:
+            return None
+        step,area='home',(12,237,156,314)
+    x0,y0,x1,y1=area
+    pattern=navigation_labels[step]
+    _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(gray[y0:y1,x0:x1],pattern,cv2.TM_CCOEFF_NORMED))
+    if score<.87:
+        return None
+    x+=x0+pattern.shape[1]/2
+    y+=y0+pattern.shape[0]/2
+    return {'step':step,'point':[x/168,y/364]}
+
+
 def match_outcome(img):
-    small=cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA)
+    return match_outcome_small(cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA))
+
+
+def match_outcome_small(small):
     # Reward screens have a blue backdrop around the animated heading.
     sides=small[85:220,[2,3,4,163,164,165]]
     if np.mean((sides[:,:,0].astype(int)-sides[:,:,2])>35)<.68:
@@ -353,8 +381,11 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                 'notes':['Spielbereich auf dieser Aufnahme nicht zugeordnet. Das Originalbild bleibt sichtbar.'],
                 'visionMs':round((time.perf_counter()-start)*1000,1)}
     img=normalize_screen(raw,geometry['content'])
-    if outcome:=match_outcome(img):
-        return {'phase':outcome,'matchOutcome':outcome,'offers':[],'enemy':[],'own':[],
+    small=cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA)
+    outcome=match_outcome_small(small)
+    navigation=battle_navigation(small,outcome)
+    if outcome or navigation:
+        return {'phase':outcome or 'unknown','matchOutcome':outcome,'navigation':navigation,'offers':[],'enemy':[],'own':[],
                 'geometry':geometry,'visionMs':round((time.perf_counter()-start)*1000,1)}
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
     deck=deck_choice_offset(img,geometry['layout'],language)

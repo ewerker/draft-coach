@@ -75,6 +75,7 @@ let autoTapResult=null;
 let lastCardTap=null;
 let latestRelevant=null, manualTapPending=false;
 let activeMatch=null, stoppedMatch=null;
+let continuum=false, continuation=null;
 const recentChoiceFrames=[];
 const liveFrames=new Map();
 function setAutoTap(enabled){
@@ -398,14 +399,23 @@ function record(job,result) {
   if(confirmedOutcome){
     latestRelevant=item;
     match.resultCapture=job.id;
-    const {matchId}=stopMatch();
+    const next=continuum&&state.mode==='arena'?{step:'saving',outcome:confirmedOutcome,deadline:Date.now()+30000}:null;
+    const {matchId}=stopMatch(Boolean(next));
+    continuation=next;
     interruptibleCapture?.abort();
     queue.supersede(serial+1);
     void saveMatchOutcome({matchId,outcome:confirmedOutcome}).then(()=>{
       item.outcomeSaved=true;
+      if(next&&continuation===next)next.step='result';
     }).catch(error=>{
+      if(next&&continuation===next)setAuto(false);
       state.error=error.message;
     });
+    return;
+  }
+  if(continuation){
+    if(job.automatic&&job.mode==='arena'&&job.target===device&&!expired&&result.navigation?.step===continuation.step)
+      void tapContinuation(job,continuation);
     return;
   }
   const cardChoice=choiceSignature(item,true);
@@ -679,7 +689,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   if(controller)interruptibleCapture=controller;
   const id=++serial,started=Date.now(),target=device,mode=state.mode,gameLanguage=state.gameLanguage,armedGeneration=tapGeneration;
   let match, captureDone;
-  if(!probe&&!preparationKind){
+  if(!probe&&!preparationKind&&!continuation){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
       draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),ownVariantUncertain:new Set(),pendingReinforcement:null,variantEvidence:[],pendingVariantEvidence:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
@@ -713,12 +723,12 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
       return {id,preparation:entry};
     }
     const file=`capture-${id}.png`,dest=path.join(RUNTIME,file);await writeFile(dest,png,{flag:'wx'});
-    match.captureIds.push(id);
+    match?.captureIds.push(id);
     const source=transportOf(target);
     const frame={target,width:png.readUInt32BE(16),height:png.readUInt32BE(20)};
     liveFrames.set(id,frame);
     if(liveFrames.size>captureLimit)liveFrames.delete(liveFrames.keys().next().value);
-    const job={id,started,source,target,mode,gameLanguage,matchId:match.id,frame,automatic:scheduled||state.auto,tapGeneration:armedGeneration,title:source==='wifi'?'WLAN-Aufnahme':'USB-Aufnahme',path:dest,image:'/capture/'+file,captureMs:Date.now()-started};
+    const job={id,started,source,target,mode,gameLanguage,matchId:match?.id,frame,automatic:scheduled||state.auto,tapGeneration:armedGeneration,title:source==='wifi'?'WLAN-Aufnahme':'USB-Aufnahme',path:dest,image:'/capture/'+file,captureMs:Date.now()-started};
     // A scheduled request supersedes recognition only when its image is available.
     state.latestId=Math.max(state.latestId,id);
     queue.push(job);void trimRuntime().catch(error=>console.error('Aufnahmen aufräumen:',error.message));return {id};
@@ -753,14 +763,56 @@ async function probeDevice(){
     throw error;
   }
 }
+async function tapContinuation(job,run){
+  if(state.capturing||manualTapPending)return;
+  const step=run.step;
+  const current=()=>continuation===run&&continuum&&state.auto&&state.mode==='arena'&&
+    job.target===device&&Date.now()<run.deadline&&Date.now()-lastClientSeen<10000&&!manualTapPending;
+  if(!current())return;
+  state.capturing=true;
+  const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
+  try {
+    const png=await execAdb(['-s',job.target,'exec-out','screencap','-p'],3500);
+    if(!current()||png.length<24)return;
+    await writeFile(checkPath,png);
+    const check=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
+    const geometry=check.geometry,point=check.navigation?.point;
+    if(!current()||check.navigation?.step!==step||step==='result'&&check.matchOutcome!==run.outcome||
+       !geometry||geometry.width!==png.readUInt32BE(16)||geometry.height!==png.readUInt32BE(20)||!point||
+       !point.every(value=>Number.isFinite(value)&&value>0&&value<1))return;
+    const [left,top,width,height]=geometry.content;
+    const x=Math.floor(left+point[0]*width),y=Math.floor(top+point[1]*height);
+    await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],2500);
+    if(continuation!==run)return;
+    if(step==='home')continuation=null;
+    else {
+      run.step=step==='result'?'recap':'home';
+      run.deadline=Date.now()+30000;
+    }
+  } catch(error){
+    if(continuation===run){
+      setAuto(false);
+      state.error=error.message;
+    }
+  } finally {
+    await unlink(checkPath).catch(()=>{});
+    state.capturing=false;
+  }
+}
+
 function setAuto(on) {
   clearTimeout(autoTimer);
   autoTimer=null;
   state.auto=!!on;
-  if(!on)return;
+  if(!on){continuation=null;return;}
   let timeouts=0;
   const tick=async()=>{
     if(Date.now()-lastClientSeen>10000){setAuto(false);return;}
+    if(continuation&&Date.now()>continuation.deadline){
+      setAuto(false);
+      state.error='Continuum gestoppt. Der nächste Bildschirm wurde nicht eindeutig erkannt.';
+      return;
+    }
     // Give the recognized offer a chance to reserve ADB for tap verification
     // before the next scheduled screenshot starts.
     if(autoBusy||state.capturing||manualTapPending||(autoTap&&state.recognizing)){
@@ -839,11 +891,13 @@ async function tapImage({id,u,v}){
   if(generation===tapGeneration&&!state.auto)void capture({interruptible:true}).catch(error=>{state.error=error.message;});
   return {ok:true};
 }
-function stopMatch(){
+function stopMatch(keepAuto=false){
   lastTappedChoice=null;
   if(lastCardTap)lastCardTap.choice=null;
-  setAuto(false);
-  setAutoTap(false);
+  if(!keepAuto){
+    setAuto(false);
+    setAutoTap(false);
+  }
   if(activeMatch){
     stoppedMatch={...activeMatch,ended:Date.now()};
     activeMatch=null;
@@ -1139,9 +1193,17 @@ async function handleRequest(req,res){
         if(data.mode!==undefined){
           if(!['draft','arena','prep'].includes(data.mode))throw Error('Ungültiger Modus');
           if(state.capturing)throw Error('Aufnahme zuerst abwarten.');
-          if(state.mode!==data.mode){setAutoTap(false);activeMatch=null;stoppedMatch=null;}
+          if(state.mode!==data.mode){
+            if(continuation)setAuto(false);
+            continuum=false;setAutoTap(false);activeMatch=null;stoppedMatch=null;
+          }
           state.mode=data.mode;
           if(state.mode==='prep')setAuto(false);
+        }
+        if(data.continuum!==undefined){
+          if(typeof data.continuum!=='boolean'||(data.continuum&&state.mode!=='arena'))throw Error('Continuum ist nur in der Schlacht verfügbar.');
+          continuum=data.continuum;
+          if(!continuum&&continuation)setAuto(false);
         }
         if(data.autoTap!==undefined){
           if(typeof data.autoTap!=='boolean'||(data.autoTap&&state.mode==='prep'))throw Error('Automatischer Klick ist nur in Draft und Schlacht verfügbar.');
@@ -1211,7 +1273,7 @@ async function handleRequest(req,res){
           choiceSignature(item,true)===lastCardTap.choice;
         return item.id===lastCardTap.id||sameChoice?{...item,sentChoice:{index:lastCardTap.index,name:lastCardTap.name}}:item;
       };
-      return json(res,200,{...state,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
