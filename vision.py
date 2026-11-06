@@ -360,8 +360,10 @@ def game_navigation(small,outcome):
         return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')
     panel=gray[125:226,10:158]
     if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
-           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel','arena_weaker_win_panel')):
-        return navigation_button(gray,'arena_recap',(25,292,143,356),'recap','arena')
+           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel','arena_weaker_win_panel','arena_stronger_panel_de')):
+        area=(25,292,143,356)
+        return (navigation_button(gray,'arena_recap',area,'recap','arena') or
+                navigation_button(gray,'arena_recap_de',area,'recap','arena'))
     side=small[85:250,4].astype(int)
     draft_loss=np.mean(side[:,2]-side[:,1])>25 and any(cv2.minMaxLoc(cv2.matchTemplate(
         gray[37:86,16:152],navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
@@ -825,6 +827,10 @@ with np.load(calibration_file,allow_pickle=False) as calibration:
                zip(calibration['template_names'],calibration['template_sources'],calibration['template_features'])]
     numbers=list(zip(calibration['digit_values'].tolist(),calibration['digit_features']))
     collection_names={kind:[(name,calibration[f'{kind}_{index}'])
+                            for index,name in enumerate(calibration[kind+'_names'])] for kind in ('units','spells')}
+    legacy_captions=[(calibration[f'legacy_{index}'],name,action)
+                     for index,name,action in [(0,'Boomling','add'),(1,'Astra','add'),(2,'Astra','multiply')]]
+
 def spell_caption_patterns(names):
     patterns={}
     for name,mask in names:
@@ -838,9 +844,6 @@ with np.load(ROOT/'data'/'spell-captions.npz',allow_pickle=False) as captions:
     verified_english_spell_names=[(name,captions[f'english_{i}']) for i,name in enumerate(captions['english_names'].tolist())]
 german_spell_names=spell_caption_patterns(collection_names['spells']+verified_spell_names)
 english_spell_names=spell_caption_patterns(vision_english.collection_names['spells']+verified_english_spell_names)
-                            for index,name in enumerate(calibration[kind+'_names'])] for kind in ('units','spells')}
-    legacy_captions=[(calibration[f'legacy_{index}'],name,action)
-                     for index,name,action in [(0,'Boomling','add'),(1,'Astra','add'),(2,'Astra','multiply')]]
 comeback_label=(cv2.imdecode(np.fromfile(str(ROOT/'data'/'comeback-label.png'),dtype=np.uint8),cv2.IMREAD_GRAYSCALE)>0).astype(np.uint8)
 calibrated_names=[
     (name,np.array([[int(pixel) for pixel in row] for row in rows],dtype=np.uint8))
