@@ -258,6 +258,10 @@ Stopp|Stop
 Zwischenbilder anzeigen|Show intermediate frames
 Tipp automatisch antippen|Auto-tap recommendation
 Continuum-Modus|Continuum mode
+Spielmodus automatisch|Detect game mode
+Automodus vor dem Start im Spielmenü einschalten. Bei einem späten Einstieg Draft oder Schlacht manuell wählen.|Turn on auto capture in the game lobby before starting. If you join late, select Draft or Battle manually.
+Schlacht erkannt.|Battle detected.
+Draft erkannt.|Draft detected.
 Continuum gestoppt. Der nächste Bildschirm wurde nicht eindeutig erkannt.|Continuum stopped. The next screen could not be verified.
 Tipp vorlesen|Read recommendation aloud
 Bereit|Ready

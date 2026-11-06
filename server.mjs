@@ -76,6 +76,7 @@ let lastCardTap=null;
 let latestRelevant=null, manualTapPending=false;
 let activeMatch=null, stoppedMatch=null;
 let continuum=false, continuation=null;
+let autoMode=false, nextModeHint=null;
 const recentChoiceFrames=[];
 const liveFrames=new Map();
 function setAutoTap(enabled){
@@ -137,7 +138,7 @@ function recognize(job) {
   return new Promise((resolve,reject)=>{
     if(!state.ready)return reject(Error('Bilderkennung ist noch nicht bereit.'));
     const timer=setTimeout(()=>{waiting.delete(job.id);reject(Error('Erkennung nach 15 Sekunden abgebrochen'));worker.kill();},15000);
-    const preferred=extendedPool?[]:[...allowedNames(collection,state.mode)];
+    const preferred=extendedPool||state.mode==='auto'?[]:[...allowedNames(collection,state.mode)];
     waiting.set(job.id,{resolve,reject,timer});
     worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,bannerTemplate:job.bannerTemplate,reviewCrop:job.reviewCrop,language:job.gameLanguage,preferred,learnedBanners})+'\n');
   });
@@ -287,6 +288,7 @@ async function updateDraftLineup(match,result){
   }
 }
 function calculateAdvice(result,preview=true){
+  if(state.mode==='auto')return {best:null,withheld:true,warnings:[],evaluated:[]};
   const advice=recommend(result,state.mode,collection,db,extendedPool,tactics);
   if(preview&&tactics.some(rule=>rule.status==='test')){
     const tested=recommend(result,state.mode,collection,db,extendedPool,tactics,true);
@@ -419,7 +421,7 @@ function record(job,result) {
     return;
   }
   const cardChoice=choiceSignature(item,true);
-  if(job.source!=='reference'&&job.matchId&&job.matchId===match?.id&&
+  if(job.source!=='reference'&&state.mode!=='auto'&&job.matchId&&job.matchId===match?.id&&
      (cardChoice||item.phase==='spell_choice')){
     const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
     match.reviewFrames.push({id:item.id,language:job.gameLanguage,phase,offers,enemy,own,ownDeckPicks,
@@ -431,7 +433,7 @@ function record(job,result) {
     recentChoiceFrames.unshift(item);
     if(recentChoiceFrames.length>8)recentChoiceFrames.pop();
   }
-  if(job.source!=='reference'&&job.tapGeneration===tapGeneration){
+  if(job.source!=='reference'&&state.mode!=='auto'&&job.tapGeneration===tapGeneration){
     const openedSpell=activeMatch?.id===job.matchId&&Date.now()<(activeMatch?.spellOpenedUntil??0);
     const choice=choiceSignature(item,item.phase==='battle_choice'||openedSpell&&item.phase==='spell_choice');
     const recognizedChoice=cardChoice&&item.offers.every(offer=>offer.name&&offer.action!=='unknown');
@@ -618,6 +620,14 @@ const queue=new LatestQueue(async job=>{
   state.recognizing=true;
   try {
     const result=await recognize(job);
+    if(autoMode&&job.matchId&&job.matchId===activeMatch?.id&&job.target===device&&job.id===state.latestId){
+      if(result.modeHint&&!activeMatch.reviewFrames.length){
+        state.mode=activeMatch.mode=result.modeHint;
+        activeMatch.draftObservation=state.mode==='draft'?newDraftObservation():null;
+      }
+      job.mode=activeMatch.mode;
+      if(job.mode==='auto')return result;
+    }
     if(job.matchId&&job.matchId===activeMatch?.id&&job.target===device){
       const match=activeMatch;
       if(result.hearts){
@@ -687,6 +697,10 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   state.capturing=true;state.error=null;
   const controller=interruptible?new AbortController():null;
   if(controller)interruptibleCapture=controller;
+  if(!probe&&!preparationKind&&!continuation&&!activeMatch&&autoMode){
+    state.mode=nextModeHint??'auto';
+    nextModeHint=null;
+  }
   const id=++serial,started=Date.now(),target=device,mode=state.mode,gameLanguage=state.gameLanguage,armedGeneration=tapGeneration;
   let match, captureDone;
   if(!probe&&!preparationKind&&!continuation){
@@ -784,7 +798,10 @@ async function tapContinuation(job,run){
     const x=Math.floor(left+point[0]*width),y=Math.floor(top+point[1]*height);
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],2500);
     if(continuation!==run)return;
-    if(step==='home')continuation=null;
+    if(step==='home'){
+      if(autoMode)nextModeHint='arena';
+      continuation=null;
+    }
     else {
       run.step=step==='result'?'recap':'home';
       run.deadline=Date.now()+30000;
@@ -804,7 +821,7 @@ function setAuto(on) {
   clearTimeout(autoTimer);
   autoTimer=null;
   state.auto=!!on;
-  if(!on){continuation=null;return;}
+  if(!on){continuation=null;nextModeHint=null;return;}
   let timeouts=0;
   const tick=async()=>{
     if(Date.now()-lastClientSeen>10000){setAuto(false);return;}
@@ -898,10 +915,10 @@ function stopMatch(keepAuto=false){
     setAuto(false);
     setAutoTap(false);
   }
-  if(activeMatch){
+  if(activeMatch&&activeMatch.mode!=='auto'){
     stoppedMatch={...activeMatch,ended:Date.now()};
-    activeMatch=null;
   }
+  activeMatch=null;
   return {matchId:stoppedMatch?.id??null};
 }
 async function saveMatchOutcome({matchId,outcome}){
@@ -1191,17 +1208,18 @@ async function handleRequest(req,res){
           }
         }
         if(data.mode!==undefined){
-          if(!['draft','arena','prep'].includes(data.mode))throw Error('Ungültiger Modus');
+          if(!['auto','draft','arena','prep'].includes(data.mode))throw Error('Ungültiger Modus');
           if(state.capturing)throw Error('Aufnahme zuerst abwarten.');
-          if(state.mode!==data.mode){
+          if((autoMode?'auto':state.mode)!==data.mode){
             if(continuation)setAuto(false);
             continuum=false;setAutoTap(false);activeMatch=null;stoppedMatch=null;
+            autoMode=data.mode==='auto';
+            state.mode=data.mode;
           }
-          state.mode=data.mode;
           if(state.mode==='prep')setAuto(false);
         }
         if(data.continuum!==undefined){
-          if(typeof data.continuum!=='boolean'||(data.continuum&&state.mode!=='arena'))throw Error('Continuum ist nur in der Schlacht verfügbar.');
+          if(typeof data.continuum!=='boolean'||(data.continuum&&state.mode!=='arena'&&!autoMode))throw Error('Continuum ist nur in der Schlacht verfügbar.');
           continuum=data.continuum;
           if(!continuum&&continuation)setAuto(false);
         }
@@ -1273,7 +1291,7 @@ async function handleRequest(req,res){
           choiceSignature(item,true)===lastCardTap.choice;
         return item.id===lastCardTap.id||sameChoice?{...item,sentChoice:{index:lastCardTap.index,name:lastCardTap.name}}:item;
       };
-      return json(res,200,{...state,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();

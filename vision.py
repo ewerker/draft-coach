@@ -330,7 +330,7 @@ with np.load(ROOT/'data'/'match-results.npz',allow_pickle=False) as result_data:
 
 
 with np.load(ROOT/'data'/'battle-navigation.npz',allow_pickle=False) as navigation_data:
-    navigation_labels={name:navigation_data[name] for name in ('result','recap','home','lobby')}
+    navigation_labels={name:navigation_data[name] for name in navigation_data.files}
 
 
 def battle_navigation(small,outcome):
@@ -352,6 +352,14 @@ def battle_navigation(small,outcome):
     x+=x0+pattern.shape[1]/2
     y+=y0+pattern.shape[0]/2
     return {'step':step,'point':[x/168,y/364]}
+
+
+def draft_lobby(small):
+    gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
+    for name,region in (('draft_lobby',gray[73:199,3:165]),('draft_home',gray[237:314,12:156])):
+        if cv2.minMaxLoc(cv2.matchTemplate(region,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]<.87:
+            return False
+    return True
 
 
 def match_outcome(img):
@@ -384,8 +392,9 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
     small=cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA)
     outcome=match_outcome_small(small)
     navigation=battle_navigation(small,outcome)
-    if outcome or navigation:
-        return {'phase':outcome or 'unknown','matchOutcome':outcome,'navigation':navigation,'offers':[],'enemy':[],'own':[],
+    mode_hint='arena' if navigation and navigation['step']=='home' else 'draft' if not outcome and not navigation and draft_lobby(small) else None
+    if outcome or navigation or mode_hint:
+        return {'phase':outcome or 'unknown','matchOutcome':outcome,'navigation':navigation,'modeHint':mode_hint,'offers':[],'enemy':[],'own':[],
                 'geometry':geometry,'visionMs':round((time.perf_counter()-start)*1000,1)}
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
     deck=deck_choice_offset(img,geometry['layout'],language)

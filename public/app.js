@@ -384,7 +384,7 @@ $('connection').onclick=()=>{$('setup').open=true;};
 $('auto').onclick=()=>{
   armTapAudio();
   return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:$('auto-tap').checked,
-    continuum:$('mode').value==='arena'&&$('continuum').checked}));
+    continuum:['arena','auto'].includes(gameMode)&&$('continuum').checked}));
 };
 $('continuum').onchange=()=>action(()=>post('/api/settings',{continuum:$('continuum').checked}));
 $('setup-wifi-connect').onsubmit=event=>{
@@ -1330,7 +1330,7 @@ async function refresh(){
   const filterImages=!prep&&!intermediates.checked&&(state.auto||state.current?.automatic);
   const displayed=filterImages?state.latestRelevant:state.current;
   $('auto-tap-control').hidden=prep;
-  $('continuum-control').hidden=state.mode!=='arena';
+  $('continuum-control').hidden=state.mode!=='arena'&&!(state.modeSelection==='auto'&&state.mode==='auto');
   $('continuum').checked=!!state.continuum;
   $('read-tip-control').hidden=prep;
   readTip(state);
@@ -1381,7 +1381,7 @@ async function refresh(){
   $('auto').disabled=state.auto||manualCapturePending||state.capturing||!state.ready||conn.status!=='device';
   $('auto').textContent=state.auto?'Automodus läuft':'Automodus starten';
   $('auto').dataset.running=String(state.auto);
-  gameMode=state.mode;
+  gameMode=state.modeSelection??state.mode;
   $('mode').value=coachView==='game'?gameMode:coachView;
   $('mode').disabled=state.capturing&&coachView==='game';
   $('prep-kind').value=state.preparationKind||'units';$('prep-kind').disabled=state.capturing;
@@ -1397,6 +1397,13 @@ async function refresh(){
     (draftLineup.length?'Aktives Draft-Deck · '+displayCardNames(draftLineup.join(', ')):'Noch kein Draft-Deck übernommen.')+
     (draftExtra.length?' · Neu im Spiel erkannt: '+displayCardNames(draftExtra.join(', ')):''):
     'Zauber immer nur aus deiner Auswahl.');
+  if(coachView==='game'&&gameMode==='auto'){
+    if(state.mode==='auto')$('mode-hint').textContent='Automodus vor dem Start im Spielmenü einschalten. Bei einem späten Einstieg Draft oder Schlacht manuell wählen.';
+    else {
+      const detected=state.mode==='arena'?'Schlacht erkannt.':'Draft erkannt.';
+      $('mode-hint').textContent=translate(detected,language)+' '+$('mode-hint').textContent;
+    }
+  }
   const shots=state.preparation||[], nextPrepKey=shots.map(p=>p.file).join(',');
   if(prep&&nextPrepKey!==prepKey){
     prepKey=nextPrepKey;
@@ -1519,10 +1526,11 @@ await action(async()=>{
   const state=await fetchState().then(response=>response.json());
   lastTapSoundId=state.autoTapResult?.id??0;
   if(state.hasAudioClient||state.auto||state.capturing||state.recognizing)return;
-  const mode=['arena','draft','prep'].includes(preferences.mode)?preferences.mode:state.mode;
+  const selectedMode=state.modeSelection??state.mode;
+  const mode=['auto','arena','draft','prep'].includes(preferences.mode)?preferences.mode:selectedMode;
   const settings={};
   if(state.gameLanguage!==language)settings.gameLanguage=language;
-  if(mode!==state.mode)settings.mode=mode;
+  if(mode!==selectedMode)settings.mode=mode;
   if(mode!=='prep'&&typeof preferences.autoTap==='boolean')settings.autoTap=preferences.autoTap;
   if(Object.keys(settings).length)await post('/api/settings',{...settings,restoreBrowser:true});
 });
