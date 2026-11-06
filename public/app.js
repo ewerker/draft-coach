@@ -472,7 +472,7 @@ function listen(){
 }
 $('mic').onclick=()=>{if(armed){stopMic();return;}armed=true;$('mic').textContent='Mikrofon aus';$('mic').classList.add('listening');listen();};
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&coachView==='game'&&!matchDialog.open&&!['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement.tagName)){e.preventDefault();$('capture').click();}});
-const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung'};
+const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung',gewonnen:'Gewonnen',verloren:'Verloren'};
 const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
 if(config.localAdmin)$('organization-options').append(new Option('Admin · Archiv','admin'));
@@ -1443,6 +1443,9 @@ async function refresh(){
   }
   $('prep-count').textContent=shots.length+' Bilder';
   $('activity').textContent=[state.manualTapPending?'Wahl wird geprüft':'',state.capturing?'Aufnahme läuft':'',state.recognizing?'Erkennung läuft':'',state.auto?'Automatik an':''].filter(Boolean).join(' · ')||'Bereit';
+  if(!state.auto&&displayed?.outcomeSaved){
+    $('activity').textContent=reviewMessage(displayed.matchOutcome,language)+' · '+(language==='en'?'Result saved':'Ergebnis gespeichert');
+  }
   if(state.error)error(Error(state.error));
   if(prep&&!refsShown){renderReferences(state.references);refsShown=true;}
   const c=displayed;

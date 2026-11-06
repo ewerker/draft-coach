@@ -130,7 +130,8 @@ async function pickEvidence(runtime,game,ids){
   const captures=[...ids];
   const hearts=(game.heartTimeline??[]).map(entry=>entry.captureId).filter(id=>ids.has(id));
   const variants=(game.variantEvidence??[]).flatMap(({before,after})=>[before,after]).filter(id=>ids.has(id));
-  const candidates=new Set([...variants,captures.at(-1),captures[0],...hearts.reverse(),...captures.slice(-12).reverse()]);
+  const result=ids.has(game.resultCapture)?game.resultCapture:undefined;
+  const candidates=new Set([result,...variants,captures.at(-1),captures[0],...hearts.reverse(),...captures.slice(-12).reverse()]);
   const evidence=[];
   for(const id of candidates){
     if(id===undefined)continue;

@@ -322,6 +322,28 @@ def mark_reinforcement_variants(img,offers):
             card['variantSample']=(sample//16).flatten().tolist()
 
 
+with np.load(ROOT/'data'/'match-results.npz',allow_pickle=False) as result_data:
+    result_labels=[(outcome,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_LINEAR))
+                   for outcome in ('gewonnen','verloren')
+                   for key in (outcome+'_de',outcome+'_en')
+                   for mask in (result_data[key],) for scale in (.94,1,1.06)]
+
+
+def match_outcome(img):
+    small=cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA)
+    # Reward screens have a blue backdrop around the animated heading.
+    sides=small[85:220,[2,3,4,163,164,165]]
+    if np.mean((sides[:,:,0].astype(int)-sides[:,:,2])>35)<.68:
+        return None
+    heading=cv2.cvtColor(small[84:189,16:152],cv2.COLOR_BGR2GRAY)
+    scores={'gewonnen':0,'verloren':0}
+    for outcome,pattern in result_labels:
+        score=cv2.minMaxLoc(cv2.matchTemplate(heading,pattern,cv2.TM_CCOEFF_NORMED))[1]
+        scores[outcome]=max(scores[outcome],score)
+    best,other=sorted(scores,key=scores.get,reverse=True)
+    return best if scores[best]>=.79 and scores[best]-scores[other]>=.10 else None
+
+
 def recognize(path,preferred=None,language='de',learned_banners=()):
     start=time.perf_counter()
     raw=decode(path)
@@ -331,6 +353,9 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                 'notes':['Spielbereich auf dieser Aufnahme nicht zugeordnet. Das Originalbild bleibt sichtbar.'],
                 'visionMs':round((time.perf_counter()-start)*1000,1)}
     img=normalize_screen(raw,geometry['content'])
+    if outcome:=match_outcome(img):
+        return {'phase':outcome,'matchOutcome':outcome,'offers':[],'enemy':[],'own':[],
+                'geometry':geometry,'visionMs':round((time.perf_counter()-start)*1000,1)}
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
     deck=deck_choice_offset(img,geometry['layout'],language)
     english_deck=language=='en' and deck is None and (deck:=english_deck_offset(img)) is not None

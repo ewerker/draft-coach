@@ -370,6 +370,14 @@ async function persistTactics(next,affectsAdvice){
 }
 function record(job,result) {
   const match=activeMatch;
+  const liveMatch=job.matchId&&job.matchId===match?.id&&job.target===device;
+  let confirmedOutcome;
+  if(liveMatch&&state.auto&&job.automatic&&job.tapGeneration===tapGeneration&&match.reviewFrames.length){
+    const outcome=result.matchOutcome;
+    const previous=match.resultCandidate;
+    if(outcome&&previous?.outcome===outcome&&job.started-previous.started<=6000)confirmedOutcome=outcome;
+    match.resultCandidate=outcome?{outcome,started:job.started}:null;
+  }
   if(job.matchId&&job.matchId===match?.id&&job.target===device&&match.pendingReinforcement){
     const next=choiceSignature(result,true);
     if(result.phase==='battle'||(next&&result.offers.every(offer=>offer.name&&offer.action!=='unknown')&&next!==match.pendingReinforcement.choice)){
@@ -387,6 +395,19 @@ function record(job,result) {
   const advice=expired?{best:null,withheld:true,warnings:['Antwortfrist von 6 Sekunden überschritten.'],evaluated:[]}:calculateAdvice(result);
   const item={...job,path:undefined,...result,ageMs,expired,advice};
   state.current=item;state.error=null;state.history.unshift({id:job.id,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});state.history=state.history.slice(0,20);
+  if(confirmedOutcome){
+    latestRelevant=item;
+    match.resultCapture=job.id;
+    const {matchId}=stopMatch();
+    interruptibleCapture?.abort();
+    queue.supersede(serial+1);
+    void saveMatchOutcome({matchId,outcome:confirmedOutcome}).then(()=>{
+      item.outcomeSaved=true;
+    }).catch(error=>{
+      state.error=error.message;
+    });
+    return;
+  }
   const cardChoice=choiceSignature(item,true);
   if(job.source!=='reference'&&job.matchId&&job.matchId===match?.id&&
      (cardChoice||item.phase==='spell_choice')){
@@ -836,10 +857,10 @@ async function saveMatchOutcome({matchId,outcome}){
   match.saving=true;
   try {
     await match.captureDone;
-    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence}=match;
-    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,outcome})+'\n');
+    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,resultCapture}=match;
+    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,resultCapture,outcome})+'\n');
     if(stoppedMatch===match)stoppedMatch=null;
-    if(variantEvidence.length)void archive.archiveGames(id).catch(error=>console.error('Variantenbelege:',error.message));
+    if(resultCapture||variantEvidence.length)void archive.archiveGames(id).catch(error=>console.error('Partiebelege:',error.message));
     return {ok:true};
   } finally {match.saving=false;}
 }
