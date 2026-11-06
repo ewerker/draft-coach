@@ -191,6 +191,15 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=14;
       why+=` Zugriff auf die Hinterreihe ist wichtiger, weil mehrere Einheiten vom Typ ${rearThreat} beobachtet wurden.`;
     }
+    if(result.phase==='battle_choice'&&offer.name==='Schildling'&&enemy.includes('Bienenkorb')&&
+       (tracked.Schildling??0)<4&&offer.action==='add'){
+      score+=16;
+      why+=' Schildling kann zum Bienenkorb in der Hinterreihe vordringen.';
+    }
+    if(result.phase==='battle_choice'&&offer.name==='Kupid'&&enemy.includes('Ingenieur')){
+      score-=8;
+      why+=' Kupid wird gegen Ingenieur schwächer gewichtet.';
+    }
     if(needsMerlinorCounter&&offer.name==='Kapitän'&&offer.action==='add'){
       score+=26;
       why+=' Spartheus deckt bereits die Front ab. Der Kapitän kann Merlinor aus der Hinterreihe ziehen.';
