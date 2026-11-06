@@ -111,29 +111,53 @@
   <ul id="archive-games"></ul>
 </section>
 <section id="quick-panel" class="panel quick" aria-labelledby="quick-title" hidden>
-  <div class="panel-head"><h2 id="quick-title">Schnellauskunft</h2><span class="pill" id="quick-source-label">Lokales Taktiklexikon</span></div>
-  <div class="quick-examples" aria-label="Beispielfragen">
-    <button type="button" class="small">Was tue ich gegen Darklings?</button>
-    <button type="button" class="small">Was hilft gegen Schwärme?</button>
-    <button type="button" class="small">Wer hat Synergie mit Drakling?</button>
+  <div class="quick-header">
+    <div class="quick-heading">
+      <span class="quick-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-5a7.5 7.5 0 0 1 6.5-12.5h3a7.5 7.5 0 0 1 7.5 8Z"/><path d="M8 11.5h7M8 15h4"/></svg>
+      </span>
+      <div>
+        <h2 id="quick-title">Schnellauskunft</h2>
+        <p>Fragen zu Kontern, Kombinationen und Zaubern.</p>
+      </div>
+    </div>
+    <label class="quick-source" for="quick-source">Antwortquelle
+      <select id="quick-source"><option value="local">Lokales Taktiklexikon</option><option value="ai">Standalone-KI</option></select>
+    </label>
   </div>
-  <details id="quick-recent" class="quick-recent" hidden>
-    <summary>Letzte Fragen <span id="quick-recent-count" class="pill"></span></summary>
-    <div id="quick-recent-list" class="quick-examples" aria-label="Letzte beantwortete Fragen"></div>
-    <p class="muted">Dieser Browser merkt sich bis zu zehn Fragen mit Treffern im lokalen Lexikon.</p>
-  </details>
+  <div class="quick-suggestions">
+    <div>
+      <h3>Beispielfragen</h3>
+      <div id="quick-examples" class="quick-examples">
+        <button type="button" class="small">Was tue ich gegen Darklings?</button>
+        <button type="button" class="small">Was hilft gegen Schwärme?</button>
+        <button type="button" class="small">Wer hat Synergie mit Drakling?</button>
+      </div>
+    </div>
+    <details id="quick-recent" class="quick-recent" hidden>
+      <summary>Letzte Fragen <span id="quick-recent-count" class="pill"></span></summary>
+      <div id="quick-recent-list" class="quick-examples" aria-label="Letzte beantwortete Fragen"></div>
+    </details>
+  </div>
   <div id="quick-history" class="quick-history" role="log" aria-label="Fragen und Antworten"></div>
-  <form id="quick-form">
-    <label for="quick-source">Antwortquelle</label>
-    <select id="quick-source"><option value="local">Lokales Taktiklexikon</option><option value="ai">Standalone-KI</option></select>
-    <p id="quick-ai-hint" class="muted" hidden>Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.</p>
-    <button id="quick-key-settings" type="button" class="small" hidden>API-Key einrichten</button>
+  <form id="quick-form" class="quick-composer">
     <label for="quick-question">Deine Taktikfrage</label>
-    <div class="quick-input"><input id="quick-question" maxlength="500" required placeholder="Was hilft gegen Parasit?"><button id="quick-mic" type="button" aria-pressed="false">Frage diktieren</button><button class="primary" type="submit">Fragen</button></div>
+    <div class="quick-input">
+      <input id="quick-question" maxlength="500" required placeholder="Was hilft gegen Parasit?">
+      <div class="quick-actions">
+        <button id="quick-mic" type="button" aria-pressed="false">Frage diktieren</button>
+        <button class="primary" type="submit">Fragen</button>
+      </div>
+    </div>
     <p id="quick-mic-status" class="muted" role="status"></p>
   </form>
-  <p><a id="quick-web" target="_blank" rel="noopener noreferrer" hidden>Frage im Web recherchieren</a></p>
-</section><section id="tactics-panel" class="panel" aria-labelledby="tactics-title" hidden>
+  <div class="quick-footer">
+    <p id="quick-ai-hint" class="muted" hidden>Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.</p>
+    <button id="quick-key-settings" type="button" class="small" hidden>API-Key einrichten</button>
+    <a id="quick-web" target="_blank" rel="noopener noreferrer" hidden>Frage im Web recherchieren</a>
+  </div>
+</section>
+<section id="tactics-panel" class="panel" aria-labelledby="tactics-title" hidden>
   <div class="panel-head"><h2 id="tactics-title">Taktikregeln <span id="tactics-total" class="pill"></span></h2><button id="close-tactics" type="button" class="small">Zurück zum Spiel</button></div>
   <p class="muted">Eine Notiz hält Wissen fest. Eine Testregel zeigt eine Vorschau. Eine aktive Regel beeinflusst den Tipp.</p>
   <p id="tactics-sources" class="muted"></p>

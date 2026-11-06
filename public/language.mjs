@@ -94,6 +94,7 @@ KI-Einstellungen konnten nicht geladen werden.|Could not load AI settings.
 Regel gespeichert. Automatische Übersetzung fehlgeschlagen.|Rule saved. Automatic translation failed.
 Regel und automatische Übersetzung gespeichert.|Rule and automatic translation saved.
 Automatisch übersetzt.|Machine translated.
+Fragen zu Kontern, Kombinationen und Zaubern.|Ask about counters, combinations and spells.
 Antwortquelle|Answer source
 Standalone-KI|Standalone AI
 Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.|Standalone AI requires an OpenAI API key on the host.

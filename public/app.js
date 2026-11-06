@@ -843,12 +843,7 @@ function updateQuickAi(enabled){
   quickSource.querySelector('[value="ai"]').disabled=!enabled;
   $('quick-ai-hint').hidden=enabled;
   $('quick-key-settings').hidden=enabled||!config.localAdmin;
-  showQuickSource();
 }
-function showQuickSource(){
-  $('quick-source-label').textContent=quickSource.value==='ai'?'Standalone-KI':'Lokales Taktiklexikon';
-}
-quickSource.onchange=showQuickSource;
 updateQuickAi(Boolean(config.quickAiEnabled));
 $('quick-key-settings').onclick=()=>{
   showCoachView('admin');
@@ -998,7 +993,7 @@ quickForm.onsubmit=event=>{
   void askQuick($('quick-question').value.trim());
 };
 renderRecentQuestions();
-for(const button of document.querySelectorAll('#quick-panel > .quick-examples button')){
+for(const button of document.querySelectorAll('#quick-examples button')){
   button.onclick=()=>{
     if(quickForm.querySelector('button[type="submit"]').disabled)return;
     $('quick-question').value=button.textContent;
