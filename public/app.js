@@ -1364,7 +1364,7 @@ async function refresh(){
   if(state.audioHere)playTapResult(state.autoTapResult);
   const events=state.enemyEvents||[];
   const eventLabels=events.map(({name,action,quantity})=>action==='add'?`+${quantity} ${name}`:
-    action==='multiply'?`${name} ×${quantity}`:`${name} UP!`);
+    action==='multiply'?`${name} ×${quantity}`:action==='multiply_upgrade'?`${name} ×${quantity} UP!`:`${name} UP!`);
   $('enemy-events').hidden=!events.length;
   $('enemy-events').textContent=events.length?'Gegnerzüge · zuletzt je Figur · '+displayCardNames(eventLabels.join(' · ')):'';
   const connectionLabels={device:'Verbunden',missing:'Nicht verbunden',unauthorized:'Am Handy freigeben',offline:'Gerät offline',checking:'ADB wird geprüft',error:'ADB nicht erreichbar'};

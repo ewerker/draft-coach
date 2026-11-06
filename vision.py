@@ -369,6 +369,11 @@ def game_navigation(small,outcome):
         area=(25,292,143,361)
         return (navigation_button(gray,'draft_recap',area,'recap','draft') or
                 navigation_button(gray,'draft_recap_de',area,'recap','draft'))
+    if cv2.minMaxLoc(cv2.matchTemplate(gray[234:274,26:142],
+                                      navigation_labels['claim_tickets'],cv2.TM_CCOEFF_NORMED))[1]>=.86:
+        claim=navigation_button(gray,'claim_de',(28,260,141,315),'claim','draft')
+        if claim:
+            return claim
     for mode,tab in (('draft',gray[308:364,52:117]),('arena',gray[308:364,115:168])):
         for suffix in ('','_de'):
             pattern=navigation_labels[mode+'_lobby'+suffix]
@@ -493,7 +498,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
     deck_evidence=(phase=='battle_choice' and not is_showdown and
                    not any(card['action']=='multiply_upgrade' or (card['quantity'] or 0)>4 for card in offers) and
                    not has_comeback_label(img))
-    enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') else None
+    enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') or (phase=='unknown' and hearts is not None) else None
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     spell_button=None
@@ -624,6 +629,8 @@ def read_enemy_banner(img,language='de',learned_banners=()):
     multiple=enemy_banner_number(suffix,'times')
     if added:
         action,quantity='add',added
+    elif similarity(normalize(suffix*255,40),banner_glyphs['times_up'])>=.89:
+        action,quantity='multiply_upgrade',2
     elif multiple==2:
         action,quantity='multiply',multiple
     elif similarity(normalize(suffix*255,40),banner_glyphs['up'])>=.77:
@@ -861,6 +868,9 @@ banner_names=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INT
               for scale in (1.0,1.15,1.3,1.45,1.6,1.75,1.9,2.05)]
 banner_names.extend((name,cv2.resize(banner_mask(rows),None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
                     for name,rows in banner_samples['names'].items() for scale in (.94,1,1.06,1.12))
+banner_names.extend((name,cv2.resize(banner_mask(rows),None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
+                    for name,patterns in banner_samples.get('extra_names',{}).items()
+                    for rows in patterns for scale in (.94,1,1.06,1.12))
 english_banner_names=[
     (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
     for name,mask in vision_english.banner_names for scale in (.94,1,1.06,1.12)]

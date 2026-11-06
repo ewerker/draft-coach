@@ -791,6 +791,7 @@ async function probeDevice(){
 function matchesContinuation(result,run){
   const navigation=result.navigation;
   if(!navigation)return false;
+  if(navigation.step==='claim')return run.step==='home'&&navigation.mode===run.mode&&!run.claimSent;
   if(navigation.step==='reward')return run.step!=='saving'&&run.rewardStep!==run.step;
   if(run.step==='result')return navigation.step==='result'&&result.matchOutcome===run.outcome;
   // The player may have already dismissed the recap while auto capture waits.
@@ -820,7 +821,9 @@ async function tapContinuation(job,run,step){
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],2500);
     continuationResult='gesendet';
     if(continuation!==run)return;
-    if(step==='reward'){
+    if(step==='claim'){
+      run.claimSent=true;
+    }else if(step==='reward'){
       run.rewardStep=run.step;
     }else if(step==='home'){
       if(autoMode)nextModeHint=run.mode;
