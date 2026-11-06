@@ -40,8 +40,9 @@
 .tactics-actions{align-items:end}
 #delete-tactic{color:#ffd7d7;border-color:#9e525f}
 @media(max-width:850px){.tactics-layout{grid-template-columns:1fr}.tactics-list{max-height:40vh}}
-.tactics-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
-.tactics-fields label{display:grid;gap:5px}
+.tactics-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px}
+.tactics-fields label{display:grid;grid-template-columns:minmax(0,1fr);min-width:0;gap:5px}
+.tactics-fields :is(select,input,textarea){width:100%;min-width:0}
 .tactics-wide{grid-column:1/-1}
 .tactics-fields textarea{font:inherit;color:inherit;background:#263248;border:1px solid #43506b;border-radius:8px;padding:10px;resize:vertical}
 .tactics-actions{display:flex;gap:8px;flex-wrap:wrap}
