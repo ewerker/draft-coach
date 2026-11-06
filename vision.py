@@ -293,7 +293,7 @@ def read_hearts(img, layout='full'):
 def spell_choices(img,language):
     offers=[]
     for position,x in enumerate((180,540,900)):
-        badge=[x+104,1025,x+162,1075]
+        badge=[x+104,1000,x+162,1075]
         if not has_orange_badge(img,badge):
             continue
         caption=lettering(cut(img,[x-155,1290,x+155,1450]))

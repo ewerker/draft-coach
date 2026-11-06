@@ -423,6 +423,7 @@ Automatik an|Auto capture on
 `.trim().split('\n').map(line=>line.split('|')));
 
 const fragments=new Map(`
+Zusätzlicher Fernkampf kann gegen gegnerische Cupid Druck aufbauen.|Additional ranged units can put pressure on opposing Cupid.
 Zaubertipp|Spell recommendation
 Versuchstipp|Fallback recommendation
 Vorläufiger Tipp|Provisional recommendation

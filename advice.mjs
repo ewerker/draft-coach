@@ -175,6 +175,11 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
         why+=' Direkter Zugriff auf die gegnerische Hinterreihe ergänzt das Deck.';
       }
     }
+    if(result.phase==='deck_choice'&&enemy.includes('Kupid')&&
+       !ownDeck.has('Kupid')&&!ownDeck.has('Sniper')&&['Kupid','Sniper'].includes(offer.name)){
+      score+=12;
+      why+=' Zusätzlicher Fernkampf kann gegen gegnerische Kupid Druck aufbauen.';
+    }
     if(result.phase==='battle_choice'&&snail){
       if(deckRanged.has(offer.name)){
         score+=12;
