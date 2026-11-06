@@ -353,7 +353,8 @@ def navigation_button(gray,name,area,step,mode=None):
 def game_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     if outcome:
-        return navigation_button(gray,'result',(25,283,143,347),'result')
+        area=(25,283,143,347)
+        return navigation_button(gray,'result',area,'result') or navigation_button(gray,'result_de',area,'result')
     if cv2.minMaxLoc(cv2.matchTemplate(gray[78:119,16:153],
                                       navigation_labels['mastery_title'],cv2.TM_CCOEFF_NORMED))[1]>=.89:
         return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')
@@ -365,7 +366,9 @@ def game_navigation(small,outcome):
     draft_loss=np.mean(side[:,2]-side[:,1])>25 and cv2.minMaxLoc(cv2.matchTemplate(
         gray[37:86,32:136],navigation_labels['draft_loss_panel'],cv2.TM_CCOEFF_NORMED))[1]>=.86
     if draft_loss or np.mean(side[:,1]-side[:,2])>13:
-        return navigation_button(gray,'draft_recap',(25,292,143,361),'recap','draft')
+        area=(25,292,143,361)
+        return (navigation_button(gray,'draft_recap',area,'recap','draft') or
+                navigation_button(gray,'draft_recap_de',area,'recap','draft'))
     for mode,tab in (('draft',gray[308:364,52:117]),('arena',gray[308:364,115:168])):
         for suffix in ('','_de'):
             pattern=navigation_labels[mode+'_lobby'+suffix]
