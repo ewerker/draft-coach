@@ -1583,7 +1583,10 @@ async function refresh(){
   screenshot.parentElement.classList.toggle('direct-tap',canTapImage);
   renderTacticFeedback(current);
   renderMatchLog(state.recentMatchResults??[]);
-  $('history').replaceChildren();for(const h of state.history)$('history').append(textEl('div',`${h.title} · ${Math.round(h.visionMs)} ms Erkennung · ${(h.ageMs/1000).toFixed(2)} s gesamt${h.expired?' · abgelaufen':''}`));
+  const timings=state.history.filter(entry=>entry.ageMs>2000);
+  $('history').replaceChildren(...(timings.length?timings.map(h=>textEl('div',
+    `${h.title} · ${Math.round(h.visionMs)} ms Erkennung · ${(h.ageMs/1000).toFixed(2)} s gesamt${h.expired?' · abgelaufen':''}`)):
+    [document.createTextNode('Keine Aufnahmen über zwei Sekunden.')]));
 }
 $('show-intermediates').onchange=()=>{
   rememberPreferences({showIntermediates:$('show-intermediates').checked});

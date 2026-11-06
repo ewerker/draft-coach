@@ -402,7 +402,11 @@ function record(job,result) {
   const expired=job.source!=='reference' && ageMs>6000;
   const advice=expired?{best:null,withheld:true,warnings:['Antwortfrist von 6 Sekunden überschritten.'],evaluated:[]}:calculateAdvice(result);
   const item={...job,path:undefined,...result,ageMs,expired,advice};
-  state.current=item;state.error=null;state.history.unshift({id:job.id,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});state.history=state.history.slice(0,20);
+  state.current=item;state.error=null;
+  if(ageMs>2000){
+    state.history.unshift({id:job.id,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});
+    state.history=state.history.slice(0,20);
+  }
   if(confirmedOutcome){
     latestRelevant=item;
     match.resultCapture=job.id;

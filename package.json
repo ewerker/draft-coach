@@ -1,5 +1,6 @@
 {
   "name": "draft-coach-local",
+  "version": "0.7.0-beta",
   "private": true,
   "type": "module",
   "scripts": {"start":"node --env-file-if-exists=.env server.mjs", "test":"node --test tests.mjs"},

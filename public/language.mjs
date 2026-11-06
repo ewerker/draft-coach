@@ -308,7 +308,7 @@ Log-Protokoll|Activity log
 Partieergebnisse|Match results
 Spielsprache offen|Game language unknown
 Fehler|Error
-Noch keine Messungen.|No measurements yet.
+Keine Aufnahmen über zwei Sekunden.|No captures took longer than two seconds.
 Draft Coach · Prototyp|Draft Coach · Prototype
 Sicher erkannt|Recognised confidently
 Tipp|Recommendation
