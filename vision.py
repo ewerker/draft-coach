@@ -338,9 +338,9 @@ def battle_navigation(small,outcome):
     if outcome:
         step,area='result',(25,283,143,347)
     elif np.mean(small[85:250,4,1].astype(int)-small[85:250,4,2])>13:
-        step,area='recap',(25,292,143,356)
+        step,area='recap',(25,292,143,361)
     else:
-        lobby=gray[73:199,3:165]
+        lobby=gray[308:364,52:117]
         if cv2.minMaxLoc(cv2.matchTemplate(lobby,navigation_labels['lobby'],cv2.TM_CCOEFF_NORMED))[1]<.86:
             return None
         step,area='home',(12,237,156,314)
