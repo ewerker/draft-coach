@@ -426,6 +426,7 @@ Automatik an|Auto capture on
 `.trim().split('\n').map(line=>line.split('|')));
 
 const fragments=new Map(`
+Gegen Cupid Assassinen für den Angriff auf die Hinterreihe aufbauen; eigener Bestand nur soweit beobachtet.|Build up Assassins to attack opposing Cupid in the back line; own numbers are based on observed choices.
 Zusätzlicher Fernkampf kann gegen gegnerische Cupid Druck aufbauen.|Additional ranged units can put pressure on opposing Cupid.
 Zaubertipp|Spell recommendation
 Versuchstipp|Fallback recommendation

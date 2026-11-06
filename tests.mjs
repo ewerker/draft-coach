@@ -211,6 +211,20 @@ test('an established Spartheus frontline makes room for a Captain against Merlin
   }
 });
 
+test('builds Assassin backline access against Cupid when the observed force is small',()=>{
+  const offers=[
+    {name:'Merlinor',position:0,action:'upgrade'},
+    {name:'Assassine',position:1,action:'add',quantity:3},
+    {name:'Parasit',position:2,action:'add',quantity:2}
+  ];
+  const evaluate=(enemy,ownReinforcements)=>recommend({phase:'battle_choice',offers,enemy,
+    ownReinforcements},'arena',collection,db).evaluated[1];
+  const againstCupid=evaluate([{name:'Kupid'}],{Merlinor:16});
+  assert.match(againstCupid.reason,/Assassinen für den Angriff auf die Hinterreihe/);
+  assert.doesNotMatch(evaluate([{name:'Kupid'}],{Assassine:6}).reason,/Assassinen für den Angriff auf die Hinterreihe/);
+  assert.doesNotMatch(evaluate([{name:'Splime'}],{}).reason,/Assassinen für den Angriff auf die Hinterreihe/);
+});
+
 test('deck choice favors a ranged unit when Sixshoot and Captain are already selected',()=>{
   const offers=['Königlop','Sniper','Boomling'].map(name=>({name,action:'add',orange:{value:name==='Sniper'?11:12}}));
   const pick=ownDeckPicks=>recommend({phase:'deck_choice',offers,ownDeckPicks},'arena',collection,db).best.name;

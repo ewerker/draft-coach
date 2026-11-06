@@ -180,6 +180,11 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=12;
       why+=' Zusätzlicher Fernkampf kann gegen gegnerische Kupid Druck aufbauen.';
     }
+    if(result.phase==='battle_choice'&&enemy.includes('Kupid')&&offer.name==='Assassine'&&
+       offer.action==='add'&&offer.quantity>=3&&(tracked.Assassine??0)<6){
+      score+=34;
+      why+=' Gegen Kupid Assassinen für den Angriff auf die Hinterreihe aufbauen; eigener Bestand nur soweit beobachtet.';
+    }
     if(result.phase==='battle_choice'&&snail){
       if(deckRanged.has(offer.name)){
         score+=12;
