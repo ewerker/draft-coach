@@ -95,6 +95,8 @@
 .intro .mode select{width:100%}
 #detected-mode{margin-top:8px;font-weight:700}
 #detected-mode[hidden],#board:empty,#notes:empty{display:none}
+.offer .offer-unknown{color:#ff9098}
+:root[data-theme="light"] .offer .offer-unknown{color:#ad2431}
 .help-panel li,.help-panel dd{margin-bottom:10px;line-height:1.6}
 .help-panel details{border-top:1px solid var(--line);padding-top:12px}
 #archive-backup{color:#bcd4ff;align-self:center;padding:8px}

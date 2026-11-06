@@ -238,10 +238,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   });
   warnings.push('Basiswertung aus der bisherigen App. Mengen, gegnerische Stärken und eigene Synergien sind noch nicht vollständig bewertet.');
   const scored=evaluated.filter(card=>card.score!==null).sort((a,b)=>b.score-a.score);
-  const complete=!result.specialStep&&evaluated.length>0&&scored.length===evaluated.length&&!scored.some(card=>card.ruleOnly);
+  const expectedOffers=result.phase==='spell_choice'?Math.min(3,collection.spells.active_loadout.length):
+    ['battle_choice','deck_choice'].includes(result.phase)&&result.offers?.some(card=>Number.isInteger(card.position))?3:0;
+  const incompleteSlots=evaluated.length<expectedOffers||(result.offers??[]).some(card=>card.visible===false&&!card.name);
+  const complete=!result.specialStep&&!incompleteSlots&&evaluated.length>0&&scored.length===evaluated.length&&!scored.some(card=>card.ruleOnly);
   const pick=preferReinforcement(result,scored,evaluated);
   const fallback=complete?null:trialPick(result,evaluated,strengths);
-  return {best:complete?pick:null,provisional:complete?null:pick,fallback,evaluated,warnings,withheld:!complete,reroll};
+  return {best:complete?pick:null,provisional:complete?null:pick,fallback,evaluated,warnings,withheld:!complete,reroll,expectedOffers,incompleteSlots};
 }
 
 function visibleAdditions(result,offer){

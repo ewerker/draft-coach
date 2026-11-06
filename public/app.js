@@ -1246,7 +1246,7 @@ function draw(result,sentTap){
   const tentative=result.advice?.fallback??result.advice?.provisional;
   const tip=result.sentChoice??(result.advice?.reroll?null:best??tentative);
   const sentIndex=result.sentChoice?.index??(sentTap?.id===result.id?sentTap.index:null);
-  const key=JSON.stringify([result.geometry,tip?.index,!!best,sentIndex,groups.map(group=>(result[group]||[]).map(card=>[card.box,!!card.name]))]);
+  const key=JSON.stringify([result.geometry,tip?.index,best?.index,sentIndex,groups.map(group=>(result[group]||[]).map(card=>[card.box,!!card.name]))]);
   if(key===overlayKey)return;
   overlayKey=key;
   const svg=$('overlay');
@@ -1268,7 +1268,7 @@ function draw(result,sentTap){
       const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
       const sent=group==='offers'&&index===sentIndex;
       const highlighted=group==='offers'&&index===tip?.index;
-      const stroke=highlighted?(best||sent?'#60f394':'#ffdc58'):(card.name?'#bcf388':'#b7c1cf');
+      const stroke=highlighted?(best?.index===index?'#60f394':'#ffdc58'):(card.name?'#bcf388':'#b7c1cf');
       for(const [key,value] of Object.entries({x,y,width:right-x,height:bottom-y,fill:'none',stroke,'stroke-width':highlighted?12:5,rx:8}))
         rect.setAttribute(key,value);
       if(highlighted){
@@ -1294,7 +1294,7 @@ function draw(result,sentTap){
   }
 }
 function renderOffers(result){
-  const key=JSON.stringify([result.phase,result.offers.map(card=>offerKey(result,card))]);
+  const key=JSON.stringify([result.phase,result.advice?.expectedOffers,result.offers.map(card=>offerKey(result,card))]);
   if(key!==offersKey){
     offersKey=key;
     renderOfferRows(result);
@@ -1322,10 +1322,14 @@ function renderOfferRows(result){
   $('offers').replaceChildren();
   if(!result.offers.length)$('offers').append(textEl('p',result.phase==='spell_choice'?
     'Die angebotenen Zauber stehen im Handybild.':'Keine Wahlangebote sicher lokalisiert.'));
-  for(const c of result.offers){
+  const cards=result.offers.length&&result.advice?.expectedOffers===3?
+    Array.from({length:result.advice.expectedOffers},(_,position)=>
+      result.offers.find(card=>card.position===position)??{position,name:null,action:'unknown'}):result.offers;
+  for(const c of cards){
     const row=textEl('div','','offer');row.dataset.position=c.position;
     const details=textEl('div','','offer-details');
-    details.append(textEl('strong',c.name||(result.phase==='spell_choice'?'Zauber':'Figur nicht erkannt')),textEl('span',offerAction(result.phase,c)+(c.variantIndex?` · ${language==='en'?'Variant':'Variante'} ${c.variantIndex}`:''),'offer-action'));
+    details.append(textEl('strong',c.name||(result.phase==='spell_choice'?'Zauber nicht erkannt':'Figur nicht erkannt'),c.name?'':'offer-unknown'),
+      textEl('span',offerAction(result.phase,c)+(c.variantIndex?` · ${language==='en'?'Variant':'Variante'} ${c.variantIndex}`:''),c.action==='unknown'?'offer-action offer-unknown':'offer-action'));
     row.append(textEl('span',pos[c.position],'offer-position'),details);
     if(canChoose(result,c)){
       const tap=textEl('button','Wählen','small');

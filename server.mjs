@@ -458,7 +458,7 @@ function shouldOpenSpell(item,match){
     collection.spells.active_loadout.length>0&&item.hearts?.own>0&&(item.hearts.own<item.hearts.enemy||!item.advice.best);
 }
 async function tapRecommendation(job,item,choice,selection=null){
-  if(!selection&&item.advice?.reroll)return;
+  if(!selection&&(item.advice?.reroll||item.advice?.incompleteSlots))return;
   const openSpell=!selection&&shouldOpenSpell(item,activeMatch);
   const chooseSpell=!selection&&item.phase==='spell_choice'&&activeMatch?.id===job.matchId&&
     Date.now()<(activeMatch?.spellOpenedUntil??0)&&!activeMatch.spellChosen;

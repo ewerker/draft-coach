@@ -357,6 +357,7 @@ Spielfeld|Battlefield
 Wahl im Kampf|Battle selection
 Einheitensammlung|Unit collection
 Figur nicht erkannt|Unit not recognised
+Zauber nicht erkannt|Spell not recognised
 Aktion unklar|Unknown action
 Löschen|Delete
 Aus Galerie entfernen|Remove from gallery

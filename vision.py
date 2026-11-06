@@ -470,7 +470,8 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
         if battle_cards:
             for c in range(3):
                 x=35+c*340
-                card=classify(img,[x+25,1090,x+295,1305]); card.update(position=c,action='unknown',quantity=None)
+                card=classify(img,[x+25,1090,x+295,1305]); card.update(position=c,action='unknown',quantity=None,
+                    visible=bool(has_orange_badge(img,[x+206,1022,x+259,1070])))
                 card['orange']=number(img,[x+206,1022,x+259,1070]); card['blue']=number(img,[x+270,1024,x+317,1073])
                 card.update(read_battle_caption(img,x,None if special_step else preferred,card,language))
                 if card['action']=='unknown':

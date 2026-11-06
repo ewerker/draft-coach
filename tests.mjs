@@ -38,6 +38,16 @@ test('recommendation only names a visible offer',()=>{
 test('unknown card, unknown action and multiplication without counts withhold the tip',()=>{
   for(const offer of [{name:null,action:'add'},{name:'Astra',action:'add'},{name:'TNT',action:'unknown'},{name:'TNT',action:'multiply'}])assert.equal(recommend({enemy:[],offers:[offer]},'arena',collection,db).best,null);
 });
+test('partially visible choice trays withhold green advice',()=>{
+  const offers=['Merlinor','Kapitän','Spartheus'].map((name,position)=>({name,position,action:'add',quantity:1}));
+  const evaluate=offers=>recommend({phase:'battle_choice',offers},'arena',collection,db);
+  assert.equal(evaluate(offers).incompleteSlots,false);
+  assert.equal(evaluate(offers.slice(0,2)).best,null);
+  assert.equal(evaluate([...offers.slice(0,2),{position:2,name:null,action:'unknown',visible:false}]).incompleteSlots,true);
+  assert.equal(recommend({phase:'spell_choice',offers:[{position:0,name:'Minenfeld',action:'spell'}]},
+    'arena',collection,db).best,null);
+});
+
 test('a forbidden Draft offer withholds a complete recommendation',()=>{
   const a=recommend({enemy:[{name:'Kupid'}],offers:[{name:'TNT',action:'add'},{name:'Merlinor',action:'add'}]},'draft',collection,db);assert.equal(a.best,null);
 });
