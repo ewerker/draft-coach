@@ -401,7 +401,7 @@ function record(job,result) {
   if(confirmedOutcome){
     latestRelevant=item;
     match.resultCapture=job.id;
-    const next=continuum&&state.mode==='arena'?{step:'saving',outcome:confirmedOutcome,deadline:Date.now()+30000}:null;
+    const next=continuum?{step:'saving',mode:match.mode,outcome:confirmedOutcome,deadline:Date.now()+30000}:null;
     const {matchId}=stopMatch(Boolean(next));
     continuation=next;
     interruptibleCapture?.abort();
@@ -416,7 +416,7 @@ function record(job,result) {
     return;
   }
   if(continuation){
-    if(job.automatic&&job.mode==='arena'&&job.target===device&&!expired&&result.navigation?.step===continuation.step)
+    if(job.automatic&&job.mode===continuation.mode&&job.target===device&&!expired&&matchesContinuation(result,continuation))
       void tapContinuation(job,continuation);
     return;
   }
@@ -777,10 +777,16 @@ async function probeDevice(){
     throw error;
   }
 }
+function matchesContinuation(result,run){
+  const navigation=result.navigation;
+  return navigation?.step===run.step&&(run.step==='result'?
+    result.matchOutcome===run.outcome:navigation.mode===run.mode);
+}
+
 async function tapContinuation(job,run){
   if(state.capturing||manualTapPending)return;
   const step=run.step;
-  const current=()=>continuation===run&&continuum&&state.auto&&state.mode==='arena'&&
+  const current=()=>continuation===run&&continuum&&state.auto&&state.mode===run.mode&&
     job.target===device&&Date.now()<run.deadline&&Date.now()-lastClientSeen<10000&&!manualTapPending;
   if(!current())return;
   state.capturing=true;
@@ -791,7 +797,7 @@ async function tapContinuation(job,run){
     await writeFile(checkPath,png);
     const check=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
     const geometry=check.geometry,point=check.navigation?.point;
-    if(!current()||check.navigation?.step!==step||step==='result'&&check.matchOutcome!==run.outcome||
+    if(!current()||!matchesContinuation(check,run)||
        !geometry||geometry.width!==png.readUInt32BE(16)||geometry.height!==png.readUInt32BE(20)||!point||
        !point.every(value=>Number.isFinite(value)&&value>0&&value<1))return;
     const [left,top,width,height]=geometry.content;
@@ -799,7 +805,7 @@ async function tapContinuation(job,run){
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],2500);
     if(continuation!==run)return;
     if(step==='home'){
-      if(autoMode)nextModeHint='arena';
+      if(autoMode)nextModeHint=run.mode;
       continuation=null;
     }
     else {
@@ -1219,7 +1225,7 @@ async function handleRequest(req,res){
           if(state.mode==='prep')setAuto(false);
         }
         if(data.continuum!==undefined){
-          if(typeof data.continuum!=='boolean'||(data.continuum&&state.mode!=='arena'&&!autoMode))throw Error('Continuum ist nur in der Schlacht verfügbar.');
+          if(typeof data.continuum!=='boolean'||(data.continuum&&state.mode==='prep'))throw Error('Continuum ist nur in Draft und Schlacht verfügbar.');
           continuum=data.continuum;
           if(!continuum&&continuation)setAuto(false);
         }

@@ -384,7 +384,7 @@ $('connection').onclick=()=>{$('setup').open=true;};
 $('auto').onclick=()=>{
   armTapAudio();
   return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:$('auto-tap').checked,
-    continuum:['arena','auto'].includes(gameMode)&&$('continuum').checked}));
+    continuum:gameMode!=='prep'&&$('continuum').checked}));
 };
 $('continuum').onchange=()=>action(()=>post('/api/settings',{continuum:$('continuum').checked}));
 $('setup-wifi-connect').onsubmit=event=>{
@@ -1330,7 +1330,7 @@ async function refresh(){
   const filterImages=!prep&&!intermediates.checked&&(state.auto||state.current?.automatic);
   const displayed=filterImages?state.latestRelevant:state.current;
   $('auto-tap-control').hidden=prep;
-  $('continuum-control').hidden=state.mode!=='arena'&&!(state.modeSelection==='auto'&&state.mode==='auto');
+  $('continuum-control').hidden=prep;
   $('continuum').checked=!!state.continuum;
   $('read-tip-control').hidden=prep;
   readTip(state);
@@ -1457,7 +1457,7 @@ async function refresh(){
   if(!state.auto&&displayed?.outcomeSaved){
     $('activity').textContent=reviewMessage(displayed.matchOutcome,language)+' · '+(language==='en'?'Result saved':'Ergebnis gespeichert');
   }
-  if(state.continuing)$('activity').textContent=language==='en'?'Starting the next battle…':'Nächste Schlacht wird gestartet …';
+  if(state.continuing)$('activity').textContent=language==='en'?'Starting the next match…':'Nächste Partie wird gestartet …';
   if(state.error)error(Error(state.error));
   if(prep&&!refsShown){renderReferences(state.references);refsShown=true;}
   const c=displayed;

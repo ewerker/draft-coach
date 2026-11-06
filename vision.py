@@ -333,33 +333,34 @@ with np.load(ROOT/'data'/'battle-navigation.npz',allow_pickle=False) as navigati
     navigation_labels={name:navigation_data[name] for name in navigation_data.files}
 
 
-def battle_navigation(small,outcome):
-    gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
-    if outcome:
-        step,area='result',(25,283,143,347)
-    elif np.mean(small[85:250,4,1].astype(int)-small[85:250,4,2])>13:
-        step,area='recap',(25,292,143,361)
-    else:
-        lobby=gray[308:364,52:117]
-        if cv2.minMaxLoc(cv2.matchTemplate(lobby,navigation_labels['lobby'],cv2.TM_CCOEFF_NORMED))[1]<.86:
-            return None
-        step,area='home',(12,237,156,314)
+def navigation_button(gray,name,area,step,mode=None):
     x0,y0,x1,y1=area
-    pattern=navigation_labels[step]
+    pattern=navigation_labels[name]
     _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(gray[y0:y1,x0:x1],pattern,cv2.TM_CCOEFF_NORMED))
     if score<.87:
         return None
     x+=x0+pattern.shape[1]/2
     y+=y0+pattern.shape[0]/2
-    return {'step':step,'point':[x/168,y/364]}
+    return {'step':step,'mode':mode,'point':[x/168,y/364]}
 
 
-def draft_lobby(small):
+def game_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
-    for name,region in (('draft_lobby',gray[73:199,3:165]),('draft_home',gray[237:314,12:156])):
-        if cv2.minMaxLoc(cv2.matchTemplate(region,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]<.87:
-            return False
-    return True
+    if outcome:
+        return navigation_button(gray,'result',(25,283,143,347),'result')
+    panel=gray[125:226,10:158]
+    if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
+           for name in ('arena_win_panel','arena_loss_panel')):
+        return navigation_button(gray,'arena_recap',(25,292,143,356),'recap','arena')
+    if np.mean(small[85:250,4,1].astype(int)-small[85:250,4,2])>13:
+        return navigation_button(gray,'draft_recap',(25,292,143,361),'recap','draft')
+    for mode,lobby in (('draft',gray[308:364,52:117]),('arena',gray[73:199,3:165])):
+        if cv2.minMaxLoc(cv2.matchTemplate(lobby,navigation_labels[mode+'_lobby'],cv2.TM_CCOEFF_NORMED))[1]>=.86:
+            # The paid Battle button includes its coin price. The free button has no price.
+            button=navigation_button(gray,mode+'_home',(12,237,156,314),'home',mode)
+            if button:
+                return button
+    return None
 
 
 def match_outcome(img):
@@ -391,8 +392,8 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
     img=normalize_screen(raw,geometry['content'])
     small=cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA)
     outcome=match_outcome_small(small)
-    navigation=battle_navigation(small,outcome)
-    mode_hint='arena' if navigation and navigation['step']=='home' else 'draft' if not outcome and not navigation and draft_lobby(small) else None
+    navigation=game_navigation(small,outcome)
+    mode_hint=navigation['mode'] if navigation and navigation['step']=='home' else None
     if outcome or navigation or mode_hint:
         return {'phase':outcome or 'unknown','matchOutcome':outcome,'navigation':navigation,'modeHint':mode_hint,'offers':[],'enemy':[],'own':[],
                 'geometry':geometry,'visionMs':round((time.perf_counter()-start)*1000,1)}
