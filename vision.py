@@ -358,7 +358,10 @@ def game_navigation(small,outcome):
     if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
            for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel')):
         return navigation_button(gray,'arena_recap',(25,292,143,356),'recap','arena')
-    if np.mean(small[85:250,4,1].astype(int)-small[85:250,4,2])>13:
+    side=small[85:250,4].astype(int)
+    draft_loss=np.mean(side[:,2]-side[:,1])>25 and cv2.minMaxLoc(cv2.matchTemplate(
+        gray[37:86,32:136],navigation_labels['draft_loss_panel'],cv2.TM_CCOEFF_NORMED))[1]>=.86
+    if draft_loss or np.mean(side[:,1]-side[:,2])>13:
         return navigation_button(gray,'draft_recap',(25,292,143,361),'recap','draft')
     for mode,lobby in (('draft',gray[308:364,52:117]),('arena',gray[73:199,3:165])):
         if cv2.minMaxLoc(cv2.matchTemplate(lobby,navigation_labels[mode+'_lobby'],cv2.TM_CCOEFF_NORMED))[1]>=.86:
