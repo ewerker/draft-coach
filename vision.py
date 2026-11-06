@@ -370,8 +370,8 @@ def game_navigation(small,outcome):
         area=(25,292,143,361)
         return (navigation_button(gray,'draft_recap',area,'recap','draft') or
                 navigation_button(gray,'draft_recap_de',area,'recap','draft'))
-    if cv2.minMaxLoc(cv2.matchTemplate(gray[234:274,26:142],
-                                      navigation_labels['claim_tickets'],cv2.TM_CCOEFF_NORMED))[1]>=.86:
+    if cv2.minMaxLoc(cv2.matchTemplate(gray[335:358,61:107],
+                                      navigation_labels['claim_tab_de'],cv2.TM_CCOEFF_NORMED))[1]>=.86:
         claim=navigation_button(gray,'claim_de',(28,260,141,315),'claim','draft')
         if claim:
             return claim
@@ -488,7 +488,6 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                 phase='battle_choice'
             else:
                 offers=[]
-        notes.append('Spielfeld-Zählung noch nicht automatisiert. Überlappende Figuren werden nicht als sicher gezählt.')
     else: notes.append('Bildschirmtyp noch nicht sicher erkannt.')
     if phase=='battle_choice':
         mark_reinforcement_variants(img,offers)

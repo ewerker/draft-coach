@@ -262,6 +262,9 @@ Spielmodus automatisch|Detect game mode
 Automodus vor dem Start im Spielmenü einschalten. Bei einem späten Einstieg Draft oder Schlacht manuell wählen.|Turn on auto capture in the game lobby before starting. If you join late, select Draft or Battle manually.
 Schlacht erkannt.|Battle detected.
 Draft erkannt.|Draft detected.
+Warte auf Spielmodus|Waiting for game mode
+Gegnerisches Deck|Opponent deck
+Eigenes Deck|Your deck
 Continuum gestoppt. Der nächste Bildschirm wurde nicht eindeutig erkannt.|Continuum stopped. The next screen could not be verified.
 Tipp vorlesen|Read recommendation aloud
 Bereit|Ready

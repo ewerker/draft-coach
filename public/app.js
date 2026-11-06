@@ -1299,7 +1299,12 @@ function renderOffers(result){
     offersKey=key;
     renderOfferRows(result);
   }
-  $('board').replaceChildren();for(const [key,label]of [['enemy','Gegnerische Karten'],['own','Eigene Karten']])$('board').append(textEl('p',label+': '+((result[key]||[]).map(c=>`${c.name} (${c.orange?.value??'Stärke offen'})`).join(', ')||'nicht sicher erfasst')));
+  $('board').replaceChildren();
+  for(const [key,label] of [['enemy','Gegnerisches Deck'],['own','Eigenes Deck']]){
+    const cards=(result[key]??[]).filter(card=>card.name&&Number.isInteger(card.position));
+    if(cards.length)$('board').append(textEl('p',translate(label,language)+' · '+cards.map(card=>
+      displayCardNames(card.name)+(card.orange?.value!=null?` (${card.orange.value})`:'')).join(', ')));
+  }
   $('notes').replaceChildren();for(const note of result.notes||[])$('notes').append(textEl('p',note));
 }
 function offerAction(phase,card){
@@ -1410,16 +1415,17 @@ async function refresh(){
   $('auto').hidden=prep;
   const draftLineup=state.activeLineup??config.collection.units.active_lineup;
   const draftExtra=state.observedDraftUnits??[];
+  const detectedMode=$('detected-mode');
+  detectedMode.hidden=coachView!=='game'||gameMode!=='auto';
+  const detectedLabel=state.mode==='arena'?'Schlacht erkannt.':state.mode==='draft'?'Draft erkannt.':'Warte auf Spielmodus';
+  const modeText=translate(detectedLabel,language);
+  if(detectedMode.textContent!==modeText)detectedMode.textContent=modeText;
   $('mode-hint').textContent=viewHints[coachView]??(prep?'Einheiten und Zauber getrennt aufnehmen.':state.mode==='draft'?
     (draftLineup.length?'Aktives Draft-Deck · '+displayCardNames(draftLineup.join(', ')):'Noch kein Draft-Deck übernommen.')+
     (draftExtra.length?' · Neu im Spiel erkannt: '+displayCardNames(draftExtra.join(', ')):''):
     'Zauber immer nur aus deiner Auswahl.');
   if(coachView==='game'&&gameMode==='auto'){
     if(state.mode==='auto')$('mode-hint').textContent='Automodus vor dem Start im Spielmenü einschalten. Bei einem späten Einstieg Draft oder Schlacht manuell wählen.';
-    else {
-      const detected=state.mode==='arena'?'Schlacht erkannt.':'Draft erkannt.';
-      $('mode-hint').textContent=translate(detected,language)+' '+$('mode-hint').textContent;
-    }
   }
   const shots=state.preparation||[], nextPrepKey=shots.map(p=>p.file).join(',');
   if(prep&&nextPrepKey!==prepKey){
