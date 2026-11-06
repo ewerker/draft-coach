@@ -232,7 +232,7 @@ function reinforcementValue(result,offer){
     (double?(count===null?14:Math.min(count*3,20)):0);
   const action=upgrade&&double?'Verdopplung mit Aufwertung':upgrade?'Aufwertung':'Verdopplung';
   const scope=uncertain?'Bestand dieser Variante unbekannt':tracked&&count===tracked?`mindestens ${tracked} aus beobachteten Wahlen`:count===null?'Bestand unbekannt':`${count} vorhandene Figuren`;
-  return {points,reason:`${action} bevorzugt (${scope}).`,
+  return {points,count,reason:`${action} bevorzugt (${scope}).`,
     preferIfClose:!uncertain&&(count===null||count>2||(double&&count>=2))};
 }
 
@@ -244,8 +244,10 @@ function preferReinforcement(result,ranked,evaluated){
   return ranked.find(candidate=>{
     const alternative=result.offers[candidate.index];
     const gap=first.score-candidate.score;
-    return evaluated[candidate.index].score!==null&&gap<=4&&
-      (reinforcementValue(result,alternative)?.preferIfClose||
+    const value=reinforcementValue(result,alternative);
+    const margin=offer.quantity===1&&alternative.action==='upgrade'&&value?.count>=3?5:4;
+    return evaluated[candidate.index].score!==null&&gap<=margin&&
+      (value?.preferIfClose||
        (gap===0&&offer.quantity===1&&alternative.name===offer.name&&alternative.action==='upgrade'));
   })??first;
 }

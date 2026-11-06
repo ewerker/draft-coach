@@ -475,7 +475,7 @@ async function tapRecommendation(job,item,choice,selection=null){
   if(offer?.name!==best.name||(!selection&&offer.poolHint)||offer.box?.length!==4)return;
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
-  let outcome='abgebrochen',reason='Wahlfenster hat sich geändert oder konnte nicht bestätigt werden',coordinates;
+  let outcome='abgebrochen',reason='Wahlfenster hat sich geändert oder konnte nicht bestätigt werden',coordinates,stage='control_capture';
   try{
     if(!selection&&item.phase==='deck_choice'){
       await new Promise(resolve=>setTimeout(resolve,650));
@@ -488,6 +488,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     if(png.length<24||!png.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))){
       reason='Das Kontrollbild war kein gültiges PNG';return;
     }
+    stage='control_recognition';
     await writeFile(checkPath,png);
     const checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
     if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
@@ -498,7 +499,10 @@ async function tapRecommendation(job,item,choice,selection=null){
       const fresh=checked.offers[best.index];
       if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||
          fresh.action!==offer.action||fresh.quantity!==offer.quantity)return;
-    }else if(choiceSignature(checked,!!selection||chooseSpell,true)!==choiceSignature(item,!!selection||chooseSpell,true))return;
+    }else if(chooseSpell){
+      const fresh=checked.offers[best.index];
+      if(checked.phase!=='spell_choice'||fresh?.name!==offer.name||fresh.position!==offer.position||fresh.action!=='spell')return;
+    }else if(choiceSignature(checked,!!selection,true)!==choiceSignature(item,!!selection,true))return;
     const verified=openSpell?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
       automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false),chooseSpell);
     const box=openSpell?checked.spellButton:checked.offers[best.index]?.box;
@@ -519,6 +523,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     const sendTime=verificationDeadline-Date.now();
     if(x<0||x>=width||y<0||y>=height||sendTime<=0||!isCurrent())return;
     coordinates=[x,y];
+    stage='send';
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],Math.min(2500,sendTime));
     outcome='gesendet';reason=undefined;
     if(openSpell){
@@ -554,6 +559,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     }
     const entry={zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
       aufnahme:job.id,karte:best.name,position:openSpell?undefined:best.index+1,aktion:openSpell?'zauber-oeffnen':chooseSpell?'zauber-waehlen':undefined,ergebnis:outcome,grund:reason,koordinaten:coordinates,
+      pruefschritt:stage,aufnahmeMs:job.captureMs,erkennungMs:item.visionMs,gesamtMs:Date.now()-job.started,
       gegner:item.enemy?.map(({name,action,quantity})=>({name,action,quantity})),
       bewertung:item.advice?.evaluated[best.index]};
     await appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n').catch(error=>console.error('Antipp-Protokoll:',error.message));
