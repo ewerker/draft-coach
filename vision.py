@@ -191,8 +191,14 @@ def has_spell_choice_panel(img, layout='full'):
     if blue_fraction(*top)<.25 and blue_fraction(1592,1606)<.25:
         return True
     # During a Comeback Bonus, the blue backdrop stays behind the spell cards.
-    return (blue_fraction(1592,1606)>.8 and blue_fraction(1520,1530)<.40 and
-            sum(has_orange_badge(img,[x+104,1025,x+162,1075]) for x in (180,540,900))>=2)
+    bottom=blue_fraction(1592,1606)
+    if blue_fraction(1520,1530)>=.40 or sum(
+            has_orange_badge(img,[x+104,1025,x+162,1075]) for x in (180,540,900))<2:
+        return False
+    if bottom>.8:
+        return True
+    # In some arenas the uncovered field cuts through the lower blue strip.
+    return layout=='full' and bottom>.25 and sum(card['name'] is not None for card in spell_choices(img,'en'))>=2
 
 def has_orange_badge(img,box):
     h,s,v=cv2.split(cv2.cvtColor(cut(img,box),cv2.COLOR_BGR2HSV))
