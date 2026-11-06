@@ -14,21 +14,21 @@ CREATE TABLE IF NOT EXISTS review_revisions (
 );
 `;
 
-export function followVariantChoice(match,id,offer,hearts,sentAt){
-  match.pendingVariantEvidence=offer.variantIndex&&match.variantEvidence.length<2?
-    {before:id,card:offer.name,action:offer.action,variant:offer.variantIndex,hearts,sentAt}:null;
+export function followVariantChoice(match,id,offer,hearts,sentAt,choice){
+  match.pendingVariantEvidence=offer.variantIndex&&hearts&&match.variantEvidence.length<2?
+    {before:id,card:offer.name,action:offer.action,variant:offer.variantIndex,hearts,sentAt,choice}:null;
 }
-export function observeVariantEvidence(match,job,result){
+export function observeVariantEvidence(match,job,result,choice){
   const pending=match.pendingVariantEvidence;
   if(!pending||job.started<pending.sentAt)return;
   const hearts=result.hearts;
-  if(job.started-pending.sentAt>6000||(pending.hearts&&hearts&&
+  if(job.started-pending.sentAt>6000||(choice&&pending.choice&&choice!==pending.choice)||(hearts&&
      (pending.hearts.own!==hearts.own||pending.hearts.enemy!==hearts.enemy))){
     match.pendingVariantEvidence=null;
     return;
   }
   if(result.phase!=='battle'||!hearts)return;
-  const {sentAt,...evidence}=pending;
+  const {sentAt,choice:beforeChoice,...evidence}=pending;
   match.variantEvidence.push({...evidence,after:job.id});
   match.pendingVariantEvidence=null;
 }

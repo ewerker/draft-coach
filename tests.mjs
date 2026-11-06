@@ -248,13 +248,19 @@ test('a visually ambiguous reinforcement never doubles the whole tracked stock',
 test('variant evidence links the first timely field image in the same round',()=>{
   const match={variantEvidence:[]},hearts={own:2,enemy:3};
   const offer={name:'Totem',action:'multiply',variantIndex:2};
-  followVariantChoice(match,40,offer,hearts,1000);
+  followVariantChoice(match,40,offer,hearts,1000,'first choice');
   observeVariantEvidence(match,{id:41,started:980},{phase:'battle',hearts});
-  observeVariantEvidence(match,{id:42,started:1200},{phase:'battle_choice',hearts});
+  observeVariantEvidence(match,{id:42,started:1200},{phase:'battle_choice',hearts},'first choice');
   assert.equal(match.variantEvidence.length,0);
   observeVariantEvidence(match,{id:43,started:1400},{phase:'battle',hearts});
   assert.deepEqual(match.variantEvidence[0],{before:40,after:43,card:'Totem',action:'multiply',variant:2,hearts});
   followVariantChoice(match,44,offer,hearts,1500);
   observeVariantEvidence(match,{id:45,started:1600},{phase:'battle',hearts:{own:1,enemy:3}});
   assert.equal(match.variantEvidence.length,1);
+  followVariantChoice(match,46,offer,hearts,1700,'first choice');
+  observeVariantEvidence(match,{id:47,started:1750},{phase:'battle_choice',hearts},'different choice');
+  observeVariantEvidence(match,{id:48,started:1800},{phase:'battle',hearts});
+  assert.equal(match.variantEvidence.length,1);
+  followVariantChoice(match,49,offer,null,1850,'first choice');
+  assert.equal(match.pendingVariantEvidence,null);
 });

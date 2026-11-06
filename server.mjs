@@ -390,7 +390,7 @@ function record(job,result) {
     }
   }
   if(job.matchId&&job.matchId===match?.id&&job.target===device){
-    observeVariantEvidence(match,job,result);
+    observeVariantEvidence(match,job,result,choiceSignature(result));
     for(const name of ambiguousReinforcementNames(result.offers))match.ownVariantUncertain.add(name);
   }
   result=withObservedEnemies(result,job);
@@ -530,7 +530,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     if(job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
       if(item.phase==='battle_choice'){
         activeMatch.pendingReinforcement={choice,offer:{...offer,variantUncertain:activeMatch.ownVariantUncertain.has(offer.name)}};
-        followVariantChoice(activeMatch,job.id,offer,item.hearts,Date.now());
+        followVariantChoice(activeMatch,job.id,offer,item.hearts,Date.now(),choiceSignature(item));
       }
       if(chooseSpell)activeMatch.spellChosen=true;
       if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
@@ -886,7 +886,7 @@ async function tapImage({id,u,v}){
   interruptibleCapture?.abort();
   const card=result?.offers[index];
   const entry={zeit:new Date().toISOString(),art:'direkt',modus:mode,aufnahme:id,ergebnis:'gesendet',koordinaten:[x,y],
-    ...(card?{karte:card.name,position:card.position+1,aktion:card.action,anzahl:card.quantity}:{})};
+    ...(card?{karte:card.name,position:card.position+1,aktion:card.action,anzahl:card.quantity,variante:card.variantIndex}:{})};
   try {
     const deadline=Date.now()+3500;
     while(state.capturing&&Date.now()<deadline&&generation===tapGeneration)
@@ -895,17 +895,26 @@ async function tapImage({id,u,v}){
     await execAdb(['-s',frame.target,'shell','input','tap',String(x),String(y)],2500);
     if(index>=0){
       const choice=choiceSignature(result,true);
-      if(choice&&result===state.current){
+      const current=state.current;
+      const currentCard=current?.offers[index];
+      const sameVariant=card.variantIndex&&current?.matchId===result.matchId&&current.target===frame.target&&
+        Date.now()-current.started<=6000&&JSON.stringify(current.geometry)===JSON.stringify(geometry)&&
+        choiceSignature(current,true,true)===choiceSignature(result,true,true)&&
+        currentCard?.variantIndex===card.variantIndex&&sameReinforcementVariant(card,currentCard)&&
+        !current.offers.some((other,position)=>position!==index&&other.variantIndex&&
+          other.name===card.name&&other.action===card.action&&sameReinforcementVariant(card,other));
+      const sameChoice=choice&&(result===current||sameVariant);
+      if(sameChoice){
         lastTappedChoice=choice;
         if(result.matchId&&activeMatch?.id===result.matchId){
           if(result.phase==='battle_choice'){
             activeMatch.pendingReinforcement={choice,offer:{...card,variantUncertain:activeMatch.ownVariantUncertain.has(card.name)}};
-            followVariantChoice(activeMatch,id,card,result.hearts,Date.now());
+            followVariantChoice(activeMatch,id,card,result.hearts,Date.now(),choiceSignature(result));
           }
           if(result.phase==='deck_choice'&&card.name)activeMatch.ownDeckPicks.add(card.name);
         }
       }
-      lastCardTap={id,index,name:card.name,choice:result===state.current?choice:null,matchId:result.matchId};
+      lastCardTap={id,index,name:card.name,choice:sameChoice?choice:null,matchId:result.matchId};
     }
   }catch(error){
     entry.ergebnis='abgebrochen';entry.grund=error.message;
