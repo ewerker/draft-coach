@@ -366,12 +366,14 @@ def game_navigation(small,outcome):
         gray[37:86,32:136],navigation_labels['draft_loss_panel'],cv2.TM_CCOEFF_NORMED))[1]>=.86
     if draft_loss or np.mean(side[:,1]-side[:,2])>13:
         return navigation_button(gray,'draft_recap',(25,292,143,361),'recap','draft')
-    for mode,lobby in (('draft',gray[308:364,52:117]),('arena',gray[73:199,3:165])):
-        if cv2.minMaxLoc(cv2.matchTemplate(lobby,navigation_labels[mode+'_lobby'],cv2.TM_CCOEFF_NORMED))[1]>=.86:
-            # The paid Battle button includes its coin price. The free button has no price.
-            button=navigation_button(gray,mode+'_home',(12,237,156,314),'home',mode)
-            if button:
-                return button
+    for mode,tab in (('draft',gray[308:364,52:117]),('arena',gray[308:364,115:168])):
+        for suffix in ('','_de'):
+            pattern=navigation_labels[mode+'_lobby'+suffix]
+            if cv2.minMaxLoc(cv2.matchTemplate(tab,pattern,cv2.TM_CCOEFF_NORMED))[1]>=.86:
+                # The paid button template includes the price below its label.
+                button=navigation_button(gray,mode+'_home'+suffix,(12,237,156,314),'home',mode)
+                if button:
+                    return button
     return None
 
 
