@@ -356,7 +356,7 @@ def game_navigation(small,outcome):
         return navigation_button(gray,'result',(25,283,143,347),'result')
     panel=gray[125:226,10:158]
     if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
-           for name in ('arena_win_panel','arena_loss_panel')):
+           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel')):
         return navigation_button(gray,'arena_recap',(25,292,143,356),'recap','arena')
     if np.mean(small[85:250,4,1].astype(int)-small[85:250,4,2])>13:
         return navigation_button(gray,'draft_recap',(25,292,143,361),'recap','draft')

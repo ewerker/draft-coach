@@ -417,7 +417,7 @@ function record(job,result) {
   }
   if(continuation){
     if(job.automatic&&job.mode===continuation.mode&&job.target===device&&!expired&&matchesContinuation(result,continuation))
-      void tapContinuation(job,continuation);
+      void tapContinuation(job,continuation,result.navigation.step);
     return;
   }
   const cardChoice=choiceSignature(item,true);
@@ -779,13 +779,14 @@ async function probeDevice(){
 }
 function matchesContinuation(result,run){
   const navigation=result.navigation;
-  return navigation?.step===run.step&&(run.step==='result'?
-    result.matchOutcome===run.outcome:navigation.mode===run.mode);
+  if(!navigation)return false;
+  if(run.step==='result')return navigation.step==='result'&&result.matchOutcome===run.outcome;
+  // The player may have already dismissed the recap while auto capture waits.
+  return navigation.mode===run.mode&&(navigation.step===run.step||run.step==='recap'&&navigation.step==='home');
 }
 
-async function tapContinuation(job,run){
+async function tapContinuation(job,run,step){
   if(state.capturing||manualTapPending)return;
-  const step=run.step;
   const current=()=>continuation===run&&continuum&&state.auto&&state.mode===run.mode&&
     job.target===device&&Date.now()<run.deadline&&Date.now()-lastClientSeen<10000&&!manualTapPending;
   if(!current())return;
@@ -797,7 +798,7 @@ async function tapContinuation(job,run){
     await writeFile(checkPath,png);
     const check=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
     const geometry=check.geometry,point=check.navigation?.point;
-    if(!current()||!matchesContinuation(check,run)||
+    if(!current()||check.navigation?.step!==step||!matchesContinuation(check,run)||
        !geometry||geometry.width!==png.readUInt32BE(16)||geometry.height!==png.readUInt32BE(20)||!point||
        !point.every(value=>Number.isFinite(value)&&value>0&&value<1))return;
     const [left,top,width,height]=geometry.content;
