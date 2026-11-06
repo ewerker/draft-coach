@@ -165,7 +165,7 @@ function readTip(state){
   if(frame.sentChoice)return;
   const {best,fallback,provisional}=frame.advice;
   const tip=best??fallback??provisional;
-  if(!tip)return;
+  if(!tip||(spell&&!tip.name))return;
   const offer=frame.offers[tip.index];
   const position=pos[tip.position??offer?.position??tip.index];
   // After a multi-card spell offer, the confirmed card can remain visible on its own.
@@ -176,7 +176,7 @@ function readTip(state){
   if(choice===spokenChoice)return;
   spokenChoice=choice;
   speech.cancel();
-  const detail=displayNames(tip.name,language)||(level!=null?translate(`Stufe ${level}`,language):null);
+  const detail=displayNames(tip.name,language);
   const utterance=new SpeechSynthesisUtterance([translate(position,language),detail].filter(Boolean).join('. '));
   utterance.lang=language==='en'?'en-US':'de-DE';
   speech.speak(utterance);

@@ -291,8 +291,13 @@ def spell_choices(img,language):
         if not has_orange_badge(img,badge):
             continue
         caption=lettering(cut(img,[x-155,1290,x+155,1450]))
-        patterns=english_spell_names if language=='en' else german_spell_names
-        scores=sorted(((vision_english.strongest(caption,masks)[0],name) for name,masks in patterns.items()),reverse=True)
+        # Spell captions may use a different language than the Coach UI.
+        primary,secondary=(english_spell_names,german_spell_names) if language=='en' else (german_spell_names,english_spell_names)
+        def ranked(patterns):
+            return sorted(((vision_english.strongest(caption,masks)[0],name) for name,masks in patterns.items()),reverse=True)
+        scores=ranked(primary)
+        if scores[0][0]<.67 or scores[0][0]-scores[1][0]<.10:
+            scores=ranked(secondary)
         score,name=scores[0]
         if score<.67 or score-scores[1][0]<.10:
             name=None
