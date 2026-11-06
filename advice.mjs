@@ -183,7 +183,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     }
     const delta=Math.max(-25,Math.min(25,applied.reduce((total,rule)=>total+rule.weight,0)));
     return {index,name:offer.name,score:Math.round((score+delta)*10)/10,reason:why,ruleOnly,delta,
-      rules:applied.map(({title,reason,weight,status})=>({title,reason,weight,status}))};
+      rules:applied.map(({title,reason,texts,weight,status})=>({title,reason,texts,weight,status}))};
   });
   warnings.push('Basiswertung aus der bisherigen App. Mengen, gegnerische Stärken und eigene Synergien sind noch nicht vollständig bewertet.');
   const scored=evaluated.filter(card=>card.score!==null).sort((a,b)=>b.score-a.score);

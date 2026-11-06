@@ -1,4 +1,4 @@
-import {reviewMessage,reviewTapReason,displayNames,translate} from './language.mjs';
+import {tacticText,reviewMessage,reviewTapReason,displayNames,translate} from './language.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -86,6 +86,10 @@ $('language').onchange=()=>{
   stopMic();
   speech?.cancel();
   applyLanguage();
+  if(coachView==='tactics'&&tacticsData){
+    renderTactics(tacticsData);
+    editTactic(listedTactics.find(rule=>rule.id===editingTactic));
+  }
   if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);}
   void action(()=>post('/api/settings',{gameLanguage:language}));
 };
@@ -651,7 +655,7 @@ function reviewDraft(){
   if(!reviewedFrame)throw Error('Wähle zuerst ein Wahlfenster.');
   const {observation,title,mode,offer,enemy,action,weight,preferredOffer}=Object.fromEntries(new FormData(reviewForm));
   const phase=['battle_choice','deck_choice','spell_choice'].includes(reviewedFrame.phase)?reviewedFrame.phase:'alle';
-  const rule=title||offer?{title,reason:observation,mode,phase,offer,enemy,action,weight:Number(weight)}:null;
+  const rule=title||offer?{title,reason:observation,mode,phase,offer,enemy,action,weight:Number(weight),textLanguage:language}:null;
   return {...reviewedFrame,observation,rule,preferredOffer:preferredOffer===''?null:Number(preferredOffer)};
 }
 function showReviewComparison(replay,comparisons){
@@ -696,7 +700,7 @@ function renderReviewCases(cases){
     const details=document.createElement('p');
     const note=document.createElement('span');
     note.dataset.reviewOriginal='';
-    note.textContent=[item.rule?.title,item.observation].filter(Boolean).join(' · ');
+    note.textContent=[item.rule?tacticText(item.rule,language)?.title:null,item.observation].filter(Boolean).join(' · ');
     details.append(item.capture+' · ',note);
     if(item.preferred)details.append(' · ',reviewText('preference'),' · ',reviewCard(item.preferred));
     if(item.revision?.status)details.append(' · ',reviewText(item.revision.status));
@@ -718,7 +722,7 @@ function renderReviewCases(cases){
       reviewForm.elements.namedItem('observation').value=item.observation??'';
       reviewForm.elements.namedItem('preferredOffer').value=item.preferred?String(item.preferred.index):'';
       if(item.rule)for(const field of ['title','offer','enemy','mode','action','weight']){
-        reviewForm.elements.namedItem(field).value=item.rule[field]??'';
+        reviewForm.elements.namedItem(field).value=(field==='title'?tacticText(item.rule,language)?.title:item.rule[field])??'';
       }
     });
     article.append(open);
@@ -863,28 +867,39 @@ for(const button of document.querySelectorAll('#quick-panel > .quick-examples bu
 const tacticsForm=$('tactics-form');
 const tacticStatuses={notiz:'Notiz',test:'Testvorschau',aktiv:'Aktiv'};
 let editingTactic=null;
-let listedTactics=[];
+let listedTactics=[],tacticsData=null;
 let changingTactic=false;
 function editTactic(rule){
   editingTactic=rule?.id??null;
   $('tactics-form-title').textContent=rule?'Erkenntnis bearbeiten':'Neue Erkenntnis';
   tacticsForm.reset();
-  if(rule)for(const name of ['title','reason','mode','phase','offer','enemy','weight','status','action'])
+  const text=rule?tacticText(rule,language):null;
+  if(rule)for(const name of ['mode','phase','offer','enemy','weight','status','action'])
     tacticsForm.elements.namedItem(name).value=rule[name]??'';
-  $('tactics-message').textContent=rule?.evidence?.length?'Belegbilder im Archiv · '+rule.evidence.join(', '):'';
+  for(const field of ['title','reason'])tacticsForm.elements.namedItem(field).value=text?.[field]??'';
+  const note=$('tactics-text-language');
+  const hint=text?.stale?'Übersetzung prüfen.':rule&&!text?'Für diese Sprache fehlt der Regeltext.':
+    'Titel und Begründung gelten für die gewählte Textsprache.';
+  note.replaceChildren(translate('Textsprache',language)+' · '+(language==='en'?'English':'Deutsch')+' · '+translate(hint,language));
+  $('tactics-message').textContent=rule?.evidence?.length?
+    (language==='en'?'Archived evidence · ':'Belegbilder im Archiv · ')+rule.evidence.join(', '):'';
   $('delete-tactic').hidden=!rule;
   for(const row of $('tactics-list').querySelectorAll('button'))
     row.setAttribute('aria-pressed',String(row.dataset.ruleId===editingTactic));
 }
-function renderTactics({rules,cards,baseCount}){
+function renderTactics(data){
+  tacticsData=data;
+  const {rules,cards,baseCount}=data;
   listedTactics=rules;
-  $('tactics-total').textContent=rules.length+' Einträge';
+  $('tactics-total').textContent=rules.length+(language==='en'?' rules':' Einträge');
   $('tactics-sources').textContent=Number.isInteger(baseCount)
-    ?'Zusätzlich nutzt die Schnellauskunft '+baseCount+' Einträge aus dem Basislexikon und hinterlegte Kombinationshinweise. Hier bearbeitest du die Taktikregeln.'
+    ?(language==='en'
+      ?`Quick Advice also uses ${baseCount} base entries and saved combinations. Edit tactical rules here.`
+      :`Zusätzlich nutzt die Schnellauskunft ${baseCount} Einträge aus dem Basislexikon und hinterlegte Kombinationshinweise. Hier bearbeitest du die Taktikregeln.`)
     :'';
   for(const [name,empty] of [['offer','Keine Karte · Notiz'],['enemy','Jeder Gegner']]){
     const field=tacticsForm.elements.namedItem(name);
-    field.replaceChildren(new Option(empty,''),...cards.map(card=>new Option(displayCardNames(card),card)));
+    field.replaceChildren(new Option(empty,''),...cards.map(card=>new Option(displayNames(card,language),card)));
   }
   renderTacticList();
 }
@@ -892,13 +907,14 @@ function renderTacticList(){
   const normalize=value=>value.normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('de');
   const words=normalize($('tactics-search').value.trim()).split(/\s+/).filter(Boolean);
   const status=$('tactics-filter').value;
+  const title=rule=>tacticText(rule,language)?.title??translate('Für diese Sprache fehlt der Regeltext.',language);
   const matches=listedTactics.filter(rule=>{
     if(status&&rule.status!==status)return false;
-    const text=[rule.title,rule.offer,rule.enemy,rule.reason].filter(Boolean).join(' ');
-    const haystack=normalize(text+' '+displayCardNames(text)+' '+displayNames(text,'en'));
+    const haystack=normalize([title(rule),tacticText(rule,language)?.reason,displayNames(rule.offer,language),
+      displayNames(rule.enemy,language)].filter(Boolean).join(' '));
     return words.every(word=>haystack.includes(word));
-  }).sort((a,b)=>a.title.localeCompare(b.title,'de'));
-  $('tactics-found').textContent=matches.length+' von '+listedTactics.length+' Einträgen';
+  }).sort((a,b)=>title(a).localeCompare(title(b),language));
+  $('tactics-found').textContent=language==='en'?`${matches.length} of ${listedTactics.length} rules`:`${matches.length} von ${listedTactics.length} Einträgen`;
   const list=$('tactics-list');
   list.replaceChildren();
   for(const rule of matches){
@@ -907,7 +923,10 @@ function renderTacticList(){
     button.type='button';
     button.dataset.ruleId=rule.id;
     button.setAttribute('aria-pressed',String(rule.id===editingTactic));
-    button.append(textEl('strong',rule.title),textEl('small',tacticStatuses[rule.status]+' · '+weight+' Punkte','muted'));
+    const label=document.createElement('strong');
+    label.dataset.reviewOriginal='';
+    label.textContent=title(rule);
+    button.append(label,textEl('small',translate(tacticStatuses[rule.status],language)+' · '+weight+' '+(language==='en'?'points':'Punkte'),'muted'));
     button.onclick=()=>{if(!changingTactic)editTactic(rule);};
     list.append(button);
   }
@@ -927,7 +946,7 @@ $('close-tactics').onclick=returnToGame;
 $('new-tactic').onclick=()=>{if(!changingTactic){editTactic();tacticsForm.elements.namedItem('title').focus();}};
 $('delete-tactic').onclick=async()=>{
   const rule=listedTactics.find(entry=>entry.id===editingTactic);
-  if(changingTactic||!rule||!window.confirm('„'+displayCardNames(rule.title)+'“ dauerhaft löschen?'))return;
+  if(changingTactic||!rule||!window.confirm(language==='en'?'Delete this rule in both languages?':'Regel in beiden Sprachen löschen?'))return;
   changingTactic=true;
   $('delete-tactic').disabled=true;
   try{
@@ -947,7 +966,7 @@ tacticsForm.onsubmit=async event=>{
   const data=Object.fromEntries(new FormData(tacticsForm));
   const id=editingTactic;
   try {
-    const result=await post('/api/taktikregeln',{...data,id,weight:Number(data.weight)});
+    const result=await post('/api/taktikregeln',{...data,id,weight:Number(data.weight),textLanguage:language});
     renderTactics(result);
     editTactic(result.rules.find(rule=>rule.id===id)??result.rules.at(-1));
     $('tactics-message').textContent='Gespeichert.';
@@ -965,7 +984,7 @@ function renderTacticFeedback(result){
   if(tested.length&&trial.pick)summary.push(`Testvorschau · ${pos[trial.pick.index]} · ${trial.pick.name}`);
   feedback.hidden=!summary.length;
   feedback.textContent=displayCardNames(summary.join(' | '));
-  feedback.title=displayCardNames([...new Set([...applied,...tested].flatMap(card=>card.rules.map(rule=>rule.title+' · '+rule.reason)))].join('\n'));
+  feedback.title=displayCardNames([...new Set([...applied,...tested].flatMap(card=>card.rules.flatMap(rule=>{const text=tacticText(rule,language);return text?[text.title+' · '+text.reason]:[];})))].join('\n'));
 }
 const hiddenReferenceKey='draft-coach.hidden-references';
 let hiddenReferences=new Set();

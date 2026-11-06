@@ -32,7 +32,15 @@ let device=process.env.ADB_DEVICE||'';
 const token=randomBytes(24).toString('hex');
 const collectionFile=path.join(RUNTIME,'sammlung-aktiv.json');
 const tacticsFile=path.join(RUNTIME,'taktikregeln.json');
-let tactics=JSON.parse(await readFile(existsSync(tacticsFile)?tacticsFile:path.join(ROOT,'data','tactic-seeds.json'),'utf8'));
+const tacticSeeds=JSON.parse(await readFile(path.join(ROOT,'data','tactic-seeds.json'),'utf8'));
+const normalizeTacticText=text=>text.trim().replace(/\s+/g,' ');
+const seedText=new Map(tacticSeeds.map(rule=>[
+  JSON.stringify([normalizeTacticText(rule.title),normalizeTacticText(rule.reason)]),rule.texts]));
+let tactics=existsSync(tacticsFile)?JSON.parse(await readFile(tacticsFile,'utf8')).map(rule=>{
+  if(rule.texts)return rule;
+  const texts=seedText.get(JSON.stringify([normalizeTacticText(rule.title),normalizeTacticText(rule.reason)]));
+  return {...rule,texts:texts??{de:{title:rule.title,reason:rule.reason}}};
+}):tacticSeeds;
 let savingTactics=false;
 const initialCollection=JSON.parse(await readFile(path.join(ROOT,'data','sample-collection.json'),'utf8'));
 let collection=existsSync(collectionFile)?JSON.parse(await readFile(collectionFile,'utf8')):initialCollection;
@@ -281,7 +289,16 @@ function validateTactic(data){
     (offer!==''&&!cards.includes(offer))||(enemy!==''&&!cards.includes(enemy))||
     !Number.isInteger(weight)||Math.abs(weight)>20||(status!=='notiz'&&(!offer||weight===0)))
     throw Error('Prüfe die Angaben. Eine Testregel oder aktive Regel braucht eine Angebotskarte und ein Gewicht ungleich null.');
-  return {...previous,id:previous?.id??randomBytes(12).toString('hex'),title,reason,mode,phase,offer,enemy,weight,status,action};
+  const textLanguage=data.textLanguage==='en'?'en':'de';
+  const other=textLanguage==='en'?'de':'en';
+  const texts={...(previous?.texts??data.texts)};
+  const old=texts[textLanguage];
+  if(texts[other]&&old&&!old.stale&&(old.title!==title||old.reason!==reason)){
+    texts[other]={...texts[other],stale:true};
+  }
+  texts[textLanguage]={title,reason};
+  return {...previous,id:previous?.id??randomBytes(12).toString('hex'),...(texts.de??texts.en),
+    texts,textLanguage,mode,phase,offer,enemy,weight,status,action};
 }
 async function saveTactic(data){
   if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');
@@ -808,7 +825,7 @@ async function reviewWithGpt(data){
     if(draft.rule){
       try{
         rule=validateTactic({...draft.rule,title:draft.rule.title?.slice(0,100),reason:observation,
-          mode:'beide',phase:['battle_choice','deck_choice','spell_choice'].includes(phase)?phase:'alle',status:'test'});
+          mode:'beide',phase:['battle_choice','deck_choice','spell_choice'].includes(phase)?phase:'alle',status:'test',textLanguage:data.uiLanguage});
       }catch{ /* Keep the observation when the suggested rule fails validation. */ }
     }
     return {observation,rule};
@@ -901,7 +918,7 @@ async function updateReviewRule({id,status}){
     if(previous)await deleteTactic(previous.id);
     await archive.review.revise(id,{status,ruleId:previous?.id??ruleId,rule:previous??item.rule});
   }else{
-    const result=await saveTactic({...item.rule,id:previous?.id,status});
+    const result=await saveTactic({...item.rule,...item.rule.texts?.[item.rule.textLanguage],id:previous?.id,status});
     const rule=result.rules.find(rule=>rule.id===previous?.id)??result.rules.at(-1);
     await archive.review.revise(id,{status,ruleId:rule.id,rule});
   }

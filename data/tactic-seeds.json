@@ -8,7 +8,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Astras Sternwert in der Sammlung nachprüfen",
+        "reason": "Das Spielangebot zeigt Astra auf Stufe 7 mit drei Sternen. In der gespeicherten lokalen Sammlung steht noch ein Stern. Das Bild eignet sich als Fall für eine belegte Aktualisierung."
+      },
+      "en": {
+        "title": "Check Astra's stars in the collection",
+        "reason": "The offer shows Astra at level 7 with three stars, while the saved collection shows one star. The capture can verify an update."
+      }
+    }
   },
   {
     "id": "draft-gegner",
@@ -19,7 +29,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Gegnerfiguren werden im Draft nach und nach sichtbar",
+        "reason": "Bei der ersten Kampfwahl ist das Gegnerfeld leer. Der Coach kann die rote Einblendung und das Feld nutzen, sobald der Gegner gewählt hat."
+      },
+      "en": {
+        "title": "Enemy units are revealed gradually in Draft",
+        "reason": "The opposing field is empty at the first combat choice. Once the opponent picks, the coach can use the red banner and the field."
+      }
+    }
   },
   {
     "id": "gleich-beschriftete-upgrades",
@@ -30,7 +50,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Gleich beschriftete Angebote können verschiedene Formen betreffen",
+        "reason": "Im selben Wahlfenster stand zweimal Sniper UP! mit Stufe 11 und 7 Sternen. Die linke Karte zeigte Helm → Antennenhelm, die mittlere blaue Haare → Helm. Name, Aktion und Kartenwerte allein unterscheiden die Angebote nicht."
+      },
+      "en": {
+        "title": "Identically labeled offers can affect different forms",
+        "reason": "Two Sniper UP! offers showed level 11 and seven stars. The left card showed helmet to antenna helmet, and the middle card showed blue hair to helmet. The name, action and card values alone did not distinguish them."
+      }
+    }
   },
   {
     "id": "kartenwerte-und-form",
@@ -41,7 +71,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Kartenstufe, Sterne und Aufwertungsform separat führen",
+        "reason": "Aufgewertete Merlinor und Sniper behalten im Wahlfenster ihre Kartenwerte. Der eigene Merlinor zeigte 12 / 10, der gegnerische 9 / 11. Die Aufnahmen belegen keine allgemeine Umrechnung zwischen Stufe und Sternen."
+      },
+      "en": {
+        "title": "Track card level, stars and evolved form separately",
+        "reason": "Upgraded Merlinor and Sniper retain their card values in the choice window. Our Merlinor showed 12/10 and the opponent's 9/11. These frames establish no general conversion between levels and stars."
+      }
+    }
   },
   {
     "id": "kontext-statt-stufe",
@@ -52,7 +92,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Gegneraufstellung kann die Reihenfolge der Tipps ändern",
+        "reason": "Bei Aufnahme 639 wurde automatisch Merlinor gewählt. Im Wiederholungstest mit manuell abgelesenen Gegnerfiguren stand Assassine wegen des Zugriffs auf den gegnerischen Merlinor vorne. Der Drakling-Schwarm blieb offen. Das ist ein Vergleich der Bewertung, kein Nachweis für einen anderen Spielausgang."
+      },
+      "en": {
+        "title": "Enemy composition can change the ranking",
+        "reason": "Frame 639 chose Merlinor automatically. With manually identified enemies, replay favored Assassin for access to the opposing Merlinor. The Whelp swarm remained unresolved. This compares recommendations, not game outcomes."
+      }
+    }
   },
   {
     "id": "letzter-gegnerzug",
@@ -63,7 +113,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Eine verbleibende Gegnerwahl mitdenken",
+        "reason": "Nach der letzten eigenen Wahl waren im Draft noch +2 Agent B, +4 Drakling und in einer anderen Partie Merlinor ×2 UP! sichtbar. Für eine Empfehlung sind plausible Folgezüge relevant. Die Aufnahmen liefern keine Erfolgsquote für alternative eigene Züge."
+      },
+      "en": {
+        "title": "Account for one remaining enemy choice",
+        "reason": "After the last own choice, Draft still showed +2 Agent B and +4 Whelp. Another match showed Merlinor ×2 UP! Plausible next moves matter, but these images give no win rate for alternate picks."
+      }
+    }
   },
   {
     "id": "roter-gegnerzug",
@@ -74,7 +134,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Gegneraktionen und Kartenwerte aus roten Einblendungen lesen",
+        "reason": "Die roten Einblendungen dokumentieren Figur und Aktion auch bei überlappenden Truppen. Der Coach liest einige Namen und Aktionen bereits live. Kartenwerte und kombinierte ×2-UP!-Aktionen sind aus den Bildern manuell belegt. Einzelne Einblendungen fallen zwischen die Aufnahmen."
+      },
+      "en": {
+        "title": "Read enemy actions and card values from red banners",
+        "reason": "Red banners identify units and actions even when troops overlap. The coach reads some names and actions live. Card values and combined ×2 UP! were verified manually. Some banners appear between captures."
+      }
+    }
   },
   {
     "id": "schlacht-deckwahl",
@@ -85,7 +155,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Vier Deckwahlen vor den Kampfangeboten",
+        "reason": "In der Schlacht werden gegnerische Karten während der Deckwahl schrittweise aufgedeckt. Der komplette Deckvergleich liegt vor der ersten Kampfwahl vor. Die regulären Kampfangebote dieser Partie gehörten zum gewählten Viererdeck."
+      },
+      "en": {
+        "title": "Four deck picks before Battle offers",
+        "reason": "Enemy cards are revealed gradually during Battle deck selection. Both decks are visible before the first combat choice. Regular combat offers in this match came from the four chosen cards."
+      }
+    }
   },
   {
     "id": "showdown-zwei-wahlen",
@@ -96,7 +176,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Showdown-Anzeige 1/2 und 2/2 getrennt erfassen",
+        "reason": "Ein Showdown-Block hat zwei Wahlfenster mit je einer Wahl. Die sichtbare Schrittanzeige eignet sich als Anker. Aus den Partien folgt kein fester Rundenauslöser. Laut Spieler können besessene Figuren außerhalb der aktiven Aufstellung erscheinen."
+      },
+      "en": {
+        "title": "Distinguish Showdown steps 1/2 and 2/2",
+        "reason": "A Showdown block has two separate windows with one choice each. The visible step is an anchor. These matches establish no fixed trigger. The player reports owned units outside the active lineup can appear."
+      }
+    }
   },
   {
     "id": "sixshoot-freischaltung",
@@ -107,7 +197,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Die Freischaltung nennt konkrete Werte für Sixshoot UP!",
+        "reason": "Das Spiel beschreibt ein Pferd und höhere Bewegungsgeschwindigkeit, 130 Prozent Gesundheit sowie zwei Pistolen mit jeweils 80 Prozent Schaden. Die Prozentangaben gehören zu dieser Aufwertungsform."
+      },
+      "en": {
+        "title": "Sixshoot UP! unlock screen gives specific values",
+        "reason": "The game describes a horse, increased movement speed, 130 percent health and two pistols that deal 80 percent damage each. The percentages refer to this evolved form."
+      }
+    }
   },
   {
     "id": "verdopplung-form",
@@ -118,7 +218,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Verdopplungen je betroffener Aufwertungsform berechnen",
+        "reason": "Bei Sniper ×2 verdoppelte sich nur die auf der Karte gezeigte Form mit Helm. Die Sniper mit blauen Haaren blieben bei vier. Im Draft gibt es zusätzlich einen klar belegten Assassine-×2-Fall."
+      },
+      "en": {
+        "title": "Count doubles for the affected form",
+        "reason": "Sniper ×2 doubled only the helmeted form pictured on the card. The blue-haired Snipers stayed at four. Draft also contains a clearly documented Assassin ×2 case."
+      }
+    }
   },
   {
     "id": "verdopplung-und-up",
@@ -129,7 +239,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "×2 UP! kann nur einen Teil des Bestands betreffen",
+        "reason": "Vor Merlinor ×2 UP! waren zwei Sternhüte und zehn Halbmondhüte sichtbar. Danach standen vierzehn Merlinor mit Halbmondhut auf dem Feld. Das stützt die Deutung, dass der Zug die passende Ausgangsform verdoppelt und aufwertet."
+      },
+      "en": {
+        "title": "×2 UP! can affect only part of the group",
+        "reason": "Before Merlinor ×2 UP!, two star hats and ten crescent hats were visible. Afterwards fourteen Merlinors wore crescent hats. This supports doubling and upgrading the matching original form."
+      }
+    }
   },
   {
     "id": "zauberfenster",
@@ -140,7 +260,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Zauberauswahl bleibt ein relevantes Wahlfenster",
+        "reason": "Der türkisfarbene Bereich kennzeichnet ein separates Zauberfenster. Der Coach zeigt es auch bei ausgeblendeten Zwischenbildern. Der Filter ist für beide Coach-Modi geprüft."
+      },
+      "en": {
+        "title": "Keep spell selection visible",
+        "reason": "The turquoise tray marks a separate spell window. The coach shows it with intermediate frames hidden. The filter was tested in both modes."
+      }
+    }
   },
   {
     "id": "2a2a010b38b07b3ba75c16ab",
@@ -151,7 +281,17 @@
     "offer": "Merlinor",
     "enemy": "Kapitän",
     "weight": -20,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Merlinor gegen Kapitän meiden",
+        "reason": "Spielerbeobachtung: Der Kapitän zieht Merlinor heran und kann ihn dadurch schnell ausschalten. Bei erkanntem Kapitän ist eine brauchbare Alternative vorzuziehen."
+      },
+      "en": {
+        "title": "Avoid Merlinor against Captain",
+        "reason": "Player observation. Captain pulls Merlinor in and can eliminate him quickly. Prefer a suitable alternative when Captain is recognized."
+      }
+    }
   },
   {
     "id": "43361558590dec4373d746f6",
@@ -162,7 +302,17 @@
     "offer": "Zerstörer",
     "enemy": "Schildling",
     "weight": 8,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Verwüster gegen Schildling prüfen",
+        "reason": "Community-Berichte beschreiben einen kleinen Verwüster-Trupp als mögliche Bremse für Schildlings Angriff. Wirkung hängt von Position und Timing ab. Die +8 sind ein Testgewicht. https://www.treyexgaming.com/draft-showdown-tier-list/ https://www.reddit.com/r/draft_showdown/comments/1spe3vb/strategy_update_need_help_again_was_told_these_2/"
+      },
+      "en": {
+        "title": "Test Waster against Shellbro",
+        "reason": "Community reports suggest a small Waster group can slow Shellbro's attack. Position and timing matter. The +8 weight is experimental. https://www.treyexgaming.com/draft-showdown-tier-list/ https://www.reddit.com/r/draft_showdown/comments/1spe3vb/strategy_update_need_help_again_was_told_these_2/"
+      }
+    }
   },
   {
     "id": "74a85cfc5c8f6871a1c8d28d",
@@ -173,7 +323,17 @@
     "offer": "Sniper",
     "enemy": "Assassine",
     "weight": -6,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Sniper bei gegnerischer Assassine vorsichtiger werten",
+        "reason": "Community-Berichte sehen Sniper bei ungeschütztem Rückraum als anfällig für Assassine. Eigener Schutz kann die Lage ändern. Die -6 sind ein Testgewicht, solange Schutz und Mengen nicht zuverlässig erkannt werden. https://www.treyexgaming.com/draft-showdown-tier-list/ https://www.reddit.com/r/draft_showdown/comments/1spe3vb/strategy_update_need_help_again_was_told_these_2/"
+      },
+      "en": {
+        "title": "Use Sniper cautiously against Assassin",
+        "reason": "Community reports describe exposed Snipers as vulnerable to Assassin. Backline protection can change that. The −6 weight is experimental while protection and counts are uncertain. https://www.treyexgaming.com/draft-showdown-tier-list/ https://www.reddit.com/r/draft_showdown/comments/1spe3vb/strategy_update_need_help_again_was_told_these_2/"
+      }
+    }
   },
   {
     "id": "41e87597716e2b8263fa207b",
@@ -184,7 +344,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Deck nach Aufgaben ergänzen",
+        "reason": "Als Startpunkt Front, Fernschaden, Zugriff auf den gegnerischen Rückraum und Schutz oder Kontrolle abdecken. Eine starke zweite Frontfigur hilft weniger, wenn der Fernschaden fehlt. Spezialisierte Schwarmdecks können von diesem Schema abweichen. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.treyexgaming.com/draft-showdown-beginner-guide/"
+      },
+      "en": {
+        "title": "Build a deck with complementary roles",
+        "reason": "Start by covering the frontline, ranged damage, enemy backline access and protection or control. A second strong frontline unit is less useful when ranged damage is missing. Dedicated swarm decks can differ. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.treyexgaming.com/draft-showdown-beginner-guide/"
+      }
+    }
   },
   {
     "id": "9ed5fcef1760d4ddb6805b15",
@@ -195,7 +365,17 @@
     "offer": "Gans",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Früher Druck mit Gans und späterer Übergang",
+        "reason": "Gans kann früh Raum gewinnen und Treffer abfangen. Später lohnt es sich laut den Guides oft, den eigentlichen Schadensausteiler auszubauen. Kartenstufen und gegnerischer Flächenschaden gehören in die Prüfung. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.treyexgaming.com/draft-showdown-beginner-guide/"
+      },
+      "en": {
+        "title": "Use Goose for early pressure, then build damage",
+        "reason": "Goose can gain ground and absorb early hits. Guides suggest building the main damage dealer later. Consider card levels and enemy area damage. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.treyexgaming.com/draft-showdown-beginner-guide/"
+      }
+    }
   },
   {
     "id": "0fc570585378c3f81011cbde",
@@ -206,7 +386,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Zauber nach fehlender Aufgabe beurteilen",
+        "reason": "Im Ranked-Guide sind Meuchelbrigade als Zugriff auf den Rückraum und Wächtertürme als Unterstützung Beispiele dafür, wie Zauber eine Lücke im Draft abdecken können. Im letzten Zaubertest las der Coach Plätze und Stufen, die Zaubernamen standen im Screenshot. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Choose spells that cover missing roles",
+        "reason": "A ranked guide cites Backstab Brigade for backline access and Sentinel Towers for support. In the last spell test the coach read slots and levels, while spell names were visible in the screenshot. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "08e230a8ffb7427e7c417735",
@@ -217,7 +407,17 @@
     "offer": "",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Auslöser von ×2-Angeboten und Aufwertungsformen prüfen",
+        "reason": "Ein Community-Bericht vermutet ×2-Angebote bei zwei bis vier Trupps derselben Form und getrennte Ziehungen für aufgewertete Formen. Die konkrete Schwelle bleibt eine Hypothese. In eigenen Mitschnitten ist bereits ein Fall dokumentiert, bei dem ×2 nur die abgebildete Sniper-Form verdoppelte. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Check ×2 triggers and evolved forms",
+        "reason": "One community report suggests ×2 offers for two to four groups of the same form, with separate offers for evolved forms. The threshold is unconfirmed. One replay shows ×2 doubling only the pictured Sniper form. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "5b966e32f2a5107c93b9c102",
@@ -228,7 +428,17 @@
     "offer": "Zerstörer",
     "enemy": "Drakling",
     "weight": -15,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Verwüster-Gift gegen Drakling abwerten",
+        "reason": "Spielerbeobachtung: Drakling schwebt über der Giftfläche des Verwüsters. Mehr Verwüster erhöhen den Giftschaden gegen die fliegenden Drakling nicht. Gegen gegnerische Bodentruppen kann Verwüster weiterhin sinnvoll sein."
+      },
+      "en": {
+        "title": "Discount Waster acid against Whelp",
+        "reason": "Player observation. Whelp hovers over Waster's acid. More Wasters do not increase acid damage against flying Whelps. Waster can still help against enemy ground units."
+      }
+    }
   },
   {
     "id": "9ebf48dc22841bb51678db91",
@@ -239,7 +449,17 @@
     "offer": "Schnecke",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Schnecke je nach Entwicklungsform gegen Rückraumangriffe",
+        "reason": "Spielerbeobachtung: Schnecke ist in der Grundform gegen Assassine und Agent B weitgehend schutzlos. Nach der ersten Entwicklung kann sie sich gegen deren einfache Varianten bedingt wehren. Für eine spätere Wertung die Entwicklungsform beider Seiten berücksichtigen."
+      },
+      "en": {
+        "title": "Consider Snail's form against backline attacks",
+        "reason": "Player observation. Base Snail is largely defenseless against Assassin and Agent B. Its first evolution can partially defend against their base forms. Consider both sides' forms."
+      }
+    }
   },
   {
     "id": "forum-2026-11-001",
@@ -250,7 +470,17 @@
     "offer": "Gans",
     "enemy": "Parasit",
     "weight": 7,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Gans gegen Parasit",
+        "reason": "Günstige Gänse können eine Übernahme abfangen. Wertvoll, wenn dahinter eine schützenswerte Truppe steht. Eine einzelne Gans garantiert die Zielwahl nicht. https://forum.gamer.com.tw/C.php?bsn=84101&gothis=8&page=1&snA=4 https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      },
+      "en": {
+        "title": "Goose vs. Parasite",
+        "reason": "Cheap Geese can absorb a takeover and help protect valuable troops behind them. A single Goose cannot guarantee the target. https://forum.gamer.com.tw/C.php?bsn=84101&gothis=8&page=1&snA=4 https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      }
+    }
   },
   {
     "id": "forum-2026-11-002",
@@ -261,7 +491,17 @@
     "offer": "Drakling",
     "enemy": "Parasit",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Drakling gegen Parasit",
+        "reason": "Viele kleine Ziele können einzelne Übernahmen verkraften. Einzelne Draklings liefern weniger Nutzen. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://forum.gamer.com.tw/C.php?bsn=84101&gothis=8&page=1&snA=4"
+      },
+      "en": {
+        "title": "Whelp vs. Parasite",
+        "reason": "Many small targets can absorb individual takeovers. A lone Whelp is less useful. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://forum.gamer.com.tw/C.php?bsn=84101&gothis=8&page=1&snA=4"
+      }
+    }
   },
   {
     "id": "forum-2026-11-003",
@@ -272,7 +512,17 @@
     "offer": "Totem",
     "enemy": "Parasit",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Totem gegen Parasit",
+        "reason": "Fernkampfunterstützung aus der Mitte als Kandidat. Benötigt eine eigene Front und ausreichende Menge. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Totem vs. Parasite",
+        "reason": "Potential ranged support from the middle. Needs a frontline and enough units. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-004",
@@ -283,7 +533,17 @@
     "offer": "Ingenieur",
     "enemy": "Parasit",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Ingenieur gegen Parasit",
+        "reason": "Ausgebaute Ingenieure mit ihren Türmen wurden als möglicher Konter genannt. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Engineer vs. Parasite",
+        "reason": "Upgraded Engineers and their turrets have been suggested as a counter. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-005",
@@ -294,7 +554,17 @@
     "offer": "Parasit",
     "enemy": "Schildling",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Parasit gegen Schildling",
+        "reason": "Der langsamere Parasit kann sich gegen einen eingedrungenen Schildling umdrehen und ihn übernehmen. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      },
+      "en": {
+        "title": "Parasite vs. Shellbro",
+        "reason": "The slower Parasite can turn around and take over a Shellbro that has broken through. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      }
+    }
   },
   {
     "id": "forum-2026-11-006",
@@ -305,7 +575,17 @@
     "offer": "Parasit",
     "enemy": "Assassine",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Parasit gegen Assassine",
+        "reason": "Übernahme nach Eindringen ins Hinterfeld möglich, wenn Parasit bis dahin überlebt. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      },
+      "en": {
+        "title": "Parasite vs. Assassin",
+        "reason": "Parasite may take over an Assassin that reaches the backline, provided Parasite survives. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      }
+    }
   },
   {
     "id": "forum-2026-11-007",
@@ -316,7 +596,17 @@
     "offer": "Parasit",
     "enemy": "Splime",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Parasit gegen Splime",
+        "reason": "Ein bereits zusammengeführter Splime ist ein wertvolles Ziel. Die gegnerische Form und tatsächliche Übernahme entscheiden. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      },
+      "en": {
+        "title": "Parasite vs. Splime",
+        "reason": "A merged Splime is a valuable target. The enemy form and actual takeover matter. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      }
+    }
   },
   {
     "id": "forum-2026-11-008",
@@ -327,7 +617,17 @@
     "offer": "TNT",
     "enemy": "Parasit",
     "weight": -4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "TNT gegen Parasit",
+        "reason": "Parasit kann laut Spielerbericht TNT vor der Explosion übernehmen. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "TNT vs. Parasite",
+        "reason": "A player reports that Parasite can take over TNT before it explodes. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-009",
@@ -338,7 +638,17 @@
     "offer": "TNT",
     "enemy": "Obergeist",
     "weight": -4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "TNT gegen Obergeist",
+        "reason": "Obergeist kann laut Spielerbericht TNT vor der Explosion übernehmen. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "TNT vs. Overmind",
+        "reason": "A player reports that Overmind can take over TNT before it explodes. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-010",
@@ -349,7 +659,17 @@
     "offer": "Agent B",
     "enemy": "Kapitän",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Agent B gegen Kapitän",
+        "reason": "Der erste Haken kann beim Teleport ins Leere gehen. Mehrere Kapitäne, spätere Haken und gegnerischer Schutz können die Wirkung ändern. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/ https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Agent B vs. Captain",
+        "reason": "Teleporting can evade the first hook. Multiple Captains, later hooks and enemy protection can change the result. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/ https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-011",
@@ -360,7 +680,17 @@
     "offer": "TNT",
     "enemy": "Kapitän",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "TNT gegen Kapitän",
+        "reason": "Herangezogenes TNT kann direkt bei der gegnerischen Gruppe explodieren. Die konkrete Zielwahl ist offen. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/ https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "TNT vs. Captain",
+        "reason": "Hooked TNT can explode directly in the enemy group. The actual target is uncertain. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/ https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-012",
@@ -371,7 +701,17 @@
     "offer": "Schildling",
     "enemy": "Kapitän",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schildling gegen Kapitän",
+        "reason": "Kann nach seiner Bewegung aus der Hinterreihe Druck auf den Kapitän ausüben. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Shellbro vs. Captain",
+        "reason": "Can pressure Captain after moving in from the backline. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-013",
@@ -382,7 +722,17 @@
     "offer": "Boomling",
     "enemy": "Kapitän",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Boomling gegen Kapitän",
+        "reason": "Ein Spieler beobachtete, dass Boomling sich nach dem Haken wieder entfernt. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Boomling vs. Captain",
+        "reason": "A player observed Boomling moving away again after being hooked. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-014",
@@ -393,7 +743,17 @@
     "offer": "Zerstörer",
     "enemy": "Kapitän",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Verwüster gegen Kapitän",
+        "reason": "Ein herangezogener Verwüster kann seine Wirkung in der gegnerischen Formation entfalten. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Waster vs. Captain",
+        "reason": "A hooked Waster can act inside the enemy formation. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-015",
@@ -404,7 +764,17 @@
     "offer": "Sniper",
     "enemy": "Kapitän",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Sniper gegen Kapitän",
+        "reason": "Sniper kann einen exponierten Kapitän treffen. Bei fehlender Mittellinie kann Sniper selbst das Hakenziel sein. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/ https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Sniper vs. Captain",
+        "reason": "Sniper can hit an exposed Captain. Without a middle line, Sniper may itself be hooked. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/ https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-016",
@@ -415,7 +785,17 @@
     "offer": "Kupid",
     "enemy": "Kapitän",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Kupid gegen Kapitän",
+        "reason": "In einer Kombination mit Spartheus als Unterstützung für die herangezogenen eigenen Einheiten genannt. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/"
+      },
+      "en": {
+        "title": "Cupid vs. Captain",
+        "reason": "Reported with Spartheus as support for friendly units that get hooked. https://www.reddit.com/r/DraftShowdown/comments/1x6gmas/how_do_i_counter_mass_piratespartheus/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-017",
@@ -426,7 +806,17 @@
     "offer": "Obergeist",
     "enemy": "Kapitän",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Obergeist gegen Kapitän",
+        "reason": "Kann einen erreichbaren Kapitän übernehmen. Gegnerschutz und Zielwahl entscheiden. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Overmind vs. Captain",
+        "reason": "Can take over an accessible Captain. Enemy protection and targeting matter. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-018",
@@ -437,7 +827,17 @@
     "offer": "Kapitän",
     "enemy": "Merlinor",
     "weight": 8,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Merlinor",
+        "reason": "In der eigenen Partie zog der Kapitän Merlinor heran und setzte ihn außer Gefecht. Die Regel ergänzt die bestehende Abwertung in der Gegenrichtung. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Captain vs. Merlinor",
+        "reason": "In a recorded match, Captain hooked and disabled Merlinor. This complements the reverse penalty. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-019",
@@ -448,7 +848,17 @@
     "offer": "Kapitän",
     "enemy": "Kupid",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Kupid",
+        "reason": "Der Haken bringt einen fragilen Fernkämpfer in Nahkampfreichweite. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Captain vs. Cupid",
+        "reason": "The hook brings a fragile ranged unit into melee range. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-020",
@@ -459,7 +869,17 @@
     "offer": "Kapitän",
     "enemy": "Totem",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Totem",
+        "reason": "Kann das Totem aus seinem Verband ziehen. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Captain vs. Totem",
+        "reason": "Can pull Totem away from its formation. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-021",
@@ -470,7 +890,17 @@
     "offer": "Kapitän",
     "enemy": "Ingenieur",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Ingenieur",
+        "reason": "Kann den Ingenieur von seinen Türmen wegziehen. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Captain vs. Engineer",
+        "reason": "Can pull Engineer away from its turrets. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-022",
@@ -481,7 +911,17 @@
     "offer": "Kapitän",
     "enemy": "Schnecke",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Schnecke",
+        "reason": "Als Hakenziel möglich, wenn die gegnerische Mittellinie fehlt. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Captain vs. Snail",
+        "reason": "A possible hook target when the enemy middle line is absent. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-023",
@@ -492,7 +932,17 @@
     "offer": "Kapitän",
     "enemy": "Bienenkorb",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Bienenkorb",
+        "reason": "Als Hakenziel möglich, wenn die gegnerische Mittellinie fehlt. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Captain vs. Beetank",
+        "reason": "A possible hook target when the enemy middle line is absent. https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-024",
@@ -503,7 +953,17 @@
     "offer": "Agent B",
     "enemy": "Schnecke",
     "weight": 7,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Agent B gegen Schnecke",
+        "reason": "Zugriff auf eine ungeschützte Schnecke. Aufgewertete Schnecken und Hinterfeldschutz mindern den Vorteil. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Agent B vs. Snail",
+        "reason": "Reaches an exposed Snail. Upgrades and backline protection reduce the advantage. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-025",
@@ -514,7 +974,17 @@
     "offer": "Agent B",
     "enemy": "Sniper",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Agent B gegen Sniper",
+        "reason": "Zugriff auf einen fragilen Sniper, sofern er erreichbar ist. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Agent B vs. Sniper",
+        "reason": "Can reach a fragile Sniper if it is accessible. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-026",
@@ -525,7 +995,17 @@
     "offer": "Agent B",
     "enemy": "Kupid",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Agent B gegen Kupid",
+        "reason": "Schneller Zugriff auf die Fernkampfreihe. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Agent B vs. Cupid",
+        "reason": "Quick access to the enemy ranged line. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-027",
@@ -536,7 +1016,17 @@
     "offer": "Agent B",
     "enemy": "Totem",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Agent B gegen Totem",
+        "reason": "Erreichbare Totems können früh unter Druck geraten. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Agent B vs. Totem",
+        "reason": "Accessible Totems can come under early pressure. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-028",
@@ -547,7 +1037,17 @@
     "offer": "Agent B",
     "enemy": "Boomling",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Agent B gegen Boomling",
+        "reason": "Zugriff auf Boomling je nach Stellung und Geschwindigkeit. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Agent B vs. Boomling",
+        "reason": "Access to Boomling depends on position and speed. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-029",
@@ -558,7 +1058,17 @@
     "offer": "Assassine",
     "enemy": "Schnecke",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Assassine gegen Schnecke",
+        "reason": "Besonders gegen ungeschützte Schnecken in der Grundform. Die erste Aufwertung kann das Duell verändern. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/draft_showdown/comments/1sq8d5p/i_am_now_at_arena_7_and_literally_unable_to_win/"
+      },
+      "en": {
+        "title": "Assassin vs. Snail",
+        "reason": "Most useful against exposed base Snails. The first upgrade can change the matchup. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/draft_showdown/comments/1sq8d5p/i_am_now_at_arena_7_and_literally_unable_to_win/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-030",
@@ -569,7 +1079,17 @@
     "offer": "Assassine",
     "enemy": "Sniper",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Assassine gegen Sniper",
+        "reason": "Druck auf ungeschützte Sniper. Türme und andere Hinterfeldverteidiger können den Angriff stoppen. https://www.reddit.com/r/draft_showdown/comments/1sq8d5p/i_am_now_at_arena_7_and_literally_unable_to_win/"
+      },
+      "en": {
+        "title": "Assassin vs. Sniper",
+        "reason": "Pressures unprotected Snipers. Turrets and other backline defenders can stop the attack. https://www.reddit.com/r/draft_showdown/comments/1sq8d5p/i_am_now_at_arena_7_and_literally_unable_to_win/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-031",
@@ -580,7 +1100,17 @@
     "offer": "Assassine",
     "enemy": "Bienenkorb",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Assassine gegen Bienenkorb",
+        "reason": "Kann die Hinterreihe erreichen. Die Aufstellung entscheidet. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      },
+      "en": {
+        "title": "Assassin vs. Beetank",
+        "reason": "Can reach the backline. Positioning determines the result. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-032",
@@ -591,7 +1121,17 @@
     "offer": "Ingenieur",
     "enemy": "Assassine",
     "weight": 8,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Ingenieur gegen Assassine",
+        "reason": "Türme können eindringende Assassinen abfangen. https://www.reddit.com/r/draft_showdown/comments/1sq8d5p/i_am_now_at_arena_7_and_literally_unable_to_win/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Engineer vs. Assassin",
+        "reason": "Turrets can intercept incoming Assassins. https://www.reddit.com/r/draft_showdown/comments/1sq8d5p/i_am_now_at_arena_7_and_literally_unable_to_win/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-033",
@@ -602,7 +1142,17 @@
     "offer": "Ingenieur",
     "enemy": "Schildling",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Ingenieur gegen Schildling",
+        "reason": "Türme können den Schildling nach seiner Bewegung abfangen. Timing und Stellung prüfen. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Engineer vs. Shellbro",
+        "reason": "Turrets can intercept Shellbro after it moves in. Check timing and positioning. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-034",
@@ -613,7 +1163,17 @@
     "offer": "Schildling",
     "enemy": "Schnecke",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schildling gegen Schnecke",
+        "reason": "Kann in die gegnerische Hinterreihe gelangen. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Shellbro vs. Snail",
+        "reason": "Can reach the enemy backline. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-035",
@@ -624,7 +1184,17 @@
     "offer": "Schildling",
     "enemy": "Sniper",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schildling gegen Sniper",
+        "reason": "Greift die Hinterreihe an. Die aufgewertete Form separat prüfen. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      },
+      "en": {
+        "title": "Shellbro vs. Sniper",
+        "reason": "Attacks the backline. Test the upgraded form separately. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1ws7x1f/captain_is_tricky_to_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-036",
@@ -635,7 +1205,17 @@
     "offer": "Schildling",
     "enemy": "Kupid",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schildling gegen Kupid",
+        "reason": "Erreicht Kupid hinten und kann in aufgewerteter Form Gruppen unter Druck setzen. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Shellbro vs. Cupid",
+        "reason": "Reaches Cupid in the backline and can pressure groups when upgraded. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-037",
@@ -646,7 +1226,17 @@
     "offer": "Schildling",
     "enemy": "Bienenkorb",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schildling gegen Bienenkorb",
+        "reason": "Zugriff auf den hinten stehenden Bienenkorb. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      },
+      "en": {
+        "title": "Shellbro vs. Beetank",
+        "reason": "Can reach Beetank in the backline. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5 https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-038",
@@ -657,7 +1247,17 @@
     "offer": "Schildling",
     "enemy": "Gans",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Schildling gegen Gans",
+        "reason": "Aufgewerteter Flächenschaden gegen Gänsegruppen. Grundform getrennt betrachten. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Shellbro vs. Goose",
+        "reason": "Upgraded area damage against groups of Geese. Assess the base form separately. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-039",
@@ -668,7 +1268,17 @@
     "offer": "Sniper",
     "enemy": "Bienenkorb",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Sniper gegen Bienenkorb",
+        "reason": "Geschützte Sniper können den Bienenkorb auf Distanz treffen. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Sniper vs. Beetank",
+        "reason": "Protected Snipers can hit Beetank at range. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-040",
@@ -679,7 +1289,17 @@
     "offer": "Gans",
     "enemy": "TNT",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Gans gegen TNT",
+        "reason": "Gänse können frühe Explosionen abfangen, bevor der wertvollere Teil der Front eintrifft. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      },
+      "en": {
+        "title": "Goose vs. TNT",
+        "reason": "Geese can absorb early explosions before more valuable frontline units arrive. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      }
+    }
   },
   {
     "id": "forum-2026-11-041",
@@ -690,7 +1310,17 @@
     "offer": "Gans",
     "enemy": "Schnecke",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Gans gegen Schnecke",
+        "reason": "Schnelle Gänse können erste Schüsse abfangen oder ihnen ausweichen. Anhaltender Flächenschaden bleibt gefährlich. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Goose vs. Snail",
+        "reason": "Fast Geese can absorb or avoid initial shots. Sustained area damage remains dangerous. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-042",
@@ -701,7 +1331,17 @@
     "offer": "Gans",
     "enemy": "Zerstörer",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Gans gegen Verwüster",
+        "reason": "Als vorlaufende Ablenkung vor der eigenen Hauptfront berichtet. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      },
+      "en": {
+        "title": "Goose vs. Waster",
+        "reason": "Reported as a forward distraction ahead of the main frontline. https://forum.gamer.com.tw/C.php?bsn=84101&snA=5"
+      }
+    }
   },
   {
     "id": "forum-2026-11-043",
@@ -712,7 +1352,17 @@
     "offer": "Gans",
     "enemy": "Merlinor",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Gans gegen Merlinor",
+        "reason": "Schwarmmasse kann den Einzelschaden von Merlinor überlasten. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Goose vs. Merlinor",
+        "reason": "A swarm can overwhelm Merlinor's single-target damage. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-044",
@@ -723,7 +1373,17 @@
     "offer": "TNT",
     "enemy": "Drakling",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "TNT gegen Drakling",
+        "reason": "Explosionsschaden kann Draklings treffen. Verwüsters Bodensäure ist ein anderer Effekt. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "TNT vs. Whelp",
+        "reason": "Explosions can hit Whelps. Waster's ground acid is a separate effect. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-045",
@@ -734,7 +1394,17 @@
     "offer": "TNT",
     "enemy": "Maulwurf",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "TNT gegen Maulwurf",
+        "reason": "Explosionsschaden als Kandidat. Gegen viele aufgewertete Maulwürfe kann TNT allein zu wenig sein. https://www.reddit.com/r/draft_showdown/comments/1so7cf1/how_do_you_counter_moles/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "TNT vs. Mole",
+        "reason": "Explosive damage is an option. TNT alone may fall short against many upgraded Moles. https://www.reddit.com/r/draft_showdown/comments/1so7cf1/how_do_you_counter_moles/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-046",
@@ -745,7 +1415,17 @@
     "offer": "Blutrebe",
     "enemy": "Maulwurf",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Blutrebe gegen Maulwurf",
+        "reason": "Mit Unterstützung als Antwort im direkten Duell vorgeschlagen. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Bloodvine vs. Mole",
+        "reason": "Suggested as a supported answer in a direct matchup. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-047",
@@ -756,7 +1436,17 @@
     "offer": "Ritter",
     "enemy": "Maulwurf",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Ritter gegen Maulwurf",
+        "reason": "Günstige Bodenfront kann Maulwürfe binden. https://www.reddit.com/r/draft_showdown/comments/1so7cf1/how_do_you_counter_moles/"
+      },
+      "en": {
+        "title": "Knight vs. Mole",
+        "reason": "A cheap ground frontline can tie up Moles. https://www.reddit.com/r/draft_showdown/comments/1so7cf1/how_do_you_counter_moles/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-048",
@@ -767,7 +1457,17 @@
     "offer": "Maulwurf",
     "enemy": "Zerstörer",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Maulwurf gegen Verwüster",
+        "reason": "Spieler berichten, dass sich Maulwurf aus der Säure herausgräbt. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Mole vs. Waster",
+        "reason": "Players report that Mole can burrow out of the acid. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-049",
@@ -778,7 +1478,17 @@
     "offer": "Spartheus",
     "enemy": "Ritter",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Spartheus gegen Ritter",
+        "reason": "Frontduell zugunsten von Spartheus beschrieben. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Spartheus vs. Knight",
+        "reason": "The frontline duel was described as favoring Spartheus. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-050",
@@ -789,7 +1499,17 @@
     "offer": "Spartheus",
     "enemy": "Schnecke",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Spartheus gegen Schnecke",
+        "reason": "Die erste Salve kann an der geschützten Front hängen bleiben. Gegen spätere Salven wird zusätzlicher Druck gebraucht. https://forum.gamer.com.tw/C.php?bsn=84101&snA=8 https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Spartheus vs. Snail",
+        "reason": "A protected frontline can absorb the first volley. Later volleys require additional pressure. https://forum.gamer.com.tw/C.php?bsn=84101&snA=8 https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-051",
@@ -800,7 +1520,17 @@
     "offer": "Merlinor",
     "enemy": "Spartheus",
     "weight": 7,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Merlinor gegen Spartheus",
+        "reason": "Einzelschaden gegen Spartheus, besonders hinter eigener Front. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Merlinor vs. Spartheus",
+        "reason": "Single-target damage against Spartheus, especially behind a friendly frontline. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-052",
@@ -811,7 +1541,17 @@
     "offer": "Merlinor",
     "enemy": "Königlop",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Merlinor gegen Königlop",
+        "reason": "Geschützter Einzelschaden gegen einen zähen Gegner. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Merlinor vs. Kingclops",
+        "reason": "Protected single-target damage against a durable enemy. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-053",
@@ -822,7 +1562,17 @@
     "offer": "Merlinor",
     "enemy": "Splime",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Merlinor gegen Splime",
+        "reason": "Einzelschaden gegen eine langlebige Front. Form und Unterstützung können das Duell ändern. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Merlinor vs. Splime",
+        "reason": "Single-target damage against a durable frontline. Form and support can change the matchup. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-054",
@@ -833,7 +1583,17 @@
     "offer": "Merlinor",
     "enemy": "Spinne",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Merlinor gegen Spinne",
+        "reason": "Einzelschaden gegen die Haupteinheit. Nachwuchs und weitere Ziele separat beachten. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Merlinor vs. Matriarch",
+        "reason": "Single-target damage against the main unit. Consider offspring and other targets separately. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-055",
@@ -844,7 +1604,17 @@
     "offer": "Merlinor",
     "enemy": "Blutrebe",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Merlinor gegen Blutrebe",
+        "reason": "Konzentrierter Fernschaden kann die Front unter Druck setzen. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Merlinor vs. Bloodvine",
+        "reason": "Concentrated ranged damage can pressure the frontline. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-056",
@@ -855,7 +1625,17 @@
     "offer": "Königlop",
     "enemy": "Gans",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Königlop gegen Gans",
+        "reason": "Berichtet bei einer stabilen eigenen Front, die Königlop Zeit verschafft. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Kingclops vs. Goose",
+        "reason": "Reported with a stable friendly frontline that gives Kingclops time. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-057",
@@ -866,7 +1646,17 @@
     "offer": "Schnecke",
     "enemy": "Drakling",
     "weight": 8,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schnecke gegen Drakling",
+        "reason": "Früher Flächentreffer gegen dichte Drakling-Gruppen, wenn Schnecke geschützt zum Schuss kommt. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Snail vs. Whelp",
+        "reason": "Early area damage against clustered Whelps if Snail is protected long enough to fire. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-058",
@@ -877,7 +1667,17 @@
     "offer": "Schnecke",
     "enemy": "Boomling",
     "weight": 4,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Schnecke gegen Boomling",
+        "reason": "Kann Boomling früh treffen, falls er der eigenen Front vorausläuft. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Snail vs. Boomling",
+        "reason": "Can hit Boomling early if it runs ahead of its frontline. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-059",
@@ -888,7 +1688,17 @@
     "offer": "Schnecke",
     "enemy": "Splime",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Schnecke gegen Splime",
+        "reason": "Gegen frühe Splime testen, bevor sich eine langlebige Front gebildet hat. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      },
+      "en": {
+        "title": "Snail vs. Splime",
+        "reason": "Test against early Splimes before a durable frontline forms. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-060",
@@ -899,7 +1709,17 @@
     "offer": "Boomling",
     "enemy": "Spartheus",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Boomling gegen Spartheus",
+        "reason": "Flächenschaden gegen Spartheus-Gruppen. Erste Schutzphase und anhaltenden Schaden getrennt ansehen. https://forum.gamer.com.tw/C.php?bsn=84101&snA=8 https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Boomling vs. Spartheus",
+        "reason": "Area damage against groups of Spartheus. Assess the initial protection and sustained damage separately. https://forum.gamer.com.tw/C.php?bsn=84101&snA=8 https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-061",
@@ -910,7 +1730,17 @@
     "offer": "Boomling",
     "enemy": "Drakling",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Boomling gegen Drakling",
+        "reason": "Flächenschaden gegen dichte Fluggruppen. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Boomling vs. Whelp",
+        "reason": "Area damage against dense groups of flying units. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-062",
@@ -921,7 +1751,17 @@
     "offer": "Boomling",
     "enemy": "Splime",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Boomling gegen Splime",
+        "reason": "Druck gegen frühe Splime, bevor sie zusammengeführt sind. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      },
+      "en": {
+        "title": "Boomling vs. Splime",
+        "reason": "Pressure early Splimes before they merge. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-063",
@@ -932,7 +1772,17 @@
     "offer": "Drakling",
     "enemy": "Zerstörer",
     "weight": 7,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Drakling gegen Verwüster",
+        "reason": "Kann über Verwüsters Bodensäure hinweg angreifen. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Whelp vs. Waster",
+        "reason": "Can attack over Waster's ground acid. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-064",
@@ -943,7 +1793,17 @@
     "offer": "Drakling",
     "enemy": "Obergeist",
     "weight": 6,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Drakling gegen Obergeist",
+        "reason": "Viele günstige Ziele mindern den Wert einer einzelnen Übernahme. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Whelp vs. Overmind",
+        "reason": "Many cheap targets reduce the value of an individual takeover. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-065",
@@ -954,7 +1814,17 @@
     "offer": "Drakling",
     "enemy": "Merlinor",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Drakling gegen Merlinor",
+        "reason": "Schwarmmasse kann Merlinors Einzelschaden überfordern. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Whelp vs. Merlinor",
+        "reason": "A swarm can overwhelm Merlinor's single-target damage. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-066",
@@ -965,7 +1835,17 @@
     "offer": "Sixshoot",
     "enemy": "Drakling",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Sixshoot gegen Drakling",
+        "reason": "Frühe Salve oder aufgewertete, geschützte Sixshoots sind Kandidaten. Gegen Drakling mit schneller Front widersprechen sich die Berichte. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Sixshoot vs. Whelp",
+        "reason": "An early volley or protected upgraded Sixshoots may help. Reports conflict when Whelp has a fast frontline. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-067",
@@ -976,7 +1856,17 @@
     "offer": "Obergeist",
     "enemy": "Spartheus",
     "weight": 5,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Obergeist gegen Spartheus",
+        "reason": "Übernahme kann bei wenigen wertvollen Frontfiguren besonders viel bewirken. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Overmind vs. Spartheus",
+        "reason": "Takeover can be especially valuable against a few high-value frontline units. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-068",
@@ -987,7 +1877,17 @@
     "offer": "Obergeist",
     "enemy": "Spinne",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Obergeist gegen Spinne",
+        "reason": "Als Antwort im Ranked-Guide berichtet. Zielwahl und Verhältnis zur gegnerischen Masse prüfen. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Overmind vs. Matriarch",
+        "reason": "Reported as an answer in a ranked guide. Check targeting and the size of the opposing group. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-069",
@@ -998,7 +1898,17 @@
     "offer": "Bienenkorb",
     "enemy": "Parasit",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Bienenkorb gegen Parasit",
+        "reason": "Hypothese: Bienen bieten zusätzliche Ziele. Ob sie tatsächlich übernommen werden können, ist offen. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Beetank vs. Parasite",
+        "reason": "Hypothesis. Bees add targets. Whether they can be taken over is unclear. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-070",
@@ -1009,7 +1919,17 @@
     "offer": "Blutrebe",
     "enemy": "Spartheus",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Blutrebe gegen Spartheus",
+        "reason": "Die Kombination mit eigenem Merlinor wurde berichtet. Der Nutzen ohne Unterstützung ist offen. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Bloodvine vs. Spartheus",
+        "reason": "Reported in combination with a friendly Merlinor. The value without support is unclear. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-071",
@@ -1020,7 +1940,17 @@
     "offer": "Totem",
     "enemy": "Spartheus",
     "weight": 3,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Totem gegen Spartheus",
+        "reason": "Die berichtete Synergie betrifft eigenen Spartheus. Vor Aktivierung muss eine Regel den eigenen Bestand prüfen. https://www.reddit.com/r/DraftShowdown/comments/1tojy1g/made_a_tier_list_of_all_the_units_and_the_spells/"
+      },
+      "en": {
+        "title": "Totem vs. Spartheus",
+        "reason": "The reported synergy is with friendly Spartheus. An active rule would need to check the friendly lineup. https://www.reddit.com/r/DraftShowdown/comments/1tojy1g/made_a_tier_list_of_all_the_units_and_the_spells/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-072",
@@ -1031,7 +1961,17 @@
     "offer": "Splime",
     "enemy": "",
     "weight": 3,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Splime · Einsatz prüfen",
+        "reason": "Als langlebige Front vor eigenem Merlinor beschrieben. Der Nutzen hängt von Zusammenführung und Anzahl ab. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      },
+      "en": {
+        "title": "Splime · Evaluate use",
+        "reason": "Described as a durable frontline ahead of friendly Merlinor. Value depends on merging and troop count. https://www.reddit.com/r/DraftShowdown/comments/1urdffz/stuck_in_arena_5_bee_tank_wipes_everything_i_try/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-073",
@@ -1042,7 +1982,17 @@
     "offer": "Spinne",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Spinne · Einsatz prüfen",
+        "reason": "Zähe Einheit mit Nachwuchs. Ein bevorzugter Gegner bleibt offen. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Matriarch · Evaluate use",
+        "reason": "A durable unit with offspring. A preferred matchup is unclear. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-074",
@@ -1053,7 +2003,17 @@
     "offer": "Astra",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Astra · Einsatz prüfen",
+        "reason": "Voodoo beschreibt Blitzangriffe. Einzelziele, dichte Gruppen, Ausbaustufen und Gegenspiel separat prüfen. https://apps.apple.com/nr/app/draft-showdown/id6743368869"
+      },
+      "en": {
+        "title": "Astra · Evaluate use",
+        "reason": "Voodoo describes lightning attacks. Assess single targets, dense groups, upgrade stages and counters separately. https://apps.apple.com/nr/app/draft-showdown/id6743368869"
+      }
+    }
   },
   {
     "id": "forum-2026-11-075",
@@ -1064,7 +2024,17 @@
     "offer": "Steinhaut",
     "enemy": "",
     "weight": 4,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Steinhaut · Einsatz prüfen",
+        "reason": "Auf der eigenen Front prüfen, wenn eine weitere überlebte Salve entscheidend wäre. Bei Übernahme oder Splime-Zusammenführung kann der Bonus verschwinden. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Stone Skin · Evaluate use",
+        "reason": "Test on the friendly frontline when surviving another volley matters. Takeover or a Splime merge can remove the bonus. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-076",
@@ -1075,7 +2045,17 @@
     "offer": "Steinhaut",
     "enemy": "Parasit",
     "weight": -4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Steinhaut gegen Parasit",
+        "reason": "Übernahme kann den Bonus in derselben Runde entfernen. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Stone Skin vs. Parasite",
+        "reason": "Takeover can remove the bonus in the same round. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-077",
@@ -1086,7 +2066,17 @@
     "offer": "Steinhaut",
     "enemy": "Obergeist",
     "weight": -4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Steinhaut gegen Obergeist",
+        "reason": "Übernahme kann den Bonus in derselben Runde entfernen. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Stone Skin vs. Overmind",
+        "reason": "Takeover can remove the bonus in the same round. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-078",
@@ -1097,7 +2087,17 @@
     "offer": "Feensegen",
     "enemy": "",
     "weight": 4,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Feensegen · Einsatz prüfen",
+        "reason": "Für eine bereits aufgebaute eigene Haupttruppe. Zielgruppe und Bestand bestimmen den Nutzen. Bei Splime kann der Bonus beim Zusammenführen verschwinden. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/ https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Fairy Blessing · Evaluate use",
+        "reason": "Useful for an established main group. The target group and its size determine the value. Splime can lose the bonus when merging. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/ https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-079",
@@ -1108,7 +2108,17 @@
     "offer": "Feensegen",
     "enemy": "Parasit",
     "weight": -4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Feensegen gegen Parasit",
+        "reason": "Übernahme kann den Bonus in derselben Runde entfernen. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Fairy Blessing vs. Parasite",
+        "reason": "Takeover can remove the bonus in the same round. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-080",
@@ -1119,7 +2129,17 @@
     "offer": "Feensegen",
     "enemy": "Obergeist",
     "weight": -4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Feensegen gegen Obergeist",
+        "reason": "Übernahme kann den Bonus in derselben Runde entfernen. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Fairy Blessing vs. Overmind",
+        "reason": "Takeover can remove the bonus in the same round. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-081",
@@ -1130,7 +2150,17 @@
     "offer": "Grabesbogenschützen",
     "enemy": "Agent B",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Grabesbogenschützen gegen Agent B",
+        "reason": "Als Ablenkung für Agent B berichtet. Schutz, Stellung und Bestand entscheiden. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      },
+      "en": {
+        "title": "Grave Archers vs. Agent B",
+        "reason": "Reported as a distraction against Agent B. Protection, positioning and troop count matter. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-082",
@@ -1141,7 +2171,17 @@
     "offer": "Grabesbogenschützen",
     "enemy": "",
     "weight": 3,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Grabesbogenschützen · Einsatz prüfen",
+        "reason": "Als zusätzlicher Fernkampf, wenn das eigene Hinterfeld geschützt ist. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      },
+      "en": {
+        "title": "Grave Archers · Evaluate use",
+        "reason": "Additional ranged damage when the friendly backline is protected. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-083",
@@ -1152,7 +2192,17 @@
     "offer": "Grabesruf",
     "enemy": "Parasit",
     "weight": -7,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Grabesruf gegen Parasit",
+        "reason": "Bei Übernahme wird der Effekt laut Bericht nicht ausgelöst. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Grave Recall vs. Parasite",
+        "reason": "A player reports that takeover does not trigger the effect. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-084",
@@ -1163,7 +2213,17 @@
     "offer": "Grabesruf",
     "enemy": "Obergeist",
     "weight": -7,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Grabesruf gegen Obergeist",
+        "reason": "Bei Übernahme wird der Effekt laut Bericht nicht ausgelöst. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Grave Recall vs. Overmind",
+        "reason": "A player reports that takeover does not trigger the effect. https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-085",
@@ -1174,7 +2234,17 @@
     "offer": "Grabesruf",
     "enemy": "",
     "weight": 4,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Grabesruf · Einsatz prüfen",
+        "reason": "Für bereits aufgewertetes eigenes TNT oder entwickelten Splime berichtet. Ziel und eigene Entwicklungsform prüfen. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/ https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      },
+      "en": {
+        "title": "Grave Recall · Evaluate use",
+        "reason": "Reported for upgraded friendly TNT or evolved Splime. Check the target and its form. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/ https://www.reddit.com/r/DraftShowdown/comments/1vx1j2y/units_with_negative_spell_interactions/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-086",
@@ -1185,7 +2255,17 @@
     "offer": "¡ZAS!",
     "enemy": "Assassine",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "¡ZAS! gegen Assassine",
+        "reason": "Gegen fragile Assassinen als Testkandidat. Soloeffekt getrennt prüfen. https://www.reddit.com/r/DraftShowdown/comments/1vvzvhd/kamikaze_strategy/"
+      },
+      "en": {
+        "title": "ZAP! vs. Assassin",
+        "reason": "A candidate against fragile Assassins. Test the spell on its own. https://www.reddit.com/r/DraftShowdown/comments/1vvzvhd/kamikaze_strategy/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-087",
@@ -1196,7 +2276,17 @@
     "offer": "Meuchelbrigade",
     "enemy": "Schnecke",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Meuchelbrigade gegen Schnecke",
+        "reason": "Testidee für fehlenden Zugriff auf eine geschützte Schnecke. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      },
+      "en": {
+        "title": "Backstab Brigade vs. Snail",
+        "reason": "Try when there is no other way to reach a protected Snail. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-088",
@@ -1207,7 +2297,17 @@
     "offer": "Meteorschauer",
     "enemy": "Kupid",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Meteorschauer gegen Kupid",
+        "reason": "Spieler berichten von Wirkung gegen fragile Gruppen. Schadenshöhe und Anzahl prüfen. https://www.reddit.com/r/DraftShowdown/comments/1vtnwae/my_draft_showdown_spell_tier_list/"
+      },
+      "en": {
+        "title": "Meteor Shower vs. Cupid",
+        "reason": "Players report that it works against fragile groups. Check damage and troop count. https://www.reddit.com/r/DraftShowdown/comments/1vtnwae/my_draft_showdown_spell_tier_list/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-089",
@@ -1218,7 +2318,17 @@
     "offer": "Meteorschauer",
     "enemy": "Sniper",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Meteorschauer gegen Sniper",
+        "reason": "Gegen fragile Gruppen berichtet. Stellung und Stufe beeinflussen den Ertrag. https://www.reddit.com/r/DraftShowdown/comments/1vtnwae/my_draft_showdown_spell_tier_list/"
+      },
+      "en": {
+        "title": "Meteor Shower vs. Sniper",
+        "reason": "Reported against fragile groups. Positioning and levels affect the payoff. https://www.reddit.com/r/DraftShowdown/comments/1vtnwae/my_draft_showdown_spell_tier_list/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-090",
@@ -1229,7 +2339,17 @@
     "offer": "Meteorschauer",
     "enemy": "Agent B",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Meteorschauer gegen Agent B",
+        "reason": "Gegen fragile Gruppen berichtet. Timing des Teleports prüfen. https://www.reddit.com/r/DraftShowdown/comments/1vtnwae/my_draft_showdown_spell_tier_list/"
+      },
+      "en": {
+        "title": "Meteor Shower vs. Agent B",
+        "reason": "Reported against fragile groups. Check teleport timing. https://www.reddit.com/r/DraftShowdown/comments/1vtnwae/my_draft_showdown_spell_tier_list/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-091",
@@ -1240,7 +2360,17 @@
     "offer": "Minenfeld",
     "enemy": "Gans",
     "weight": 5,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Minenfeld gegen Gans",
+        "reason": "Gegen vorstoßende Bodenfronten, sofern die Einheiten die Minen erreichen. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      },
+      "en": {
+        "title": "Minefield vs. Goose",
+        "reason": "Against advancing ground units, provided they reach the mines. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-092",
@@ -1251,7 +2381,17 @@
     "offer": "Minenfeld",
     "enemy": "Ritter",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Minenfeld gegen Ritter",
+        "reason": "Gegen vorstoßende Bodenfronten, sofern die Einheiten die Minen erreichen. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      },
+      "en": {
+        "title": "Minefield vs. Knight",
+        "reason": "Against advancing ground units, provided they reach the mines. https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-093",
@@ -1262,7 +2402,17 @@
     "offer": "Minenfeld",
     "enemy": "Drakling",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Minenfeld gegen Drakling",
+        "reason": "Widersprüchliche Berichte. Direkten Treffer auf Drakling und indirekten Nutzen gegen deren Bodenfront trennen. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Minefield vs. Whelp",
+        "reason": "Reports conflict. Distinguish direct hits on Whelp from effects against its ground frontline. https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/ https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-094",
@@ -1273,7 +2423,17 @@
     "offer": "Pfeilsturm",
     "enemy": "Assassine",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Pfeilsturm gegen Assassine",
+        "reason": "Gegen fragile Assassinen oder als Teil einer Kombination in der letzten Runde prüfen. https://www.reddit.com/r/DraftShowdown/comments/1vvzvhd/kamikaze_strategy/ https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      },
+      "en": {
+        "title": "Storm of Arrows vs. Assassin",
+        "reason": "Test against fragile Assassins or as part of a final-round combination. https://www.reddit.com/r/DraftShowdown/comments/1vvzvhd/kamikaze_strategy/ https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-095",
@@ -1284,7 +2444,17 @@
     "offer": "Säureexplosion",
     "enemy": "Ritter",
     "weight": 3,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Säureexplosion gegen Ritter",
+        "reason": "Testidee gegen eine vorstoßende Bodenfront. Die Wirkung auf Drakling bleibt offen. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      },
+      "en": {
+        "title": "Acid Burst vs. Knight",
+        "reason": "A candidate against an advancing ground frontline. The effect on Whelp is unclear. https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-096",
@@ -1295,7 +2465,17 @@
     "offer": "Schildkrötenplan",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Schildkrötenplan · Einsatz prüfen",
+        "reason": "Zielwahl und Schutzwirkung in realen Runden prüfen."
+      },
+      "en": {
+        "title": "Turtle Strategy · Evaluate use",
+        "reason": "Check targeting and protection in actual rounds."
+      }
+    }
   },
   {
     "id": "forum-2026-11-097",
@@ -1306,7 +2486,17 @@
     "offer": "Upgrade-Roulette",
     "enemy": "",
     "weight": 3,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Upgrade-Roulette · Einsatz prüfen",
+        "reason": "Ausweichwahl bei schwachen Angeboten. Prüfen, welche eigenen Gruppen tatsächlich aufgewertet werden können. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      },
+      "en": {
+        "title": "Upgrade Roulette · Evaluate use",
+        "reason": "A fallback when offers are weak. Check which friendly groups can actually be upgraded. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-098",
@@ -1317,7 +2507,17 @@
     "offer": "Volltreffer",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Volltreffer · Einsatz prüfen",
+        "reason": "Zielwahl und Wirkung gegen einzelne starke Gegner prüfen."
+      },
+      "en": {
+        "title": "Blast Out · Evaluate use",
+        "reason": "Check targeting and effectiveness against individual strong enemies."
+      }
+    }
   },
   {
     "id": "forum-2026-11-099",
@@ -1328,7 +2528,17 @@
     "offer": "Wachs-Experiment",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Wachs-Experiment · Einsatz prüfen",
+        "reason": "Prüfen, welche Einheiten der Effekt trifft und wie lange er anhält."
+      },
+      "en": {
+        "title": "Growing Experiment · Evaluate use",
+        "reason": "Check which units it affects and for how long."
+      }
+    }
   },
   {
     "id": "forum-2026-11-100",
@@ -1339,7 +2549,17 @@
     "offer": "Wächtertürme",
     "enemy": "Agent B",
     "weight": 8,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Wächtertürme gegen Agent B",
+        "reason": "Zum Aufdecken und Abfangen des ersten Angriffs auf das eigene Hinterfeld. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/ https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      },
+      "en": {
+        "title": "Sentinel Towers vs. Agent B",
+        "reason": "Can reveal and intercept the first attack on the friendly backline. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/ https://www.reddit.com/r/DraftShowdown/comments/1vrfwzi/what_spells_do_you_guys_use/ https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-101",
@@ -1350,7 +2570,17 @@
     "offer": "Wächtertürme",
     "enemy": "Assassine",
     "weight": 6,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Wächtertürme gegen Assassine",
+        "reason": "Zur Verteidigung eines bedrohten Hinterfelds. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Sentinel Towers vs. Assassin",
+        "reason": "Defends a threatened backline. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-102",
@@ -1361,7 +2591,17 @@
     "offer": "Wächtertürme",
     "enemy": "Sniper",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Wächtertürme gegen Sniper",
+        "reason": "Können als erstes Ziel Schüsse von wichtigeren Einheiten weglenken. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      },
+      "en": {
+        "title": "Sentinel Towers vs. Sniper",
+        "reason": "Can draw the first shots away from more important units. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-103",
@@ -1372,7 +2612,17 @@
     "offer": "Wächtertürme",
     "enemy": "Schildling",
     "weight": 4,
-    "status": "test"
+    "status": "test",
+    "texts": {
+      "de": {
+        "title": "Wächtertürme gegen Schildling",
+        "reason": "Spielerbericht zur Verteidigung gegen den Vorstoß ins Hinterfeld. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      },
+      "en": {
+        "title": "Sentinel Towers vs. Shellbro",
+        "reason": "Reported as a defense against a push into the backline. https://www.reddit.com/r/DraftShowdown/comments/1w9qsuh/smaw_build/"
+      }
+    }
   },
   {
     "id": "forum-2026-11-104",
@@ -1383,7 +2633,17 @@
     "offer": "Wilder Überfall",
     "enemy": "",
     "weight": 0,
-    "status": "notiz"
+    "status": "notiz",
+    "texts": {
+      "de": {
+        "title": "Wilder Überfall · Einsatz prüfen",
+        "reason": "Als Hilfe bei fehlender Front prüfen. Konkrete Gegner und Haltbarkeit bleiben offen. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      },
+      "en": {
+        "title": "Savage Raid · Evaluate use",
+        "reason": "Test when the deck lacks a frontline. Specific matchups and durability are unclear. https://www.reddit.com/r/DraftShowdown/comments/1vz2zzu/best_3_spells/"
+      }
+    }
   },
   {
     "id": "assassine-gegen-ingenieur",
@@ -1394,7 +2654,17 @@
     "offer": "Assassine",
     "enemy": "Ingenieur",
     "weight": -12,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Assassine gegen Ingenieur abwerten",
+        "reason": "Ein gegnerischer Ingenieur kann den Zugriff von Assassinen auf die Hinterreihe abfangen. Weitere Assassinen oder ihre Aufwertung abwerten, sobald Ingenieur sichtbar ist."
+      },
+      "en": {
+        "title": "Discount Assassin against Engineer",
+        "reason": "Enemy Engineer can intercept Assassin's approach to the backline. Discount additional Assassins and their upgrades once Engineer is visible."
+      }
+    }
   },
   {
     "id": "agent-b-aufwertung",
@@ -1406,7 +2676,17 @@
     "offer": "Agent B",
     "enemy": "",
     "weight": 20,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Agent B bevorzugt aufwerten",
+        "reason": "Spielerbeobachtung: Die Entwicklung von Agent B ist besonders stark. Bei vergleichbaren Optionen seine Aufwertung gegenüber dem Hinzufügen oder der reinen Verdopplung bevorzugen."
+      },
+      "en": {
+        "title": "Prioritize Agent B upgrades",
+        "reason": "Player observation. Agent B gains a lot from evolving. Prefer an upgrade to adding or merely doubling Agent B when options are comparable."
+      }
+    }
   },
   {
     "id": "kapitaen-gegen-verwuester",
@@ -1417,6 +2697,16 @@
     "offer": "Kapitän",
     "enemy": "Zerstörer",
     "weight": -12,
-    "status": "aktiv"
+    "status": "aktiv",
+    "texts": {
+      "de": {
+        "title": "Kapitän gegen Verwüster abwerten",
+        "reason": "Spielerbeobachtung: Herangezogene Verwüsterfässer können direkt an der Kapitänsreihe explodieren. Eng stehende Kapitäne können beim Heranziehen in die Fläche geraten."
+      },
+      "en": {
+        "title": "Discount Captain against Waster",
+        "reason": "Player observation. Hooked Waster barrels can explode next to the Captain line. Closely grouped Captains can take area damage while pulling targets in."
+      }
+    }
   }
 ]

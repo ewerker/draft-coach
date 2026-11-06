@@ -72,6 +72,17 @@ Testregel|Test rule
 Aktivieren|Activate
 Zurücknehmen|Roll back
 Wähle zuerst ein Wahlfenster.|Select a decision first.
+Erkenntnis bearbeiten|Edit rule
+Neue Erkenntnis|New rule
+Keine passenden Regeln.|No matching rules.
+Regel gelöscht.|Rule deleted.
+Gespeichert.|Saved.
+Taktikregeln konnten nicht geladen werden.|Could not load tactical rules.
+Prüfe die Angaben. Eine Testregel oder aktive Regel braucht eine Angebotskarte und ein Gewicht ungleich null.|Check the fields. A test or active rule requires an offered card and a nonzero weight.
+Textsprache|Text language
+Für diese Sprache fehlt der Regeltext.|Rule text is missing in this language.
+Übersetzung prüfen.|Translation needs review.
+Titel und Begründung gelten für die gewählte Textsprache.|Title and explanation apply to the selected text language.
 Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…
@@ -455,4 +466,11 @@ export function reviewMessage(key,language){
 export function reviewTapReason(reason,language){
   const key=['confirmation','timeout','interrupted'].find(key=>reviewMessage(key,'de')===reason);
   return key?reviewMessage(key,language):reason;
+}
+
+
+export function tacticText(rule,language){
+  const locale=language==='en'?'en':'de';
+  if(rule.texts)return rule.texts[locale]??null;
+  return locale==='de'?{title:rule.title,reason:rule.reason}:null;
 }

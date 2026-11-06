@@ -1,4 +1,4 @@
-import {EN_CARD_NAMES,displayNames} from './public/language.mjs';
+import {EN_CARD_NAMES,displayNames,tacticText} from './public/language.mjs';
 
 const normalize=text=>text.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,' ').trim();
 const aliases={
@@ -57,7 +57,7 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
       const notes=matches.filter(row=>row.synergy_note&&selected(row.next_figure));
       for(const row of notes)entries.push({title:name+' · '+(row.next_figure||'Kombination'),detail:row.synergy_note,status:'lexikon'});
       for(const rule of rules.filter(rule=>rule.offer===name&&rule.status==='notiz'&&/eigen|synerg|front|schutz/i.test(rule.reason))){
-        if(names.length===1||names.some(other=>other!==name&&contains(normalize(rule.reason),normalize(other))))entries.push(fromRule(rule,rule.title));
+        if(names.length===1||names.some(other=>other!==name&&contains(normalize(rule.reason),normalize(other))))entries.push(fromRule(rule,null,language));
       }
       continue;
     }
@@ -72,7 +72,7 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
       const title=rule.weight<0
         ?rule.offer+' gegen '+rule.enemy+' mit Vorsicht'
         :rule.offer+' gegen '+rule.enemy;
-      entries.push(fromRule(rule,title));
+      entries.push(fromRule(rule,title,language));
     }
     for(const row of matchups.filter(row=>outgoing?row.reaction_item===name:row.enemy_item===name).sort((a,b)=>b.base_score-a.base_score)){
       const other=outgoing?row.enemy_item:row.reaction_item;
@@ -97,7 +97,9 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
 }
 
 function rank(rule){return rule.status==='aktiv'?2:rule.status==='test'?1:0;}
-function fromRule(rule,title){
-  const sources=rule.reason.match(/https?:\/\/[^\s]+/g)??[];
-  return {title,detail:rule.reason.replace(/https?:\/\/[^\s]+/g,'').trim(),status:rule.status,sources};
+function fromRule(rule,title,language){
+  const text=tacticText(rule,language);
+  const reason=text?.reason??(language==='en'?'Rule text is missing in this language.':'Für diese Sprache fehlt der Regeltext.');
+  const sources=reason.match(/https?:\/\/[^\s]+/g)??[];
+  return {title:text?.title??displayNames(title??rule.offer,language),detail:reason.replace(/https?:\/\/[^\s]+/g,'').trim(),status:rule.status,sources};
 }
