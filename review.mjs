@@ -27,8 +27,16 @@ export function observeVariantEvidence(match,job,result,choice){
     match.pendingVariantEvidence=null;
     return;
   }
-  if(result.phase!=='battle'||!hearts)return;
-  const {sentAt,choice:beforeChoice,...evidence}=pending;
+  if(result.phase!=='battle'||!hearts){
+    pending.fieldSeen=false;
+    return;
+  }
+  // The first field classification can still contain the fading offer tray.
+  if(!pending.fieldSeen){
+    pending.fieldSeen=true;
+    return;
+  }
+  const {sentAt,choice:beforeChoice,fieldSeen,...evidence}=pending;
   match.variantEvidence.push({...evidence,after:job.id});
   match.pendingVariantEvidence=null;
 }

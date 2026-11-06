@@ -409,7 +409,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
     if outcome or navigation or mode_hint:
         return {'phase':outcome or 'unknown','matchOutcome':outcome,'navigation':navigation,'modeHint':mode_hint,'offers':[],'enemy':[],'own':[],
                 'geometry':geometry,'visionMs':round((time.perf_counter()-start)*1000,1)}
-    phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]
+    phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]; last_deck_reroll=False
     deck=deck_choice_offset(img,geometry['layout'],language)
     english_deck=language=='en' and deck is None and (deck:=english_deck_offset(img)) is not None
     # Deck choice has the fixed banner. Battle choices have large jagged cards.
@@ -423,6 +423,10 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
     battle_cards=(combat or field_visible or hearts is not None) and has_battle_card_tray(img)
     if deck is not None:
         phase='deck_choice'
+        gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
+        last_deck_reroll=bool(
+            cv2.minMaxLoc(cv2.matchTemplate(gray[204:253,21:147],navigation_labels['reroll_button'],cv2.TM_CCOEFF_NORMED))[1]>=.90 and
+            cv2.minMaxLoc(cv2.matchTemplate(gray[317:334,75:94],navigation_labels['deck_last_step'],cv2.TM_CCOEFF_NORMED))[1]>=.94)
         dx,dy=deck
         for c in range(3):
             x=40+c*350+dx
@@ -492,7 +496,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
         star=cut(img,[950,1627,1020,1702])
         if cv2.matchTemplate(star,spell_button_star,cv2.TM_SQDIFF_NORMED)[0,0]<.025:
             spell_button=[950,1627,1020,1702]
-    return {'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
+    return {'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'lastDeckReroll':last_deck_reroll,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
 
 def lettering(img):
     return ((img.min(axis=2)>200)&(np.ptp(img,axis=2)<45)).astype(np.uint8)

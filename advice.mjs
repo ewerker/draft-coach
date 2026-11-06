@@ -115,6 +115,9 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const warnings=[];
   const ownDeck=new Set([...(result.ownDeckPicks??[]),...(result.own??[]).map(card=>card.name)]);
   const hasRanged=[...ownDeck].some(name=>deckRanged.has(name));
+  const reroll=result.phase==='deck_choice'&&result.lastDeckReroll===true&&
+    (result.own??[]).filter(card=>card.name).length===3&&!hasRanged&&
+    result.offers.length===3&&result.offers.every(card=>card.name&&!card.poolHint&&!deckRanged.has(card.name));
   const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));
   const rearThreat=['Bienenkorb','Schnecke'].find(name=>enemy.includes(name)&&
     (result.enemyAdditions?.[name]>=2||(result.enemy??[]).some(card=>card.name===name&&card.action==='add'&&card.quantity>=2)));
@@ -229,7 +232,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const complete=!result.specialStep&&evaluated.length>0&&scored.length===evaluated.length&&!scored.some(card=>card.ruleOnly);
   const pick=preferReinforcement(result,scored,evaluated);
   const fallback=complete?null:trialPick(result,evaluated,strengths);
-  return {best:complete?pick:null,provisional:complete?null:pick,fallback,evaluated,warnings,withheld:!complete};
+  return {best:complete?pick:null,provisional:complete?null:pick,fallback,evaluated,warnings,withheld:!complete,reroll};
 }
 
 function visibleAdditions(result,offer){

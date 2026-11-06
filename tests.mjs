@@ -128,6 +128,18 @@ test('draft learns from distinct normal offers and can already recommend a newly
     new Set(['Blutrebe','Merlinor','Assassine','Zerstörer']));
 });
 
+test('reroll is suggested only with a verified last slot and no ranged unit',()=>{
+  const own=['Totem','Spartheus','Kapitän'].map(name=>({name}));
+  const offers=['Gans','Drakling','TNT'].map(name=>({name,action:'add'}));
+  const frame={phase:'deck_choice',own,offers,lastDeckReroll:true};
+  const evaluate=changes=>recommend({...frame,...changes},'arena',collection,db).reroll;
+  assert.equal(evaluate({}),true);
+  assert.equal(evaluate({lastDeckReroll:false}),false);
+  assert.equal(evaluate({own:own.slice(0,2)}),false);
+  assert.equal(evaluate({ownDeckPicks:['Merlinor']}),false);
+  assert.equal(evaluate({offers:[...offers.slice(0,2),{name:'Sniper',action:'add'}]}),false);
+});
+
 test('a tied upgrade beats adding one of the same unit',()=>{
   const offers=[{name:'Merlinor',action:'add',quantity:1},{name:'Merlinor',action:'upgrade'}];
   const result={phase:'battle_choice',offers,ownReinforcements:{Merlinor:1}};
@@ -272,7 +284,9 @@ test('variant evidence links the first timely field image in the same round',()=
   observeVariantEvidence(match,{id:42,started:1200},{phase:'battle_choice',hearts},'first choice');
   assert.equal(match.variantEvidence.length,0);
   observeVariantEvidence(match,{id:43,started:1400},{phase:'battle',hearts});
-  assert.deepEqual(match.variantEvidence[0],{before:40,after:43,card:'Totem',action:'multiply',variant:2,hearts});
+  assert.equal(match.variantEvidence.length,0);
+  observeVariantEvidence(match,{id:44,started:1450},{phase:'battle',hearts});
+  assert.deepEqual(match.variantEvidence[0],{before:40,after:44,card:'Totem',action:'multiply',variant:2,hearts});
   followVariantChoice(match,44,offer,hearts,1500);
   observeVariantEvidence(match,{id:45,started:1600},{phase:'battle',hearts:{own:1,enemy:3}});
   assert.equal(match.variantEvidence.length,1);

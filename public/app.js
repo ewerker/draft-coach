@@ -170,6 +170,7 @@ function readTip(state){
   }
   if(!frame||frame.id<=muteThroughId||frame.mode!==state.mode||frame.source==='reference'||frame.expired||Date.now()-frame.started>6000)return;
   const spell=frame.phase==='spell_choice';
+  if(frame.advice?.reroll)return;
   if(!spell&&spokenSpellSlots){
     spokenSpellSlots=0;
     spokenChoice='';
@@ -1243,7 +1244,7 @@ function draw(result,sentTap){
   const groups=['offers','enemy','own'];
   const best=result.advice?.best;
   const tentative=result.advice?.fallback??result.advice?.provisional;
-  const tip=result.sentChoice??best??tentative;
+  const tip=result.sentChoice??(result.advice?.reroll?null:best??tentative);
   const sentIndex=result.sentChoice?.index??(sentTap?.id===result.id?sentTap.index:null);
   const key=JSON.stringify([result.geometry,tip?.index,!!best,sentIndex,groups.map(group=>(result[group]||[]).map(card=>[card.box,!!card.name]))]);
   if(key===overlayKey)return;
@@ -1497,7 +1498,7 @@ async function refresh(){
       const {best,provisional,fallback}=c.advice;
       const reasons=[...new Set(c.advice.evaluated?.filter(entry=>entry.score===null).map(entry=>entry.reason))].join(' · ');
       const advice=$('advice');
-      advice.classList.toggle('wait',!best||pending||c.expired);
+      advice.classList.toggle('wait',!best||pending||c.expired||c.advice.reroll);
       let label,detail;
       if(c.sentChoice){
         label=['Auswahl gesendet',pos[c.offers[c.sentChoice.index]?.position??c.sentChoice.index],c.sentChoice.name].filter(Boolean).join(' · ');
@@ -1512,6 +1513,9 @@ async function refresh(){
         label='Neue Aufnahme läuft';
       }else if(c.expired){
         label='Tipp abgelaufen';
+      }else if(c.advice.reroll){
+        label=language==='en'?'Reroll for a ranged unit':'Für Fernkampf neu würfeln';
+        detail=language==='en'?'Last deck slot. Neither your deck nor the current offers have a ranged unit.':'Letzter Deckplatz. Im Deck und im aktuellen Angebot fehlt Fernkampf.';
       }else if(best){
         label=`Tipp · ${pos[best.index]} · ${best.name}`;
         detail=best.reason;
