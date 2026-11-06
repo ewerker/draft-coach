@@ -70,7 +70,6 @@ function localizeTree(root){
 function applyLanguage(){
   document.documentElement.lang=language;
   $('language').value=language;
-  $('quick-language-note').hidden=language!=='en'||$('quick-source').value==='ai';
   localizeTree(document.documentElement);
 }
 applyLanguage();
@@ -848,7 +847,6 @@ function updateQuickAi(enabled){
 }
 function showQuickSource(){
   $('quick-source-label').textContent=quickSource.value==='ai'?'Standalone-KI':'Lokales Taktiklexikon';
-  $('quick-language-note').hidden=language!=='en'||quickSource.value==='ai';
 }
 quickSource.onchange=showQuickSource;
 updateQuickAi(Boolean(config.quickAiEnabled));

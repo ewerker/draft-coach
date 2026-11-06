@@ -22,12 +22,17 @@ const swarmAdvice=[
   {title:'Boomling oder TNT',detail:'Flächenschaden gegen dichte Gruppen. TNT muss nah genug herankommen. Frühe Explosionen können von Gänsen abgefangen werden.',status:'aktiv'},
   {title:'Verwüster gegen Bodenschwärme',detail:'Bodensäure kann Wege versperren. Gegen schwebende Drakling greift diese Taktik nicht.',status:'aktiv'}
 ];
+const swarmAdviceEn=[
+  {title:'Protect Snail',detail:'Area damage hits clustered units. Snail needs time to fire its first volley against Whelp.',status:'aktiv'},
+  {title:'Boomling or TNT',detail:'Both deal area damage. TNT must get close enough, and Geese can absorb early explosions.',status:'aktiv'},
+  {title:'Waster against ground swarms',detail:'Ground acid can block routes. Flying Whelps avoid the acid.',status:'aktiv'}
+];
 const combinations=[
-  ['Gans','Drakling','Die schnelle Gans fängt frühe Treffer ab und kann mit Drakling mithalten.','https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/'],
-  ['Spartheus','Merlinor','Spartheus fängt die erste Salve ab und gibt Merlinor Zeit für konzentrierten Schaden.','https://forum.gamer.com.tw/C.php?bsn=84101&snA=8'],
-  ['Spartheus','Schnecke','Eine stabile Front gibt der langsamen Schnecke Zeit für weitere Flächentreffer.','https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/'],
-  ['Blutrebe','Merlinor','Blutrebe hält Gegner vorne, während Merlinor aus dem Schutz heraus angreift.','https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/'],
-  ['Spartheus','Totem','Das Totem unterstützt die bestehende Front. Der Nutzen hängt vom Ausbau und davon ab, ob das Totem geschützt steht.','https://www.reddit.com/r/DraftShowdown/comments/1tojy1g/made_a_tier_list_of_all_the_units_and_the_spells/']
+  ['Gans','Drakling','Die schnelle Gans fängt frühe Treffer ab und kann mit Drakling mithalten.','Fast Geese absorb early hits and keep pace with Whelp.','https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/'],
+  ['Spartheus','Merlinor','Spartheus fängt die erste Salve ab und gibt Merlinor Zeit für konzentrierten Schaden.','Spartheus absorbs the first volley, giving Merlinor time to deal focused damage.','https://forum.gamer.com.tw/C.php?bsn=84101&snA=8'],
+  ['Spartheus','Schnecke','Eine stabile Front gibt der langsamen Schnecke Zeit für weitere Flächentreffer.','A stable frontline gives the slow Snail time to fire more area attacks.','https://www.reddit.com/r/DraftShowdown/comments/1v0ficg/draft_showdown_guide_what_actually_matters_in/'],
+  ['Blutrebe','Merlinor','Blutrebe hält Gegner vorne, während Merlinor aus dem Schutz heraus angreift.','Bloodvine keeps enemies at the front while Merlinor attacks from cover.','https://www.reddit.com/r/DraftShowdown/comments/1v2rrmi/best_counters_for_units/'],
+  ['Spartheus','Totem','Das Totem unterstützt die bestehende Front. Der Nutzen hängt vom Ausbau und davon ab, ob das Totem geschützt steht.','Totem supports the existing frontline. Its value depends on its upgrades and protection.','https://www.reddit.com/r/DraftShowdown/comments/1tojy1g/made_a_tier_list_of_all_the_units_and_the_spells/']
 ];
 
 export function quickAdvice(question,cards,rules,matchups,context=[],language='de'){
@@ -42,7 +47,7 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
     ?context.filter(card=>known.has(card)):[];
   const swarm=/schwarm|schwarme|swarm|massen/.test(text);
   if(!names.length){
-    if(swarm)return {summary:language==='en'?'Against swarms, use area damage and check whether the units are on the ground or airborne.':'Gegen Schwärme zählt Flächenschaden und die Unterscheidung zwischen Boden und Luft.',entries:swarmAdvice,subjects:[]};
+    if(swarm)return {summary:language==='en'?'Against swarms, use area damage and check whether the units are on the ground or airborne.':'Gegen Schwärme zählt Flächenschaden und die Unterscheidung zwischen Boden und Luft.',entries:language==='en'?swarmAdviceEn:swarmAdvice,subjects:[]};
     return {summary:language==='en'?'Which unit or spell do you mean? You can also ask about swarms.':'Welche Figur oder welchen Zauber meinst du? Du kannst auch nach einem Schwarm fragen.',entries:[],subjects:[]};
   }
   const entries=[];
@@ -50,12 +55,12 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
     const selected=(other)=>names.length===1||names.includes(other);
     const matches=matchups.filter(row=>row.reaction_item===name);
     if(synergy){
-      for(const [a,b,detail,source] of combinations){
+      for(const [a,b,detail,detailEn,source] of combinations){
         if(a===name&&selected(b)||b===name&&selected(a))
-          entries.push({title:a+' · '+b,detail,status:'lexikon',sources:[source]});
+          entries.push({title:a+' · '+b,detail:language==='en'?detailEn:detail,status:'lexikon',sources:[source]});
       }
-      const notes=matches.filter(row=>row.synergy_note&&selected(row.next_figure));
-      for(const row of notes)entries.push({title:name+' · '+(row.next_figure||'Kombination'),detail:row.synergy_note,status:'lexikon'});
+      const notes=matches.filter(row=>(language==='en'?row.synergy_note_en:row.synergy_note)&&selected(row.next_figure));
+      for(const row of notes)entries.push({title:name+' · '+(row.next_figure||(language==='en'?'Combination':'Kombination')),detail:language==='en'?row.synergy_note_en:row.synergy_note,status:'lexikon'});
       for(const rule of rules.filter(rule=>rule.offer===name&&rule.status==='notiz'&&/eigen|synerg|front|schutz/i.test(rule.reason))){
         if(names.length===1||names.some(other=>other!==name&&contains(normalize(rule.reason),normalize(other))))entries.push(fromRule(rule,null,language));
       }
@@ -76,11 +81,11 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
     }
     for(const row of matchups.filter(row=>outgoing?row.reaction_item===name:row.enemy_item===name).sort((a,b)=>b.base_score-a.base_score)){
       const other=outgoing?row.enemy_item:row.reaction_item;
-      if(seen.has(other)||!selected(other))continue;
+      if(seen.has(other)||!selected(other)||!(language==='en'?row.reason_en:row.reason))continue;
       // A newer negative rule takes precedence over an older positive suggestion.
       if(rules.some(rule=>rule.offer===row.reaction_item&&rule.enemy===row.enemy_item&&rule.weight<0&&rule.status!=='notiz'))continue;
       seen.add(other);
-      entries.push({title:other+' · '+name,detail:row.reason,status:'lexikon'});
+      entries.push({title:other+' · '+name,detail:language==='en'?row.reason_en:row.reason,status:'lexikon'});
     }
   }
   const unique=[...new Map(entries.map(entry=>[entry.title+' '+entry.detail,entry])).values()].slice(0,6);

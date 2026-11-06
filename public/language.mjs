@@ -359,7 +359,6 @@ Regeln, Testvorschauen und Notizen bearbeiten.|Edit rules, test previews and not
 Partien archivieren und SQLite-Sicherungen herunterladen.|Archive matches and download SQLite backups.
 Anleitung und Antworten auf häufige Fragen.|Instructions and frequently asked questions.
 Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.|English game-screen recognition is experimental. Auto-tap is disabled for choices using experimental recognition.
-Die Erklärung stammt aus dem lokalen Wissensbestand und kann auf Deutsch vorliegen.|Explanations from the local knowledge base may be in German.
 Ins Deck aufnehmen|Add to deck
 Hinzufügen · Anzahl offen|Add units · quantity unknown
 Abweichende Werte prüfen|Review conflicting values

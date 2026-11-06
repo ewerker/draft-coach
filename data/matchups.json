@@ -13,7 +13,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d27",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Many bee targets can draw Parasite's single-target takeover away from valuable units.",
+    "synergy_note_en": "Works well behind Spartheus or with Fairy Blessing."
   },
   {
     "enemy_item": "Parasit",
@@ -29,7 +31,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d28",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Multiple flying units overwhelm Parasite's single-target takeover.",
+    "synergy_note_en": "Pair with Goose or Fairy Blessing for wider swarm pressure."
   },
   {
     "enemy_item": "Parasit",
@@ -45,7 +49,9 @@
     "bad_votes": 2,
     "last_analyzed_at": "2026-10-29T12:07:08.042Z",
     "id": "6ae321238b53524f23975d29",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "TNT delivers burst damage against Parasite groups before they reach full strength.",
+    "synergy_note_en": "Pair with Boomling to clear clustered enemies."
   },
   {
     "enemy_item": "Parasit",
@@ -61,7 +67,9 @@
     "bad_votes": 3,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d2a",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "A sturdy melee unit can contest Parasite and benefits from support.",
+    "synergy_note_en": "Support with small groups or Stone Skin."
   },
   {
     "enemy_item": "Parasit",
@@ -77,7 +85,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T12:07:05.731Z",
     "id": "6ae321238b53524f23975d2b",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Goose can disrupt the positioning and attack rhythm of taken-over units.",
+    "synergy_note_en": "Pair with Engineer traps for area control."
   },
   {
     "enemy_item": "Drakling",
@@ -93,7 +103,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d2c",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Sustained area damage hits clustered Whelps at once.",
+    "synergy_note_en": "Protect the backline with Engineer."
   },
   {
     "enemy_item": "Drakling",
@@ -109,7 +121,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d2d",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Explosive area damage clears clustered Whelps quickly.",
+    "synergy_note_en": "Use Spartheus to hold the frontline."
   },
   {
     "enemy_item": "Drakling",
@@ -125,7 +139,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d2e",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "A quick explosion hits clustered flying units.",
+    "synergy_note_en": "Follow up with ranged units such as Merlinor."
   },
   {
     "enemy_item": "Gans",
@@ -141,7 +157,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d2f",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Area damage can clear groups of light Goose units.",
+    "synergy_note_en": "Position behind Spartheus or Knight."
   },
   {
     "enemy_item": "Gans",
@@ -157,7 +175,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d30",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Explosions hit tightly packed ground swarms hard.",
+    "synergy_note_en": "Pair with Captain or Merlinor to finish remaining targets."
   },
   {
     "enemy_item": "Spartheus",
@@ -173,7 +193,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d31",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Concentrated magic damage can break durable frontline units such as Spartheus.",
+    "synergy_note_en": "Use a frontline or protect the backline with Engineer."
   },
   {
     "enemy_item": "Spartheus",
@@ -189,7 +211,9 @@
     "bad_votes": 2,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d32",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Taking over a strong blocker such as Spartheus can yield high value.",
+    "synergy_note_en": "Pair with protection or units that delay the enemy."
   },
   {
     "enemy_item": "Assassine",
@@ -205,7 +229,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d33",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Protects your backline against Assassin's leap.",
+    "synergy_note_en": "Useful alongside Snail, Merlinor or Sniper."
   },
   {
     "enemy_item": "Agent B",
@@ -221,7 +247,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d34",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Counters direct attacks on exposed ranged units.",
+    "synergy_note_en": "Protects Merlinor, Snail and Cupid."
   },
   {
     "enemy_item": "Bienenkorb",
@@ -237,7 +265,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d35",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Explosions can hit Beetank and its emerging bees.",
+    "synergy_note_en": "Pair with frontline units such as Spartheus."
   },
   {
     "enemy_item": "Bienenkorb",
@@ -253,7 +283,9 @@
     "bad_votes": 1,
     "last_analyzed_at": "2026-10-29T10:00:00Z",
     "id": "6ae321238b53524f23975d36",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Sustained area damage helps control incoming bees.",
+    "synergy_note_en": "Protect against backline attacks with Engineer."
   },
   {
     "enemy_item": "Parasit",
@@ -269,7 +301,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-10-29T12:07:04.704Z",
     "id": "6ae336e8c8e6f6a0d7830c91",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Acid Burst deals direct percentage health damage to units strengthened by Parasite.",
+    "synergy_note_en": "Pair with Waster to finish weakened targets."
   },
   {
     "enemy_item": "Parasit",
@@ -285,7 +319,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-10-29T12:07:05.200Z",
     "id": "6ae336e9002bb4fca48cc555",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Spartheus can absorb initial Parasite damage and exert pressure in return.",
+    "synergy_note_en": "Pair with Fairy Blessing to improve durability."
   },
   {
     "enemy_item": "Parasit",
@@ -301,7 +337,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-10-29T12:07:06.979Z",
     "id": "6ae336ebb2167eec782462a4",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Targeted debuffs or utility spells may delay Parasite effects.",
+    "synergy_note_en": "Pair with Captain to control the opening engagement."
   },
   {
     "enemy_item": "Obergeist",
@@ -317,7 +355,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-11-01T10:00:00.000Z",
     "id": "6ae76af25ca9aa80fa5b462b",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Multiple flying targets overwhelm single-target takeover. Community reports cite Whelp swarms against Overmind.",
+    "synergy_note_en": "Add Goose or Fairy Blessing for swarm pressure and protect valuable targets early."
   },
   {
     "enemy_item": "Obergeist",
@@ -333,7 +373,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-11-01T10:00:00.000Z",
     "id": "6ae76af25ca9aa80fa5b462c",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Many cheap targets reduce the value of each takeover. Community reports suggest swarms against Overmind's slow single-target conversion.",
+    "synergy_note_en": "Pair with Whelp and build a stable frontline against area damage."
   },
   {
     "enemy_item": "Obergeist",
@@ -349,7 +391,9 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-11-01T10:00:00.000Z",
     "id": "6ae76af25ca9aa80fa5b462d",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Early explosive damage may eliminate Overmind before further takeovers.",
+    "synergy_note_en": "Use a frontline blocker such as Spartheus and bring separate swarm protection."
   },
   {
     "enemy_item": "Obergeist",
@@ -365,6 +409,8 @@
     "bad_votes": 0,
     "last_analyzed_at": "2026-11-01T10:00:00.000Z",
     "id": "6ae76af25ca9aa80fa5b462e",
-    "is_sample": false
+    "is_sample": false,
+    "reason_en": "Early spell burst pressures Overmind and can protect valuable units from takeover.",
+    "synergy_note_en": "Pair with Spartheus and keep a swarm counter available against numerous enemies."
   }
 ]
