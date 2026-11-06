@@ -313,6 +313,7 @@ Bild bis Ergebnis|Capture to result
 Bilderkennung und Bewertung laufen lokal. Die Browser-Spracherkennung kann einen externen Dienst verwenden.|Image recognition and recommendations run locally. Browser speech recognition may use an external service.
 Sprachbefehle: Jetzt / Klick / Start → eine Aufnahme. Stopp → Mikrofon und Automatik aus.|Voice commands: Now / Click / Start → one capture. Stop → microphone and auto capture off.
 Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vollständig berücksichtigt.|Experimental scoring. Quantities and enemy strength are only partly accounted for.
+Automatischer Klick: Kontrollaufnahme zu langsam.|Auto-tap: verification capture was too slow.
 Log-Protokoll|Activity log
 Spielsprache offen|Game language unknown
 Fehler|Error

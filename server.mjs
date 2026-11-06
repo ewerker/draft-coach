@@ -498,6 +498,7 @@ async function tapRecommendation(job,item,choice,selection=null){
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
   let outcome='abgebrochen',reason='Wahlfenster hat sich geändert oder konnte nicht bestätigt werden',coordinates,stage='control_capture';
+  let checkStarted,checkCaptureMs,checkVisionMs;
   try{
     if(!selection&&item.phase==='deck_choice'){
       await new Promise(resolve=>setTimeout(resolve,650));
@@ -505,7 +506,9 @@ async function tapRecommendation(job,item,choice,selection=null){
     }
     const remaining=verificationDeadline-Date.now();
     if(remaining<=0){reason='Zeitfenster für die Kartenauswahl abgelaufen';return;}
+    checkStarted=Date.now();
     const png=await execAdb(['-s',job.target,'exec-out','screencap','-p'],Math.min(checkTimeout,remaining));
+    checkCaptureMs=Date.now()-checkStarted;
     if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
     if(png.length<24||!png.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))){
       reason='Das Kontrollbild war kein gültiges PNG';return;
@@ -513,6 +516,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     stage='control_recognition';
     await writeFile(checkPath,png);
     const checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
+    checkVisionMs=checked.visionMs;
     if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
     if(!selection&&!openSpell&&checked.offers.some(offer=>offer.experimentalLanguage))return;
     if(openSpell){
@@ -568,6 +572,10 @@ async function tapRecommendation(job,item,choice,selection=null){
     return true;
   }catch(error){
     outcome=coordinates?'fehler':'abgebrochen';reason=error.message;
+    if(error.code==='ADB_TIMEOUT'&&stage==='control_capture'&&job.tapGeneration===tapGeneration){
+      checkCaptureMs=Date.now()-checkStarted;
+      tapMessage='Automatischer Klick: Kontrollaufnahme zu langsam.';
+    }
     if(coordinates&&job.tapGeneration===tapGeneration){
       if(!selection)lastTappedChoice=choice;
       tapMessage='Antippen fehlgeschlagen: '+error.message;
@@ -581,7 +589,8 @@ async function tapRecommendation(job,item,choice,selection=null){
     }
     const entry={zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
       aufnahme:job.id,karte:best.name,position:openSpell?undefined:best.index+1,aktion:openSpell?'zauber-oeffnen':chooseSpell?'zauber-waehlen':undefined,ergebnis:outcome,grund:reason,koordinaten:coordinates,
-      pruefschritt:stage,aufnahmeMs:job.captureMs,erkennungMs:item.visionMs,gesamtMs:Date.now()-job.started,
+      pruefschritt:stage,aufnahmeMs:job.captureMs,erkennungMs:item.visionMs,
+      kontrollaufnahmeMs:checkCaptureMs,kontrollerkennungMs:checkVisionMs,gesamtMs:Date.now()-job.started,
       gegner:item.enemy?.map(({name,action,quantity})=>({name,action,quantity})),
       bewertung:item.advice?.evaluated[best.index]};
     await appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n').catch(error=>console.error('Antipp-Protokoll:',error.message));
