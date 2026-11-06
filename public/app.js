@@ -520,6 +520,9 @@ function clearReviewFrame(){
   $('review-banner').hidden=true;
   $('review-gpt').hidden=true;
   $('review-image').hidden=true;
+  $('review-before-heading').hidden=true;
+  $('review-variant').hidden=true;
+  $('review-variant').replaceChildren();
   $('review-facts').replaceChildren();
   $('review-comparison').replaceChildren();
 }
@@ -587,6 +590,19 @@ async function loadReviewFrame(){
   image.src=reviewRoot+'image?id='+encodeURIComponent(matchId)+'&capture='+capture;
   image.hidden=false;
   image.onerror=()=>{image.hidden=true;};
+  if(data.variantEvidence){
+    $('review-before-heading').hidden=false;
+    const panel=$('review-variant');
+    const title=textEl('h3','Spielfeld nach der Variantenwahl');
+    const detail=textEl('p','Aufnahme '+data.variantEvidence.after);
+    const after=document.createElement('img');
+    after.className='review-image';
+    after.alt='Spielfeld nach der Variantenwahl';
+    after.onerror=()=>{after.hidden=true;detail.textContent='Folgeaufnahme nicht verfügbar.';};
+    after.src=reviewRoot+'image?id='+encodeURIComponent(matchId)+'&capture='+data.variantEvidence.after;
+    panel.append(title,after,detail);
+    panel.hidden=false;
+  }
   reviewForm.reset();
   reviewForm.hidden=false;
   $('review-banner').hidden=false;

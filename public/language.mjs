@@ -49,6 +49,9 @@ GPT-Entwurf erstellen|Generate GPT draft
 GPT erstellt einen Entwurf …|GPT is preparing a draft…
 Entwurf geladen. Prüfe ihn vor dem Speichern.|Draft loaded. Review it before saving.
 Meine bevorzugte Wahl|My preferred choice
+Wahlfenster vor der Variantenwahl|Offer before the variant choice
+Spielfeld nach der Variantenwahl|Field after the variant choice
+Folgeaufnahme nicht verfügbar.|Follow-up capture unavailable.
 Partie auswerten|Review match
 Wähle ein Wahlfenster und vergleiche den damaligen Tipp mit einer neuen Regel.|Choose a decision and compare the original tip with a new rule.
 Partie|Match

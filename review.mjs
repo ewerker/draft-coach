@@ -14,6 +14,25 @@ CREATE TABLE IF NOT EXISTS review_revisions (
 );
 `;
 
+export function followVariantChoice(match,id,offer,hearts,sentAt){
+  match.pendingVariantEvidence=offer.variantIndex&&match.variantEvidence.length<2?
+    {before:id,card:offer.name,action:offer.action,variant:offer.variantIndex,hearts,sentAt}:null;
+}
+export function observeVariantEvidence(match,job,result){
+  const pending=match.pendingVariantEvidence;
+  if(!pending||job.started<pending.sentAt)return;
+  const hearts=result.hearts;
+  if(job.started-pending.sentAt>6000||(pending.hearts&&hearts&&
+     (pending.hearts.own!==hearts.own||pending.hearts.enemy!==hearts.enemy))){
+    match.pendingVariantEvidence=null;
+    return;
+  }
+  if(result.phase!=='battle'||!hearts)return;
+  const {sentAt,...evidence}=pending;
+  match.variantEvidence.push({...evidence,after:job.id});
+  match.pendingVariantEvidence=null;
+}
+
 export function reviewReplay(frame, mode, collection, db, rules, proposed){
   const score=list=>{
     const result=recommend(frame,mode,collection,db,false,list);

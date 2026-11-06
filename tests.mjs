@@ -1,3 +1,4 @@
+import {followVariantChoice,observeVariantEvidence} from './review.mjs';
 import {answerTactics,proposeReview} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -215,4 +216,18 @@ test('a visually ambiguous reinforcement never doubles the whole tracked stock',
   assert.equal(sameReinforcementVariant(offer,{}),false);
   const replay=recommend({phase:'battle_choice',offers:[offer],ownReinforcements:{Totem:12}},'arena',collection,db);
   assert.match(replay.evaluated[0].reason,/Bestand dieser Variante unbekannt/);
+});
+
+test('variant evidence links the first timely field image in the same round',()=>{
+  const match={variantEvidence:[]},hearts={own:2,enemy:3};
+  const offer={name:'Totem',action:'multiply',variantIndex:2};
+  followVariantChoice(match,40,offer,hearts,1000);
+  observeVariantEvidence(match,{id:41,started:980},{phase:'battle',hearts});
+  observeVariantEvidence(match,{id:42,started:1200},{phase:'battle_choice',hearts});
+  assert.equal(match.variantEvidence.length,0);
+  observeVariantEvidence(match,{id:43,started:1400},{phase:'battle',hearts});
+  assert.deepEqual(match.variantEvidence[0],{before:40,after:43,card:'Totem',action:'multiply',variant:2,hearts});
+  followVariantChoice(match,44,offer,hearts,1500);
+  observeVariantEvidence(match,{id:45,started:1600},{phase:'battle',hearts:{own:1,enemy:3}});
+  assert.equal(match.variantEvidence.length,1);
 });

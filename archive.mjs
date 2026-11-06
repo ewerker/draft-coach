@@ -55,7 +55,7 @@ export function createArchive(file,runtime){
       };
     });
   }
-  function archiveGames(){
+  function archiveGames(matchId){
     return exclusive(async()=>{
       const [games,clicks]=await Promise.all([journal('partien.jsonl'),journal('antippen.jsonl')]);
       const counts=await withDatabase(false,async database=>{
@@ -74,7 +74,7 @@ export function createArchive(file,runtime){
           VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(aufnahme) DO NOTHING`);
         let imported=0,images=0;
         for(const game of games){
-          if(exists.get(game.id))continue;
+          if((matchId&&game.id!==matchId)||exists.get(game.id))continue;
           const ids=new Set(game.captureIds.filter(Number.isSafeInteger));
           const evidence=await pickEvidence(runtime,game,ids);
           let addedImages=0;
@@ -129,7 +129,8 @@ export function createArchive(file,runtime){
 async function pickEvidence(runtime,game,ids){
   const captures=[...ids];
   const hearts=(game.heartTimeline??[]).map(entry=>entry.captureId).filter(id=>ids.has(id));
-  const candidates=new Set([captures.at(-1),captures[0],...hearts.reverse(),...captures.slice(-12).reverse()]);
+  const variants=(game.variantEvidence??[]).flatMap(({before,after})=>[before,after]).filter(id=>ids.has(id));
+  const candidates=new Set([...variants,captures.at(-1),captures[0],...hearts.reverse(),...captures.slice(-12).reverse()]);
   const evidence=[];
   for(const id of candidates){
     if(id===undefined)continue;

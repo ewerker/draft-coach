@@ -14,7 +14,7 @@ import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
-import {reviewReplay} from './review.mjs';
+import {followVariantChoice,observeVariantEvidence,reviewReplay} from './review.mjs';
 import {answerTactics,proposeReview,translateTactic} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
@@ -378,6 +378,7 @@ function record(job,result) {
     }
   }
   if(job.matchId&&job.matchId===match?.id&&job.target===device){
+    observeVariantEvidence(match,job,result);
     for(const name of ambiguousReinforcementNames(result.offers))match.ownVariantUncertain.add(name);
   }
   result=withObservedEnemies(result,job);
@@ -493,7 +494,10 @@ async function tapRecommendation(job,item,choice,selection=null){
     }
     lastTappedChoice=choice;
     if(job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
-      if(item.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer:{...offer,variantUncertain:activeMatch.ownVariantUncertain.has(offer.name)}};
+      if(item.phase==='battle_choice'){
+        activeMatch.pendingReinforcement={choice,offer:{...offer,variantUncertain:activeMatch.ownVariantUncertain.has(offer.name)}};
+        followVariantChoice(activeMatch,job.id,offer,item.hearts,Date.now());
+      }
       if(chooseSpell)activeMatch.spellChosen=true;
       if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
     }
@@ -570,7 +574,7 @@ function selectDevice(target) {
     activeMatch?.ownDeckPicks.clear();
     activeMatch?.ownReinforcements.clear();
     activeMatch?.ownVariantUncertain.clear();
-    if(activeMatch)activeMatch.pendingReinforcement=null;
+    if(activeMatch){activeMatch.pendingReinforcement=null;activeMatch.pendingVariantEvidence=null;}
     activeMatch?.enemyDeck.clear();
     if(activeMatch?.draftObservation)activeMatch.draftObservation=newDraftObservation();
   }
@@ -656,7 +660,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   let match, captureDone;
   if(!probe&&!preparationKind){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
-      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),ownVariantUncertain:new Set(),pendingReinforcement:null,
+      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),ownVariantUncertain:new Set(),pendingReinforcement:null,variantEvidence:[],pendingVariantEvidence:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
     captureDone=Promise.withResolvers();
@@ -795,7 +799,10 @@ async function tapImage({id,u,v}){
       if(choice&&result===state.current){
         lastTappedChoice=choice;
         if(result.matchId&&activeMatch?.id===result.matchId){
-          if(result.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer:{...card,variantUncertain:activeMatch.ownVariantUncertain.has(card.name)}};
+          if(result.phase==='battle_choice'){
+            activeMatch.pendingReinforcement={choice,offer:{...card,variantUncertain:activeMatch.ownVariantUncertain.has(card.name)}};
+            followVariantChoice(activeMatch,id,card,result.hearts,Date.now());
+          }
           if(result.phase==='deck_choice'&&card.name)activeMatch.ownDeckPicks.add(card.name);
         }
       }
@@ -829,9 +836,10 @@ async function saveMatchOutcome({matchId,outcome}){
   match.saving=true;
   try {
     await match.captureDone;
-    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames}=match;
-    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,outcome})+'\n');
+    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence}=match;
+    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,outcome})+'\n');
     if(stoppedMatch===match)stoppedMatch=null;
+    if(variantEvidence.length)void archive.archiveGames(id).catch(error=>console.error('Variantenbelege:',error.message));
     return {ok:true};
   } finally {match.saving=false;}
 }
@@ -922,7 +930,7 @@ async function handleReview(data,operation){
   const observation=typeof data.observation==='string'?data.observation.trim().slice(0,1500):'';
   const rule=data.rule?validateTactic({...data.rule,id:undefined,status:'test'}):null;
   const replay=reviewReplay(frame,game.mode,collection,db,tactics,rule);
-  if(operation==='frame')return {frame,replay};
+  if(operation==='frame')return {frame,replay,variantEvidence:game.variantEvidence?.find(pair=>pair.before===frame.id)??null};
   if(operation==='save'){
     let preferred=null;
     if(data.preferredOffer!=null){
