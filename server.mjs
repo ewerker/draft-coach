@@ -531,43 +531,57 @@ async function tapRecommendation(job,item,choice,selection=null){
       await new Promise(resolve=>setTimeout(resolve,650));
       if(!isCurrent())return;
     }
-    const remaining=verificationDeadline-Date.now();
-    if(remaining<=0){reason='Zeitfenster für die Kartenauswahl abgelaufen';return;}
-    checkStarted=Date.now();
-    const png=await execAdb(['-s',job.target,'exec-out','screencap','-p'],Math.min(checkTimeout,remaining));
-    checkCaptureMs=Date.now()-checkStarted;
-    if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
-    if(png.length<24||!png.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))){
-      reason='Das Kontrollbild war kein gültiges PNG';return;
+    const direct=!selection&&!openSpell&&['deck_choice','battle_choice','spell_choice'].includes(item.phase)&&
+      item.offers.length===3&&new Set(item.offers.map(card=>card.position)).size===3&&
+      item.offers.every(card=>card.name&&!card.poolHint&&!card.experimentalLanguage&&card.visible!==false&&
+        card.action!=='unknown'&&(item.phase!=='battle_choice'||card.action==='upgrade'||
+          Number.isInteger(card.quantity)))&&!item.advice?.incompleteSlots;
+    let checked=item,verified=best,box=offer.box;
+    let width=item.frame?.width,height=item.frame?.height,geometry=item.geometry;
+    if(!direct){
+      const remaining=verificationDeadline-Date.now();
+      if(remaining<=0){reason='Zeitfenster für die Kartenauswahl abgelaufen';return;}
+      checkStarted=Date.now();
+      const png=await execAdb(['-s',job.target,'exec-out','screencap','-p'],Math.min(checkTimeout,remaining));
+      checkCaptureMs=Date.now()-checkStarted;
+      if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
+      if(png.length<24||!png.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))){
+        reason='Das Kontrollbild war kein gültiges PNG';return;
+      }
+      stage='control_recognition';
+      await writeFile(checkPath,png);
+      checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
+      checkVisionMs=checked.visionMs;
+      if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
+      if(!selection&&!openSpell&&checked.offers.some(offer=>offer.experimentalLanguage))return;
+      if(openSpell){
+        if(!shouldOpenSpell({...checked,matchId:job.matchId,advice:calculateAdvice(withObservedEnemies(checked,job),false)},activeMatch))return;
+      }else if(battleAuto){
+        const fresh=checked.offers[best.index];
+        if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||
+           fresh.action!==offer.action||fresh.quantity!==offer.quantity)return;
+      }else if(chooseSpell){
+        const fresh=checked.offers[best.index];
+        if(checked.phase!=='spell_choice'||fresh?.name!==offer.name||fresh.position!==offer.position||fresh.action!=='spell')return;
+      }else if(choiceSignature(checked,!!selection,true)!==choiceSignature(item,!!selection,true))return;
+      verified=openSpell?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
+        automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false),chooseSpell);
+      box=openSpell?checked.spellButton:checked.offers[best.index]?.box;
+      if(!openSpell&&!sameReinforcementVariant(offer,checked.offers[best.index]))return;
+      if(!selection&&offer.variantIndex&&checked.offers.some((card,index)=>index!==best.index&&
+        card.variantIndex&&card.name===offer.name&&card.action===offer.action&&sameReinforcementVariant(offer,card)))return;
+      if(verified?.index!==best.index||verified.name!==best.name||(!selection&&checked.offers[best.index]?.poolHint)||
+         box?.length!==4||box.some(n=>!Number.isFinite(n)))return;
+
+      width=png.readUInt32BE(16);height=png.readUInt32BE(20);geometry=checked.geometry;
+      if(JSON.stringify(item.geometry)!==JSON.stringify(geometry))return;
+    }else{
+      if(offer.variantIndex&&item.offers.some((card,index)=>index!==best.index&&card.variantIndex&&
+        card.name===offer.name&&card.action===offer.action&&sameReinforcementVariant(offer,card)))return;
+      stage='direct_send';
     }
-    stage='control_recognition';
-    await writeFile(checkPath,png);
-    const checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
-    checkVisionMs=checked.visionMs;
-    if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
-    if(!selection&&!openSpell&&checked.offers.some(offer=>offer.experimentalLanguage))return;
-    if(openSpell){
-      if(!shouldOpenSpell({...checked,matchId:job.matchId,advice:calculateAdvice(withObservedEnemies(checked,job),false)},activeMatch))return;
-    }else if(battleAuto){
-      const fresh=checked.offers[best.index];
-      if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||
-         fresh.action!==offer.action||fresh.quantity!==offer.quantity)return;
-    }else if(chooseSpell){
-      const fresh=checked.offers[best.index];
-      if(checked.phase!=='spell_choice'||fresh?.name!==offer.name||fresh.position!==offer.position||fresh.action!=='spell')return;
-    }else if(choiceSignature(checked,!!selection,true)!==choiceSignature(item,!!selection,true))return;
-    const verified=openSpell?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
-      automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false),chooseSpell);
-    const box=openSpell?checked.spellButton:checked.offers[best.index]?.box;
-    if(!openSpell&&!sameReinforcementVariant(offer,checked.offers[best.index]))return;
-    if(!selection&&offer.variantIndex&&checked.offers.some((card,index)=>index!==best.index&&
-      card.variantIndex&&card.name===offer.name&&card.action===offer.action&&sameReinforcementVariant(offer,card)))return;
-    if(verified?.index!==best.index||verified.name!==best.name||(!selection&&checked.offers[best.index]?.poolHint)||
-       box?.length!==4||box.some(n=>!Number.isFinite(n)))return;
-    const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
-    const geometry=checked.geometry;
     if(!geometry||geometry.width!==width||geometry.height!==height||
-       JSON.stringify(item.geometry)!==JSON.stringify(geometry))return;
+       ![width,height].every(Number.isFinite)||box?.length!==4||box.some(n=>!Number.isFinite(n)))return;
     const [left,top,contentWidth,contentHeight]=geometry.content;
     const {referenceWidth,referenceHeight}=geometry;
     if(box[0]<0||box[1]<0||box[2]>referenceWidth||box[3]>referenceHeight||box[2]<=box[0]||box[3]<=box[1])return;
