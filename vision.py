@@ -458,6 +458,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                 x=100+c*225+side_dx
                 card=classify(img,[x+23,y1+dy,x+177,y2+dy],preferred if side=='own' else None)
                 if card['similarity']>.56 and card['name']:
+                    card['box']=[x+30,y1+dy-(40 if side=='enemy' else 55),x+230,y2+dy+110]
                     card.update(position=c,side=side,orange=number(img,[x+7,oy+dy-23,x+48,oy+dy+23]),blue=number(img,[x+170,by+dy-19,x+205,by+dy+19]))
                     target.append(card)
     elif active_collection_tab(img,'units') and max(collection_tab_scores(img,'units'))>.90:
