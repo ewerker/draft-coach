@@ -349,6 +349,7 @@ Verwaltung|Administration
 Erkannte Bildbereiche|Recognised image regions
 Aufgenommener Handybildschirm|Captured phone screen
 Aufnahme steuern|Capture controls
+Aufnahmeoptionen|Capture options
 Erkennung lokal bereit|Local recognition ready
 Erkennung nicht bereit|Recognition unavailable
 Gerät nicht verbunden|Device not connected

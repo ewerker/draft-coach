@@ -218,7 +218,14 @@ async function post(url,data={},signal) {
   if (!response.ok) throw Error(result.error);
   return result;
 }
-function error(e){$('error').textContent=e.message||String(e);$('error').hidden=false;}
+let errorTimer;
+function error(e){
+  const banner=$('error');
+  banner.textContent=e.message||String(e);
+  banner.hidden=false;
+  clearTimeout(errorTimer);
+  errorTimer=setTimeout(()=>{banner.hidden=true;banner.textContent='';},8000);
+}
 async function action(fn){try{$('error').hidden=true;await fn();await refresh();}catch(e){error(e);}}
 $('capture').onclick=async()=>{
   if(manualCapturePending)return;
@@ -397,7 +404,6 @@ $('apply-collection').onclick=async()=>{
   });
   button.disabled=false;
 };
-$('connection').onclick=()=>{$('setup').open=true;};
 $('auto').onclick=()=>{
   armTapAudio();
   return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:preferences.autoTap??$('auto-tap').checked,
@@ -1345,6 +1351,7 @@ function renderOfferRows(result){
   }
 }
 let refreshRequest=0,renderedRequest=0;
+let lastServerError;
 async function refresh(){
   const request=++refreshRequest;
   const r=await fetchState();if(!r.ok)throw Error('Server nicht erreichbar');const state=await r.json();
@@ -1379,10 +1386,10 @@ async function refresh(){
   const connectionLabels={device:'Verbunden',missing:'Nicht verbunden',unauthorized:'Am Handy freigeben',offline:'Gerät offline',checking:'ADB wird geprüft',error:'ADB nicht erreichbar'};
   const selectedName=conn.model==='SM_A556B'?'Samsung Galaxy A55':(conn.model||conn.serial||state.device);
   const connectionText=(connectionLabels[conn.status]||'ADB: '+conn.status)+' · '+selectedName+(conn.transport?' · '+(conn.transport==='wifi'?'WLAN':'USB'):'');
-  if($('connection').textContent!==connectionText)$('connection').textContent=connectionText;
   const setupConnection=$('setup-connection');
   if(setupConnection.textContent!==connectionText)setupConnection.textContent=connectionText;
   setupConnection.dataset.status=conn.status;
+  setupConnection.title=(conn.serial||state.device)+(conn.otherDevices?' · Weitere erreichbare Verbindungen: '+conn.otherDevices:'');
   const probe=state.deviceProbe;
   let probeText='Warte auf ein verbundenes Gerät.';
   if(probe?.status==='running')probeText='Probeaufnahme läuft. Der Coach vermisst den Bildschirm.';
@@ -1398,8 +1405,6 @@ async function refresh(){
   const probeStatus=$('device-probe');
   if(probeStatus.textContent!==probeText)probeStatus.textContent=probeText;
   $('tab-usb').classList.toggle('connected',conn.status==='device'&&conn.transport==='usb');
-  $('connection').dataset.status=conn.status;
-  $('connection').title=(conn.serial||state.device)+(conn.otherDevices?' · Weitere erreichbare Verbindungen: '+conn.otherDevices:'');
   $('ready').textContent=state.ready?'Erkennung lokal bereit':'Erkennung nicht bereit';
   $('capture').disabled=manualCapturePending||(!prep&&!state.ready)||(!state.auto&&state.capturing)||conn.status!=='device';
   $('capture-label').textContent=prep?'Jetzt aufnehmen':'Manuell aufnehmen';
@@ -1485,7 +1490,8 @@ async function refresh(){
     $('activity').textContent=reviewMessage(displayed.matchOutcome,language)+' · '+(language==='en'?'Result saved':'Ergebnis gespeichert');
   }
   if(state.continuing)$('activity').textContent=language==='en'?'Starting the next match…':'Nächste Partie wird gestartet …';
-  if(state.error)error(Error(state.error));
+  if(state.error&&state.error!==lastServerError)error(Error(state.error));
+  lastServerError=state.error;
   if(prep&&!refsShown){renderReferences(state.references);refsShown=true;}
   const c=displayed;
   if(!c){
@@ -1564,9 +1570,22 @@ await action(async()=>{
   if(mode!=='prep'&&typeof preferences.autoTap==='boolean')settings.autoTap=preferences.autoTap;
   if(Object.keys(settings).length)await post('/api/settings',{...settings,restoreBrowser:true});
 });
+let pollError;
 async function pollState(){
-  try{await refresh();}
-  catch(e){$('connection').textContent='Lokaler Server nicht erreichbar';$('connection').dataset.status='error';$('capture').disabled=true;$('auto').disabled=true;canTapImage=false;screenshot.parentElement.classList.remove('direct-tap');speech?.cancel();error(e);}
+  try{await refresh();pollError=null;}
+  catch(e){
+    const connection=$('setup-connection');
+    connection.textContent='Lokaler Server nicht erreichbar';
+    connection.dataset.status='error';
+    connection.removeAttribute('title');
+    $('capture').disabled=true;
+    $('auto').disabled=true;
+    canTapImage=false;
+    screenshot.parentElement.classList.remove('direct-tap');
+    speech?.cancel();
+    if(e.message!==pollError)error(e);
+    pollError=e.message;
+  }
   finally{setTimeout(pollState,350);}
 }
 setTimeout(pollState,350);

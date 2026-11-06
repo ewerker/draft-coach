@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Draft Coach · Lokal</title><link rel="stylesheet" href="/style.css"></head>
-<body><header><div class="brand"><span class="mark">D</span><div><strong>Draft Coach</strong><small>Lokales Erkennungslabor</small></div></div><div class="header-status"><select id="language" aria-label="Sprache"><option value="de" lang="de">Deutsch</option><option value="en" lang="en">English</option></select><select id="theme" aria-label="Farbschema"><option value="system">System</option><option value="light">Hell</option><option value="dark">Dunkel</option></select><a href="#setup" id="connection" class="pill" role="status">ADB wird geprüft …</a><span id="ready" class="pill">Erkennung startet</span></div></header>
+<body><header><div class="brand"><span class="mark">D</span><div><strong>Draft Coach</strong><small>Lokales Erkennungslabor</small></div></div><div class="header-status"><select id="language" aria-label="Sprache"><option value="de" lang="de">Deutsch</option><option value="en" lang="en">English</option></select><select id="theme" aria-label="Farbschema"><option value="system">System</option><option value="light">Hell</option><option value="dark">Dunkel</option></select><span id="ready" class="pill">Erkennung startet</span></div></header>
 <main><section class="intro"><div><h1>Draft Showdown mit einem Klick</h1><p>„Jetzt“ oder „Klick“ nimmt den Handybildschirm auf.<br>Die Bilderkennung arbeitet lokal im Hintergrund.</p></div><div class="mode">
   <label for="mode">Auswahl</label>
   <select id="mode">
@@ -203,16 +203,24 @@
 </section>
 <div id="game-view"><details class="panel setup" id="setup"><summary>Handy verbinden · USB oder WLAN <span class="pill" id="setup-connection" role="status">ADB wird geprüft …</span></summary><p>Wähle den Verbindungsweg und gib das Gerät frei. Der Coach vermisst danach automatisch ein Probebild.</p><div class="setup-tabs"><button id="tab-usb">USB-Kabel</button><button id="tab-pair">Geschütztes WLAN-Pairing</button><button id="tab-legacy">WLAN über USB aktivieren</button></div><div id="setup-usb"><h3>USB verbinden</h3><p>Handy per Kabel anschließen, USB-Debugging in den Entwickleroptionen aktivieren und die Freigabe auf dem Handy bestätigen. „Unauthorized“ bedeutet, dass diese Freigabe noch fehlt.</p></div><div id="setup-pair" hidden><h3>WLAN-Pairing ab Android 11</h3><p>Auf dem Handy: Entwickleroptionen → Debugging über WLAN → Gerät mit Kopplungscode koppeln. Beide Geräte müssen im selben vertrauenswürdigen WLAN sein.</p><label>Pairing-Adresse inklusive Port <input id="pair-address" placeholder="192.168.1.36:12345" autocomplete="off"></label><label>Sechsstelliger Kopplungscode <input id="pair-code" inputmode="numeric" maxlength="6" autocomplete="off"></label><button id="pair">Koppeln</button><p>Wenn der PC unter „Gekoppelte Geräte“ steht, ist die Freigabe bereits erteilt. Weiter mit Schritt 2.</p></div><div id="setup-legacy" hidden><h3>WLAN mithilfe des USB-Kabels</h3><p>Zuerst unter „USB-Kabel“ ein freigegebenes USB-Gerät auswählen. Dieser Weg aktiviert einen ADB-Port im WLAN ohne den TLS-Schutz des Android-Pairings. Nur im vertrauenswürdigen privaten WLAN verwenden.</p><button id="enable-wifi">WLAN-Port 5555 ausdrücklich aktivieren</button><button id="usb-only">WLAN-Debugging beenden / USB-Modus</button></div><form id="setup-wifi-connect" hidden><h3>2. WLAN-Verbindung herstellen</h3><p>Öffne am Gerät die Hauptseite „Debugging über WLAN“. Übernimm die Angabe unter „IP-Adresse und Port“ von dieser Seite.</p><label for="device">IP-Adresse und Port des Geräts</label><div class="connection"><input id="device" placeholder="192.168.1.50:40123" autocomplete="off" required><button id="connect" type="submit">Verbinden</button></div></form><button id="scan-devices">Geräte suchen</button><div id="devices"></div><p id="setup-message" role="status"></p><p id="device-probe" class="muted" role="status">Warte auf ein verbundenes Gerät.</p><button id="probe">Probeaufnahme wiederholen</button></details>
 <section class="control" aria-label="Aufnahme steuern">
-  <button id="capture" class="primary"><span id="capture-label">Manuell aufnehmen</span> <kbd>Leertaste</kbd></button>
-  <button id="auto" type="button">Automodus starten</button>
-  <button id="mic">Mikrofon einschalten</button>
-  <button id="stop" class="quiet">Stopp</button>
-  <label class="auto" id="intermediate-control" title="Wirkt auf Aufnahmen aus dem Automodus."><input type="checkbox" id="show-intermediates"> Zwischenbilder anzeigen</label>
-  <label class="auto" id="auto-tap-control" hidden><input type="checkbox" id="auto-tap"> Tipp automatisch antippen</label>
-  <label class="auto" id="continuum-control" hidden><input type="checkbox" id="continuum"> Continuum-Modus</label>
-  <label class="auto" id="read-tip-control" hidden><input type="checkbox" id="read-tip"> Tipp vorlesen</label>
-  <span id="activity" role="status">Bereit</span>
-  <span id="auto-tap-status" class="muted" role="status"></span><button id="test-audio" type="button" class="small">Ton testen</button><span id="audio-status" class="muted" role="status"></span>
+  <div class="capture-actions">
+    <button id="capture" class="primary"><span id="capture-label">Manuell aufnehmen</span> <kbd>Leertaste</kbd></button>
+    <button id="auto" type="button">Automodus starten</button>
+    <button id="mic">Mikrofon einschalten</button>
+    <button id="stop" class="quiet">Stopp</button>
+  </div>
+  <div class="capture-options" role="group" aria-label="Aufnahmeoptionen">
+    <label class="auto" id="intermediate-control" title="Wirkt auf Aufnahmen aus dem Automodus."><input type="checkbox" id="show-intermediates"> Zwischenbilder anzeigen</label>
+    <label class="auto" id="auto-tap-control" hidden><input type="checkbox" id="auto-tap"> Tipp automatisch antippen</label>
+    <label class="auto" id="continuum-control" hidden><input type="checkbox" id="continuum"> Continuum-Modus</label>
+    <label class="auto" id="read-tip-control" hidden><input type="checkbox" id="read-tip"> Tipp vorlesen</label>
+    <button id="test-audio" type="button" class="small">Ton testen</button>
+  </div>
+  <div class="capture-status">
+    <span id="activity" role="status">Bereit</span>
+    <span id="auto-tap-status" class="muted" role="status"></span>
+    <span id="audio-status" class="muted" role="status"></span>
+  </div>
 </section>
 <dialog id="match-outcome" class="panel" aria-labelledby="match-outcome-title">
   <form method="dialog">
