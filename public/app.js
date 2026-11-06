@@ -383,7 +383,7 @@ $('apply-collection').onclick=async()=>{
 $('connection').onclick=()=>{$('setup').open=true;};
 $('auto').onclick=()=>{
   armTapAudio();
-  return action(()=>post('/api/settings',{auto:true}));
+  return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:$('auto-tap').checked}));
 };
 $('setup-wifi-connect').onsubmit=event=>{
   event.preventDefault();

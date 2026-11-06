@@ -1106,6 +1106,8 @@ async function handleRequest(req,res){
         const id=++serial;state.latestId=id;queue.push({id,started:Date.now(),source:'reference',title:ref.title,path:path.join(IMAGES,ref.file),image:'/reference/'+ref.file,captureMs:0});return json(res,202,{id});
       }
       if(url.pathname==='/api/settings') {
+        if(data.restoreBrowser&&(state.auto||state.capturing||state.recognizing||audioClient&&client!==audioClient))
+          return json(res,200,{ok:true});
         if(data.gameLanguage!==undefined){
           if(!['de','en'].includes(data.gameLanguage))throw Error('Ungültige Spielsprache.');
           if(state.gameLanguage!==data.gameLanguage){
@@ -1113,7 +1115,6 @@ async function handleRequest(req,res){
             state.gameLanguage=data.gameLanguage;
           }
         }
-        if(data.restoreBrowser&&audioClient&&client!==audioClient)return json(res,200,{ok:true});
         if(data.mode!==undefined){
           if(!['draft','arena','prep'].includes(data.mode))throw Error('Ungültiger Modus');
           if(state.capturing)throw Error('Aufnahme zuerst abwarten.');
