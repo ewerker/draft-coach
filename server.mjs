@@ -594,6 +594,12 @@ function automaticSpell(result,advice){
 }
 function automaticPick(result,advice,chooseSpell=false){
   if(chooseSpell)return automaticSpell(result,advice);
+  if(result.phase==='deck_choice'){
+    if(advice.incompleteSlots||!result.offers.length||
+       result.offers.some((offer,index)=>!offer.name||offer.action!=='add'||offer.poolHint||
+         advice.evaluated[index]?.score==null))return null;
+    return advice.best??advice.fallback;
+  }
   if(result.phase!=='battle_choice')return advice.best;
   const tip=advice.best??advice.fallback;
   if(!tip||!tip.name||advice.evaluated[tip.index]?.score==null)return null;
