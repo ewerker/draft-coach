@@ -1,4 +1,4 @@
-import {proposeReview} from './review-gpt.mjs';
+import {answerTactics,proposeReview} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -184,4 +184,21 @@ test('seed rules have complete independent German and English text',async()=>{
   assert.equal(tacticText(rule,'en').title,'ZAP! vs. Assassin');
   assert.equal(tacticText(rule,'de').title,'¡ZAS! gegen Assassine');
   assert.equal(tacticText({texts:{de:rule.texts.de}},'en'),null);
+});
+
+test('Quick Advice resolves Melinor and sends a bounded text-only AI request',async()=>{
+  const rules=[{offer:'Kapitän',enemy:'Merlinor',status:'aktiv',weight:8,texts:{en:{title:'Captain vs. Merlinor',reason:'Captain can hook Merlinor.'}}}];
+  const local=quickAdvice('Against Melinor, what can I do?', ['Merlinor','Kapitän'], rules, [], [], 'en');
+  assert.deepEqual(local.subjects,['Merlinor']);
+  assert.equal(local.entries[0].title,'Captain vs. Merlinor');
+  const answer=await answerTactics({key:'fake',model:'gpt-5.4-mini',language:'en',question:'Against Melinor?',knowledge:local.entries},
+    async (url,options)=>{
+      assert.equal(url,'https://api.openai.com/v1/responses');
+      const body=JSON.parse(options.body);
+      assert.equal(body.store,false);
+      assert.equal(body.max_output_tokens,400);
+      assert.equal(JSON.parse(body.input).question,'Against Melinor?');
+      return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:'Try Captain.'}]}]})};
+    });
+  assert.equal(answer,'Try Captain.');
 });

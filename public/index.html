@@ -95,7 +95,7 @@
   <ul id="archive-games"></ul>
 </section>
 <section id="quick-panel" class="panel quick" aria-labelledby="quick-title" hidden>
-  <div class="panel-head"><h2 id="quick-title">Schnellauskunft</h2><span class="pill">Lokales Taktiklexikon</span></div>
+  <div class="panel-head"><h2 id="quick-title">Schnellauskunft</h2><span class="pill" id="quick-source-label">Lokales Taktiklexikon</span></div>
   <div class="quick-examples" aria-label="Beispielfragen">
     <button type="button" class="small">Was tue ich gegen Darklings?</button>
     <button type="button" class="small">Was hilft gegen Schwärme?</button>
@@ -108,6 +108,9 @@
   </details>
   <div id="quick-history" class="quick-history" role="log" aria-label="Fragen und Antworten"></div>
   <form id="quick-form">
+    <label for="quick-source">Antwortquelle</label>
+    <select id="quick-source"><option value="local">Lokales Taktiklexikon</option><option value="ai">Standalone-KI</option></select>
+    <p id="quick-ai-hint" class="muted" hidden>Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.</p>
     <label for="quick-question">Deine Taktikfrage</label>
     <div class="quick-input"><input id="quick-question" maxlength="500" required placeholder="Was hilft gegen Parasit?"><button class="primary" type="submit">Fragen</button></div>
   </form>

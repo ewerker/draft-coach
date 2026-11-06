@@ -70,7 +70,7 @@ function localizeTree(root){
 function applyLanguage(){
   document.documentElement.lang=language;
   $('language').value=language;
-  $('quick-language-note').hidden=language!=='en';
+  $('quick-language-note').hidden=language!=='en'||$('quick-source').value==='ai';
   localizeTree(document.documentElement);
 }
 applyLanguage();
@@ -784,6 +784,17 @@ $('archive-refresh').onclick=()=>updateArchive();
 $('archive-import').onclick=()=>updateArchive(true);
 let quickSubjects=[];
 const quickForm=$('quick-form');
+const quickSource=$('quick-source');
+let previousAiTurn='';
+quickSource.value=config.quickAiEnabled?'ai':'local';
+quickSource.querySelector('[value="ai"]').disabled=!config.quickAiEnabled;
+$('quick-ai-hint').hidden=Boolean(config.quickAiEnabled);
+function showQuickSource(){
+  $('quick-source-label').textContent=quickSource.value==='ai'?'Standalone-KI':'Lokales Taktiklexikon';
+  $('quick-language-note').hidden=language!=='en'||quickSource.value==='ai';
+}
+quickSource.onchange=showQuickSource;
+showQuickSource();
 const quickRecentKey='draft-coach-recent-questions';
 const quickRecentLimit=10;
 let recentQuestions=[];
@@ -827,10 +838,17 @@ async function askQuick(question,context=quickSubjects){
   $('quick-web').href=search.href;
   $('quick-web').hidden=false;
   try{
-    const result=await post('/api/schnellauskunft',{question,context,language});
+    const source=quickSource.value;
+    const result=await post('/api/schnellauskunft',{question,context,language,source,previous:source==='ai'?previousAiTurn:undefined});
+    if(result.source==='ai')previousAiTurn=(question+'\n'+result.summary).slice(0,1200);
     if(result.subjects.length)quickSubjects=result.subjects;
-    if(result.entries.length)rememberQuestion(question,result.subjects);
-    reply.append(textEl('p',result.summary));
+    if(result.entries.length||result.source==='ai')rememberQuestion(question,result.subjects);
+    const answer=textEl('p',result.summary);
+    if(result.source==='ai'){
+      answer.dataset.reviewOriginal='';
+      answer.textContent=result.summary;
+    }
+    reply.append(answer);
     for(const entry of result.entries){
       const block=textEl('div','','quick-entry');
       const status={aktiv:'Aktive Regel',test:'Testregel',notiz:'Notiz',lexikon:'Lexikon'};

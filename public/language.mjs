@@ -83,6 +83,12 @@ Textsprache|Text language
 Für diese Sprache fehlt der Regeltext.|Rule text is missing in this language.
 Übersetzung prüfen.|Translation needs review.
 Titel und Begründung gelten für die gewählte Textsprache.|Title and explanation apply to the selected text language.
+Antwortquelle|Answer source
+Standalone-KI|Standalone AI
+Für die Standalone-KI braucht der Coach einen OpenAI-API-Key auf dem Host.|Standalone AI requires an OpenAI API key on the host.
+KI-Schnellauskunft ist auf dem Host nicht eingerichtet.|AI Quick Advice is not configured on the host.
+Eine KI-Antwort läuft bereits.|An AI response is already running.
+Die KI hat keine vollständige Antwort geliefert.|The AI did not return a complete answer.
 Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…

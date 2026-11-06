@@ -6,7 +6,7 @@ const aliases={
   Zerstörer:['verwuster','verwusterin','waster','destroyer'],
   Parasit:['parasiten','parasite'],
   Kapitän:['kapitane','captain','captains','pirat','piraten'],
-  Merlinor:['merliner','melino','merlin'],
+  Merlinor:['merliner','melino','melinor','merlin'],
   Schildling:['schildlinge','schildkrote','schildkroten','shellbro'],
   Obergeist:['overmind'],
   Gans:['ganse','goose','geese'],

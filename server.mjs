@@ -12,10 +12,10 @@ import {LatestQueue} from './pipeline.mjs';
 import {allowedNames,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
-import {EN_CARD_NAMES} from './public/language.mjs';
+import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
 import {reviewReplay} from './review.mjs';
-import {proposeReview} from './review-gpt.mjs';
+import {answerTactics,proposeReview} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
 const archive=createArchive(archiveFile,RUNTIME);
@@ -790,6 +790,8 @@ async function saveMatchOutcome({matchId,outcome}){
     return {ok:true};
   } finally {match.saving=false;}
 }
+const quickAiEnabled=Boolean(process.env.OPENAI_API_KEY?.trim());
+let quickAiBusy=false;
 const gptReviewEnabled=!!(process.env.OPENAI_API_KEY&&process.env.COACH_REVIEW_MODEL);
 let gptReviewBusy=false,gptReviewCalls=0;
 async function reviewWithGpt(data){
@@ -972,7 +974,26 @@ async function handleRequest(req,res){
         if(typeof data.question!=='string'||!data.question.trim()||data.question.length>500)
           throw Error('Die Frage muss zwischen 1 und 500 Zeichen lang sein.');
         const context=Array.isArray(data.context)?data.context.slice(0,3):[];
-        return json(res,200,quickAdvice(data.question,tacticCards(),tactics,db,context,data.language));
+        const cards=tacticCards();
+        const language=data.language==='en'?'en':'de';
+        const local=quickAdvice(data.question,cards,tactics,db,context,language);
+        if(data.source!=='ai')return json(res,200,local);
+        if(!quickAiEnabled)throw Error('KI-Schnellauskunft ist auf dem Host nicht eingerichtet.');
+        if(quickAiBusy)throw Error('Eine KI-Antwort läuft bereits.');
+        quickAiBusy=true;
+        try{
+          const relevant=tactics.filter(rule=>local.subjects.length?
+            local.subjects.includes(rule.offer)||local.subjects.includes(rule.enemy):rule.status==='aktiv');
+          const rules=relevant.slice(0,55).map(rule=>({
+            offer:rule.offer,enemy:rule.enemy,action:rule.action,weight:rule.weight,status:rule.status,
+            reason:tacticText(rule,language)?.reason?.replace(/https?:\/\/[^\s]+/g,'').trim()
+          }));
+          const summary=await answerTactics({key:process.env.OPENAI_API_KEY.trim(),
+            model:process.env.COACH_QUICK_MODEL?.trim()||'gpt-5.4-mini',language,question:data.question,
+            previous:typeof data.previous==='string'?data.previous.slice(0,1200):undefined,
+            knowledge:{cards:cards.map(name=>[name,EN_CARD_NAMES[name]??name]),entries:local.entries,rules}});
+          return json(res,200,{summary,entries:[],subjects:local.subjects,source:'ai'});
+        }finally{quickAiBusy=false;}
       }
       if(url.pathname==='/api/browser/audio'){claimBrowser(client);return json(res,200,{ok:true});}
       if(url.pathname==='/api/browser/leave'){
@@ -1144,7 +1165,7 @@ async function handleRequest(req,res){
       return;
     }
     if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
-    if(url.pathname==='/api/config')return json(res,200,{token,collection,desktopControl:true,localAdmin});
+    if(url.pathname==='/api/config')return json(res,200,{token,collection,desktopControl:true,localAdmin,quickAiEnabled});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
     if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}

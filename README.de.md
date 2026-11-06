@@ -81,3 +81,7 @@ Eigenständiges Fanprojekt zu Draft Showdown. Spielnamen und visuelle Elemente g
 Über **Rote Gegneranzeige korrigieren** lernt der Coach den sichtbaren Text für genau diese Aktion und Spielsprache. Wähle dazu die Figur, Aktion und Anzahl aus. In der Liste lässt sich die Vorlage deaktivieren. Taktikregeln gelten dank gemeinsamer Kartenkennungen auf Deutsch und Englisch.
 
 Optionale GPT-Entwürfe brauchen `OPENAI_API_KEY` und `COACH_REVIEW_MODEL` in der Umgebung des Host-Prozesses. Das gewählte Modell muss Bildeingabe und strukturierte Ausgaben der Responses API unterstützen. Der Schlüssel gehört ausschließlich in die Host-Umgebung. **GPT-Entwurf erstellen** sendet die Daten des ausgewählten Wahlfensters an OpenAI. Der Kartenausschnitt wird nur bei gesetztem Häkchen mitgesendet. Pro Serverstart sind zehn Anfragen möglich. Die API kann Kosten verursachen. Du prüfst den Entwurf und entscheidest über die Aktivierung.
+
+### Standalone-KI für die Schnellauskunft
+
+Setze OPENAI_API_KEY in der Umgebung des Host-Prozesses und starte den Coach neu. Über COACH_QUICK_MODEL kannst du das Standardmodell gpt-5.4-mini ändern. In der Schnellauskunft lässt sich die Antwortquelle wählen. Die Standalone-KI sendet die Frage, passende lokale Taktiktexte und den vorherigen KI-Dialogschritt an OpenAI. Das lokale Lexikon bleibt verfügbar. Im Codex-Ablauf stellst du die Frage direkt im Codex-Chat.

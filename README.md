@@ -77,3 +77,7 @@ On the host PC, choose **Review match** and load a decision. New matches keep th
 Use **Correct red enemy banner** on a capture containing the red banner. Confirm the card, action and quantity. This learns the exact banner and action in its game language. The case list lets you disable the template. Tactical rules use shared card identifiers and apply to both languages.
 
 Optional GPT drafts require `OPENAI_API_KEY` and `COACH_REVIEW_MODEL` in the host process environment. Choose a model compatible with Responses API image input and Structured Outputs. Never place the key in frontend code or a committed file. **Generate GPT draft** sends the selected decision details to OpenAI. The card crop is sent only when checked. Requests are limited to ten per server start. The API may bill usage. The draft remains editable, and you control which rules are activated.
+
+### Standalone AI Quick Advice
+
+Set OPENAI_API_KEY in the host process environment and restart the coach. COACH_QUICK_MODEL optionally overrides the default gpt-5.4-mini. Choose the answer source in Quick Advice. Standalone AI sends the question, relevant local tactic text and the preceding AI turn to OpenAI. The local knowledge base remains available. For the Codex workflow, ask the question directly in the Codex chat.
