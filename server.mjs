@@ -73,6 +73,7 @@ let extendedPool=false;
 let autoTap=false, tapGeneration=0, lastTappedChoice=null, tapMessage='';
 let autoTapResult=null;
 let lastCardTap=null;
+let lastSpellTap=null;
 let latestRelevant=null, manualTapPending=false;
 let activeMatch=null, stoppedMatch=null;
 let continuum=false, continuation=null;
@@ -535,6 +536,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
     }
     lastCardTap={id:job.id,index:best.index,name:best.name,choice,matchId:job.matchId};
+    if(chooseSpell)lastSpellTap={id:job.id,matchId:job.matchId,mode:job.mode,name:best.name,position:offer.position??best.index,time:Date.now()};
     if(job.tapGeneration===tapGeneration)tapMessage=selection?(best.name??'Position '+(offer.position+1))+' · Auswahl an das Handy gesendet.':(best.name??'Zauber')+' automatisch angetippt.';
     return true;
   }catch(error){
@@ -1298,7 +1300,7 @@ async function handleRequest(req,res){
           choiceSignature(item,true)===lastCardTap.choice;
         return item.id===lastCardTap.id||sameChoice?{...item,sentChoice:{index:lastCardTap.index,name:lastCardTap.name}}:item;
       };
-      return json(res,200,{...state,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();

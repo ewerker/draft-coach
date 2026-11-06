@@ -141,7 +141,14 @@ $('test-audio').onclick=async()=>{
   status.textContent=unlocked&&playClickTone(true)?'Testton in diesem Browser gestartet.':
     'Der Browser hat Audio nicht freigegeben.';
 };
-let spokenChoice='',spokenSpellSlots=0,muteThroughId=0,manualCapturePending=false;
+let spokenChoice='',spokenSpell='',spokenSpellSlots=0,muteThroughId=0,manualCapturePending=false;
+const spellSpeechKey=(matchId,position,name)=>JSON.stringify([matchId,position,name]);
+function speakTip(position,name){
+  speech.cancel();
+  const utterance=new SpeechSynthesisUtterance([translate(position,language),displayNames(name,language)].filter(Boolean).join('. '));
+  utterance.lang=language==='en'?'en-US':'de-DE';
+  speech.speak(utterance);
+}
 function readTip(state){
   const control=$('read-tip');
   control.disabled=!speech;
@@ -152,6 +159,15 @@ function readTip(state){
     return;
   }
   const frame=state.current;
+  const sent=state.lastSpellTap;
+  if(sent?.name&&sent.id>muteThroughId&&sent.mode===state.mode&&sent.matchId===frame?.matchId&&Date.now()-sent.time<6000){
+    const key=spellSpeechKey(sent.matchId,pos[sent.position],sent.name);
+    if(key!==spokenSpell){
+      spokenSpell=key;
+      speakTip(pos[sent.position],sent.name);
+      return;
+    }
+  }
   if(!frame||frame.id<=muteThroughId||frame.mode!==state.mode||frame.source==='reference'||frame.expired||Date.now()-frame.started>6000)return;
   const spell=frame.phase==='spell_choice';
   if(!spell&&spokenSpellSlots){
@@ -170,16 +186,16 @@ function readTip(state){
   const position=pos[tip.position??offer?.position??tip.index];
   // After a multi-card spell offer, the confirmed card can remain visible on its own.
   if(spell&&spokenSpellSlots>1&&frame.offers.length===1)return;
-  if(spell)spokenSpellSlots=frame.offers.length;
-  const level=spell?offer?.orange?.value:null;
-  const choice=JSON.stringify([frame.phase,position,tip.name,offer?.action,offer?.quantity,level]);
+  if(spell){
+    spokenSpellSlots=frame.offers.length;
+    const key=spellSpeechKey(frame.matchId,position,tip.name);
+    if(key===spokenSpell)return;
+    spokenSpell=key;
+  }
+  const choice=JSON.stringify([frame.phase,position,tip.name,offer?.action,offer?.quantity]);
   if(choice===spokenChoice)return;
   spokenChoice=choice;
-  speech.cancel();
-  const detail=displayNames(tip.name,language);
-  const utterance=new SpeechSynthesisUtterance([translate(position,language),detail].filter(Boolean).join('. '));
-  utterance.lang=language==='en'?'en-US':'de-DE';
-  speech.speak(utterance);
+  speakTip(position,tip.name);
 }
 async function post(url,data={},signal) {
   const send = () => fetch(url, {
