@@ -241,8 +241,13 @@ function preferReinforcement(result,ranked,evaluated){
   if(!first||result.phase!=='battle_choice')return first??null;
   const offer=result.offers[first.index];
   if(offer.action!=='add'||!Number.isInteger(offer.quantity)||offer.quantity>3)return first;
-  return ranked.find(candidate=>evaluated[candidate.index].score!==null&&first.score-candidate.score<=4&&
-    reinforcementValue(result,result.offers[candidate.index])?.preferIfClose)??first;
+  return ranked.find(candidate=>{
+    const alternative=result.offers[candidate.index];
+    const gap=first.score-candidate.score;
+    return evaluated[candidate.index].score!==null&&gap<=4&&
+      (reinforcementValue(result,alternative)?.preferIfClose||
+       (gap===0&&offer.quantity===1&&alternative.name===offer.name&&alternative.action==='upgrade'));
+  })??first;
 }
 
 function trialPick(result,evaluated,strengths){

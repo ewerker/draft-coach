@@ -128,6 +128,14 @@ test('draft learns from distinct normal offers and can already recommend a newly
     new Set(['Blutrebe','Merlinor','Assassine','Zerstörer']));
 });
 
+test('a tied upgrade beats adding one of the same unit',()=>{
+  const offers=[{name:'Merlinor',action:'add',quantity:1},{name:'Merlinor',action:'upgrade'}];
+  const result={phase:'battle_choice',offers,ownReinforcements:{Merlinor:1}};
+  const advice=recommend(result,'arena',collection,db);
+  assert.equal(advice.evaluated[0].score,advice.evaluated[1].score);
+  assert.equal(advice.best.index,1);
+});
+
 test('a tracked group makes upgrading more valuable than adding two troops',()=>{
   const counts=new Map();
   observeChosenReinforcement(counts,{name:'Parasit',action:'multiply',quantity:2});

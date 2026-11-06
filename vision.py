@@ -354,6 +354,9 @@ def game_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     if outcome:
         return navigation_button(gray,'result',(25,283,143,347),'result')
+    if cv2.minMaxLoc(cv2.matchTemplate(gray[78:119,16:153],
+                                      navigation_labels['mastery_title'],cv2.TM_CCOEFF_NORMED))[1]>=.89:
+        return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')
     panel=gray[125:226,10:158]
     if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
            for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel')):

@@ -542,7 +542,7 @@ async function tapRecommendation(job,item,choice,selection=null){
   }catch(error){
     outcome=coordinates?'fehler':'abgebrochen';reason=error.message;
     if(coordinates&&job.tapGeneration===tapGeneration){
-      setAutoTap(false);
+      if(!selection)lastTappedChoice=choice;
       tapMessage='Antippen fehlgeschlagen: '+error.message;
     }
     if(selection)throw error;
@@ -782,6 +782,7 @@ async function probeDevice(){
 function matchesContinuation(result,run){
   const navigation=result.navigation;
   if(!navigation)return false;
+  if(navigation.step==='reward')return run.step!=='saving'&&run.rewardStep!==run.step;
   if(run.step==='result')return navigation.step==='result'&&result.matchOutcome===run.outcome;
   // The player may have already dismissed the recap while auto capture waits.
   return navigation.mode===run.mode&&(navigation.step===run.step||run.step==='recap'&&navigation.step==='home');
@@ -807,7 +808,9 @@ async function tapContinuation(job,run,step){
     const x=Math.floor(left+point[0]*width),y=Math.floor(top+point[1]*height);
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],2500);
     if(continuation!==run)return;
-    if(step==='home'){
+    if(step==='reward'){
+      run.rewardStep=run.step;
+    }else if(step==='home'){
       if(autoMode)nextModeHint=run.mode;
       continuation=null;
     }

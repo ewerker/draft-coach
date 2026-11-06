@@ -399,7 +399,7 @@ $('apply-collection').onclick=async()=>{
 $('connection').onclick=()=>{$('setup').open=true;};
 $('auto').onclick=()=>{
   armTapAudio();
-  return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:$('auto-tap').checked,
+  return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:preferences.autoTap??$('auto-tap').checked,
     continuum:gameMode!=='prep'&&$('continuum').checked}));
 };
 $('continuum').onchange=()=>action(()=>post('/api/settings',{continuum:$('continuum').checked}));
