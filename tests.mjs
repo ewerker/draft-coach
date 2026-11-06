@@ -1,3 +1,4 @@
+import {proposeReview} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -146,4 +147,20 @@ test('deck choice favors a ranged unit when Sixshoot and Captain are already sel
   const pick=ownDeckPicks=>recommend({phase:'deck_choice',offers,ownDeckPicks},'arena',collection,db).best.name;
   assert.equal(pick(['Sixshoot','Kapitän','Totem']),'Sniper');
   assert.equal(pick(['Sixshoot','Kapitän','Merlinor']),'Königlop');
+});
+
+test('optional GPT review requests structured output and only attaches a selected crop',async()=>{
+  const result={observation:'Snail is visible.',uncertainty:'Outcome unknown.',rule:null};
+  for(const image of [undefined,'test-image']){
+    const draft=await proposeReview({key:'test-key',model:'test-model',language:'en',evidence:{capture:12},image},
+      async (url,options)=>{
+        assert.equal(url,'https://api.openai.com/v1/responses');
+        const payload=JSON.parse(options.body);
+        assert.equal(payload.store,false);
+        assert.equal(payload.text.format.strict,true);
+        assert.equal(payload.input[0].content.some(part=>part.type==='input_image'),Boolean(image));
+        return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(result)}]}]})};
+      });
+    assert.deepEqual(draft,result);
+  }
 });

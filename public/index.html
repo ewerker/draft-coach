@@ -37,6 +37,48 @@
   <details><summary>Was bedeuten relevante Aufnahmen?</summary><p>Im Automodus bleibt normalerweise das letzte erkannte Wahlfenster im Bild. Mit „Zwischenbilder anzeigen“ kannst du auch die Aufnahmen dazwischen sehen.</p></details>
   <details><summary>Wo finde ich Taktikwissen und Partien?</summary><p>„Schnellauskunft“ beantwortet Fragen aus dem lokalen Lexikon. Unter „Taktikregeln“ bearbeitest du die Regeln. „Admin · Archiv“ steht am Host-PC zur Verfügung. Dort übernimmst du gespeicherte Partieergebnisse ins Archiv und lädst eine SQLite-Sicherung herunter.</p></details>
 </section>
+<section id="review-panel" class="panel" hidden>
+  <div class="panel-head"><h2>Partie auswerten</h2><button id="close-review" type="button" class="small">Zurück zum Spiel</button></div>
+  <p>Wähle ein Wahlfenster und vergleiche den damaligen Tipp mit einer neuen Regel.</p>
+  <div class="tactics-actions">
+    <label>Partie <select id="review-match"></select></label>
+    <label>Wahlfenster <select id="review-capture"></select></label>
+    <label>Sprache älterer Bilder <select id="review-language"><option value="de">Deutsch</option><option value="en">English</option></select></label>
+    <button id="review-load" type="button">Bild und Auswertung laden</button>
+  </div>
+  <p id="review-message" role="status"></p>
+  <img id="review-image" class="review-image" alt="Aufnahme aus der Partie" hidden>
+  <div id="review-facts"></div>
+  <form id="review-form" hidden>
+    <h3>Beobachtung und Taktikregel</h3>
+    <div class="tactics-fields">
+      <label class="tactics-wide">Beobachtung <textarea name="observation" maxlength="1500" rows="3"></textarea></label>
+      <label class="tactics-wide">Regeltitel <input name="title" maxlength="100"></label>
+      <label>Diese Angebotskarte <select name="offer"></select></label>
+      <label>Wenn diese Gegnerfigur bekannt ist <select name="enemy"></select></label>
+      <label>Angebotsaktion <select name="action"><option value="">Alle Aktionen</option><option value="add">Hinzufügen</option><option value="upgrade">Aufwertung (auch kombiniert)</option><option value="multiply">Verdopplung</option><option value="multiply_upgrade">Verdopplung mit Aufwertung</option><option value="spell">Zauber einsetzen</option></select></label>
+      <label>Gewicht in Punkten <input name="weight" type="number" min="-20" max="20" step="1" value="8"></label>
+      <label>Modus <select name="mode"><option value="beide">Draft und Schlacht</option><option value="draft">Draft</option><option value="arena">Schlacht</option></select></label>
+    </div>
+    <div class="tactics-actions"><button id="review-preview" type="button">Regel im Replay prüfen</button><button type="submit">Prüffall speichern</button></div>
+  </form>
+  <fieldset id="review-banner" hidden>
+    <legend>Rote Gegneranzeige korrigieren</legend>
+    <div class="tactics-actions">
+      <label>Gegnerfigur <select id="review-banner-name"></select></label>
+      <label>Angebotsaktion <select id="review-banner-action"><option value="add">Hinzufügen</option><option value="multiply">Verdopplung</option><option value="upgrade">Aufwerten</option></select></label>
+      <label>Anzahl <input id="review-banner-quantity" type="number" min="1" max="30" value="1"></label>
+      <button id="review-banner-save" type="button">Erkennungsvorlage speichern</button>
+    </div>
+  </fieldset>
+  <div id="review-gpt" hidden>
+    <label><input id="review-gpt-image" type="checkbox"> Kartenausschnitt an OpenAI senden</label>
+    <button id="review-gpt-run" type="button">GPT-Entwurf erstellen</button>
+  </div>
+  <div id="review-comparison"></div>
+  <h3>Gespeicherte Prüffälle</h3>
+  <div id="review-cases"></div>
+</section>
 <section id="admin-panel" class="panel" aria-labelledby="admin-title" hidden>
   <div class="panel-head"><h2 id="admin-title">Admin · Archiv</h2><button id="close-admin" type="button" class="small">Zurück zum Spiel</button></div>
   <p>Das SQLite-Archiv sammelt abgeschlossene Partien, Klickprotokolle und ausgewählte Belegbilder. Pro neuer Partie übernimmt der Coach bis zu fünf noch vorhandene Bilder.</p>

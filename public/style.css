@@ -95,3 +95,6 @@
 [data-theme=light] :is(.setup-tabs button.connected,button.listening){color:#28613d;border-color:#528261}
 [data-theme=light] :is(#error,#match-outcome-error,#delete-tactic){color:#841f32;background:#fce8ec;border-color:#b46a79}
 [data-theme=light] #match-outcome::backdrop{background:#16284380}
+
+.review-image{display:block;width:min(100%,360px);max-height:65vh;object-fit:contain;object-position:left center;margin:1rem 0}
+.review-image[hidden]{display:none}

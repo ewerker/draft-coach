@@ -1,7 +1,8 @@
+import {reviewQueries,reviewSchema} from './review.mjs';
 import {DatabaseSync,backup} from 'node:sqlite';
 import {createHash} from 'node:crypto';
-import {createReadStream} from 'node:fs';
-import {mkdtemp,readFile,rm,rmdir,stat} from 'node:fs/promises';
+import {createReadStream,existsSync} from 'node:fs';
+import {mkdir,mkdtemp,readFile,rm,rmdir,stat} from 'node:fs/promises';
 import {pipeline} from 'node:stream/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -23,6 +24,16 @@ export function createArchive(file,runtime){
   function withDatabase(readOnly,operation){
     const database=open(readOnly);
     return Promise.resolve().then(()=>operation(database)).finally(()=>database.close());
+  }
+  async function initializeReview(){
+    if(!existsSync(file)){
+      await mkdir(path.dirname(file),{recursive:true});
+      const schema=await readFile(new URL('./data/archive-schema.sql',import.meta.url),'utf8');
+      await withDatabase(false,db=>db.exec(schema));
+    }
+    await withDatabase(false,db=>db.exec(`CREATE TABLE IF NOT EXISTS partie_protokoll (
+      partie_id TEXT PRIMARY KEY REFERENCES partien(id), details_json TEXT NOT NULL
+    ); `+reviewSchema));
   }
   async function exclusive(operation){
     if(busy)throw Error('Ein Archivvorgang läuft bereits.');
@@ -112,7 +123,7 @@ export function createArchive(file,runtime){
       }
     });
   }
-  return {status,archiveGames,sendBackup,get busy(){return busy;}};
+  return {status,archiveGames,sendBackup,initializeReview,review:reviewQueries(journal,withDatabase,runtime),get busy(){return busy;}};
 }
 
 async function pickEvidence(runtime,game,ids){

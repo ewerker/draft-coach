@@ -69,3 +69,11 @@ The compiled calibration is included. Full reference screenshots for the optiona
 Independent fan project for Draft Showdown. Game names and visual elements belong to their respective owners.
 
 [Release workflow](RELEASING.md)
+
+## Review a match and improve the coach
+
+On the host PC, choose **Review match** and load a decision. New matches keep the recognized offers, original tip and context. Older captures can be reanalyzed while their images are available. Add an observation, preview a tactical rule against recent saved decisions, then save the case. Use **Test rule**, **Activate** or **Roll back** to manage the live rule. A saved case preserves its source image when available. The SQLite backup includes cases and their rule history.
+
+Use **Correct red enemy banner** on a capture containing the red banner. Confirm the card, action and quantity. This learns the exact banner and action in its game language. The case list lets you disable the template. Tactical rules use shared card identifiers and apply to both languages.
+
+Optional GPT drafts require `OPENAI_API_KEY` and `COACH_REVIEW_MODEL` in the host process environment. Choose a model compatible with Responses API image input and Structured Outputs. Never place the key in frontend code or a committed file. **Generate GPT draft** sends the selected decision details to OpenAI. The card crop is sent only when checked. Requests are limited to ten per server start. The API may bill usage. The draft remains editable, and you control which rules are activated.

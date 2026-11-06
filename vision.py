@@ -1,5 +1,6 @@
 """Offline visual prototype. One JSON request/response per line; no network calls."""
 import sys, os, json, time, traceback
+import base64
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 import cv2
@@ -300,7 +301,7 @@ def spell_choices(img,language):
                        'orange':number(img,badge)})
     return offers
 
-def recognize(path,preferred=None,language='de'):
+def recognize(path,preferred=None,language='de',learned_banners=()):
     start=time.perf_counter()
     raw=decode(path)
     geometry=screen_geometry(raw)
@@ -381,7 +382,7 @@ def recognize(path,preferred=None,language='de'):
     deck_evidence=(phase=='battle_choice' and not is_showdown and
                    not any(card['action']=='multiply_upgrade' or (card['quantity'] or 0)>4 for card in offers) and
                    not has_comeback_label(img))
-    enemy_event=read_enemy_banner(img,language) if phase in ('battle','battle_choice','spell_choice') else None
+    enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') else None
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     spell_button=None
@@ -444,7 +445,49 @@ def enemy_banner_number(part, sign):
         digits.append(str(value))
     return int(''.join(digits))
 
-def read_enemy_banner(img,language='de'):
+def banner_template(img):
+    region=enemy_banner_region(img)
+    if region is None:
+        return None
+    label,box=region
+    x,y,width,height=cv2.boundingRect(label)
+    if width<35 or height<12:
+        return None
+    target_width=min(384,round(width*48/height))
+    if target_width<1:
+        return None
+    mask=cv2.resize(label[y:y+height,x:x+width],(target_width,48),interpolation=cv2.INTER_NEAREST)
+    return [''.join(str(value) for value in row) for row in mask]
+
+
+def learned_enemy_banner(img,language,templates):
+    eligible=[entry for entry in templates if entry['language']==language]
+    if not eligible:
+        return None
+    rows=banner_template(img)
+    if rows is None:
+        return None
+    mask=banner_mask(rows)
+    matches={}
+    for entry in eligible:
+        pattern=banner_mask(entry['rows'])
+        if abs(pattern.shape[1]-mask.shape[1])>mask.shape[1]*.06:
+            continue
+        resized=cv2.resize(pattern,(mask.shape[1],48),interpolation=cv2.INTER_NEAREST)
+        score=float(cv2.matchTemplate(mask,resized,cv2.TM_CCOEFF_NORMED)[0,0])
+        key=(entry['name'],entry['action'],entry['quantity'])
+        matches[key]=max(matches.get(key,0),score)
+    ranked=sorted(matches,key=matches.get,reverse=True)
+    if not ranked or matches[ranked[0]]<.91 or (len(ranked)>1 and matches[ranked[0]]-matches[ranked[1]]<.06):
+        return None
+    name,action,quantity=ranked[0]
+    return {'name':name,'action':action,'quantity':quantity,'box':enemy_banner_region(img)[1]}
+
+
+def read_enemy_banner(img,language='de',learned_banners=()):
+    learned=learned_enemy_banner(img,language,learned_banners)
+    if learned:
+        return learned
     region=enemy_banner_region(img)
     if region is None:
         return None
@@ -733,10 +776,21 @@ elif __name__ == '__main__':
                     except (ValueError,cv2.error) as exc:
                         images.append({**item,'cards':[],'error':str(exc)})
                 result={'images':images}
+            elif req.get('reviewCrop'):
+                raw=decode(req['path'])
+                geometry=screen_geometry(raw)
+                image=normalize_screen(raw,geometry['content']) if geometry else None
+                crop=cut(image,[25,900,1055,1565]) if image is not None else None
+                ok,png=cv2.imencode('.png',crop) if crop is not None else (False,None)
+                result={'image':base64.b64encode(png).decode('ascii') if ok else None}
+            elif req.get('bannerTemplate'):
+                raw=decode(req['path'])
+                geometry=screen_geometry(raw)
+                result={'rows':banner_template(normalize_screen(raw,geometry['content'])) if geometry else None}
             elif req.get('geometryOnly'):
                 result={'geometry':screen_geometry(decode(req['path']))}
             else:
-                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'))
+                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'),req.get('learnedBanners') or ())
             result['id']=req['id']
         except Exception as exc:
             result={'id':req.get('id') if 'req' in locals() else None,'error':str(exc)}

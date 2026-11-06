@@ -73,3 +73,11 @@ Der Sprachumschalter wählt auch die Spielsprache für die Erkennung. Für engli
 Eigenständiges Fanprojekt zu Draft Showdown. Spielnamen und visuelle Elemente gehören ihren jeweiligen Rechteinhabern.
 
 [Versions- und Releaseablauf](RELEASING.md)
+
+## Partie auswerten und den Coach verbessern
+
+Öffne am Host-PC **Partie auswerten** und lade ein Wahlfenster. Neue Partien speichern erkannte Angebote, den damaligen Tipp und den Kontext. Ältere Aufnahmen lassen sich nachträglich auswerten, solange das Bild verfügbar ist. Trage eine Beobachtung ein, prüfe die Regel im Replay und speichere den Prüffall. Mit **Testregel**, **Aktivieren** oder **Zurücknehmen** änderst du den Status. Der gespeicherte Fall sichert das zugehörige Bild, wenn es verfügbar ist. Das SQLite-Backup enthält die Prüffälle und ihre Regelhistorie.
+
+Über **Rote Gegneranzeige korrigieren** lernt der Coach den sichtbaren Text für genau diese Aktion und Spielsprache. Wähle dazu die Figur, Aktion und Anzahl aus. In der Liste lässt sich die Vorlage deaktivieren. Taktikregeln gelten dank gemeinsamer Kartenkennungen auf Deutsch und Englisch.
+
+Optionale GPT-Entwürfe brauchen `OPENAI_API_KEY` und `COACH_REVIEW_MODEL` in der Umgebung des Host-Prozesses. Das gewählte Modell muss Bildeingabe und strukturierte Ausgaben der Responses API unterstützen. Der Schlüssel gehört ausschließlich in die Host-Umgebung. **GPT-Entwurf erstellen** sendet die Daten des ausgewählten Wahlfensters an OpenAI. Der Kartenausschnitt wird nur bei gesetztem Häkchen mitgesendet. Pro Serverstart sind zehn Anfragen möglich. Die API kann Kosten verursachen. Du prüfst den Entwurf und entscheidest über die Aktivierung.

@@ -37,6 +37,40 @@ Zugriff auf die Hinterreihe|Backline access
 Schutz oder Verstärkung|Protection or reinforcement
 Druck auf die Hinterreihe|Backline pressure
 Kartenstärke|Card strength
+Rote Gegneranzeige korrigieren|Correct red enemy banner
+Gegnerfigur|Enemy unit
+Anzahl|Quantity
+Erkennungsvorlage speichern|Save recognition template
+Erkennungsvorlage gespeichert.|Recognition template saved.
+Vorlage deaktivieren|Disable template
+Vorlage aktivieren|Enable template
+Kartenausschnitt an OpenAI senden|Send card crop to OpenAI
+GPT-Entwurf erstellen|Generate GPT draft
+GPT erstellt einen Entwurf …|GPT is preparing a draft…
+Entwurf geladen. Prüfe ihn vor dem Speichern.|Draft loaded. Review it before saving.
+Partie auswerten|Review match
+Wähle ein Wahlfenster und vergleiche den damaligen Tipp mit einer neuen Regel.|Choose a decision and compare the original tip with a new rule.
+Partie|Match
+Sprache älterer Bilder|Language of older captures
+Bild und Auswertung laden|Load image and review
+Aufnahme aus der Partie|Match capture
+Beobachtung und Taktikregel|Observation and tactical rule
+Beobachtung|Observation
+Regeltitel|Rule title
+Regel im Replay prüfen|Preview rule in replay
+Prüffall speichern|Save review case
+Gespeicherte Prüffälle|Saved review cases
+Weitere Aufnahmen|Other captures
+Angebote|Offers
+Damals empfohlen|Original recommendation
+Klickprotokoll|Tap log
+Replay bisher|Baseline replay
+Replay mit Regel|Replay with proposed rule
+Prüffall gespeichert.|Review case saved.
+Testregel|Test rule
+Aktivieren|Activate
+Zurücknehmen|Roll back
+Wähle zuerst ein Wahlfenster.|Select a decision first.
 Draft Coach · Lokal|Draft Coach · Local
 Lokales Erkennungslabor|Local recognition lab
 ADB wird geprüft …|Checking ADB…

@@ -14,6 +14,8 @@ import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
+import {reviewReplay} from './review.mjs';
+import {proposeReview} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
 const archive=createArchive(archiveFile,RUNTIME);
@@ -97,13 +99,14 @@ readline.createInterface({input:worker.stdout}).on('line',line=>{
 });
 function failWorker(e) {state.ready=false;state.error='Lokale Erkennung nicht verfügbar: '+e.message;for(const p of waiting.values()){clearTimeout(p.timer);p.reject(e);}waiting.clear();}
 worker.on('error',failWorker);worker.on('exit',code=>failWorker(Error('Bildverarbeitung beendet ('+code+')')));
+let learnedBanners=[];
 function recognize(job) {
   return new Promise((resolve,reject)=>{
     if(!state.ready)return reject(Error('Bilderkennung ist noch nicht bereit.'));
     const timer=setTimeout(()=>{waiting.delete(job.id);reject(Error('Erkennung nach 15 Sekunden abgebrochen'));worker.kill();},15000);
     const preferred=extendedPool?[]:[...allowedNames(collection,state.mode)];
     waiting.set(job.id,{resolve,reject,timer});
-    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,language:job.gameLanguage,preferred})+'\n');
+    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,bannerTemplate:job.bannerTemplate,reviewCrop:job.reviewCrop,language:job.gameLanguage,preferred,learnedBanners})+'\n');
   });
 }
 function preparationVersion() {
@@ -264,8 +267,8 @@ function tacticCards(){
   return [...new Set([...CARDS,...collection.units.units,...collection.spells.spells].map(card=>card.name))]
     .sort((a,b)=>a.localeCompare(b,'de'));
 }
-async function saveTactic(data){
-  if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');
+function validateTactic(data){
+
   const previous=tactics.find(rule=>rule.id===data.id);
   if(data.id&&!previous)throw Error('Diese Taktikregel ist nicht mehr verfügbar.');
   const title=typeof data.title==='string'?data.title.trim():'';
@@ -278,9 +281,14 @@ async function saveTactic(data){
     (offer!==''&&!cards.includes(offer))||(enemy!==''&&!cards.includes(enemy))||
     !Number.isInteger(weight)||Math.abs(weight)>20||(status!=='notiz'&&(!offer||weight===0)))
     throw Error('Prüfe die Angaben. Eine Testregel oder aktive Regel braucht eine Angebotskarte und ein Gewicht ungleich null.');
-  const updated={...previous,id:previous?.id??randomBytes(12).toString('hex'),title,reason,mode,phase,offer,enemy,weight,status,action};
+  return {...previous,id:previous?.id??randomBytes(12).toString('hex'),title,reason,mode,phase,offer,enemy,weight,status,action};
+}
+async function saveTactic(data){
+  if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');
+  const updated=validateTactic(data);
+  const previous=tactics.find(rule=>rule.id===updated.id);
   const next=previous?tactics.map(rule=>rule===previous?updated:rule):[...tactics,updated];
-  return persistTactics(next,previous?.status==='aktiv'||status==='aktiv');
+  return persistTactics(next,previous?.status==='aktiv'||updated.status==='aktiv');
 }
 async function deleteTactic(id){
   if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');
@@ -321,6 +329,12 @@ function record(job,result) {
   const item={...job,path:undefined,...result,ageMs,expired,advice};
   state.current=item;state.error=null;state.history.unshift({id:job.id,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});state.history=state.history.slice(0,20);
   const cardChoice=choiceSignature(item,true);
+  if(job.source!=='reference'&&job.matchId&&job.matchId===match?.id&&
+     (cardChoice||item.phase==='spell_choice')){
+    const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,enemyAdditions,hearts,specialStep,advice}=item;
+    match.reviewFrames.push({id:item.id,language:job.gameLanguage,phase,offers,enemy,own,ownDeckPicks,
+      ownReinforcements,enemyAdditions,hearts,specialStep,advice});
+  }
   if(job.source!=='reference'&&(cardChoice||item.phase==='spell_choice'))latestRelevant=item;
   if(job.source!=='reference'&&cardChoice){
     // A newer result can arrive between displaying a frame and receiving its click.
@@ -580,7 +594,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   let match, captureDone;
   if(!probe&&!preparationKind){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
-      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),pendingReinforcement:null,
+      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),pendingReinforcement:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
     captureDone=Promise.withResolvers();
@@ -753,11 +767,138 @@ async function saveMatchOutcome({matchId,outcome}){
   match.saving=true;
   try {
     await match.captureDone;
-    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges}=match;
-    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,outcome})+'\n');
+    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames}=match;
+    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,outcome})+'\n');
     if(stoppedMatch===match)stoppedMatch=null;
     return {ok:true};
   } finally {match.saving=false;}
+}
+const gptReviewEnabled=!!(process.env.OPENAI_API_KEY&&process.env.COACH_REVIEW_MODEL);
+let gptReviewBusy=false,gptReviewCalls=0;
+async function reviewWithGpt(data){
+  if(!gptReviewEnabled)throw Error('GPT-Analyse ist auf dem Host nicht eingerichtet.');
+  if(gptReviewBusy||gptReviewCalls>=10)throw Error('Analyse läuft bereits oder das Limit von zehn Aufrufen pro Start ist erreicht.');
+  gptReviewBusy=true;
+  try{
+    const {game,frame}=await reviewContext(data.matchId,data.capture,data.language);
+    let image;
+    if(data.includeImage===true){
+      if(state.auto||state.capturing||queue.running||manualTapPending)throw Error('Für die Auswertung zuerst die Aufnahme stoppen.');
+      const png=await archive.review.image(game,frame.id);
+      if(!png)throw Error('Bild nicht mehr verfügbar.');
+      const file=path.join(RUNTIME,'review-'+randomBytes(8).toString('hex')+'.png');
+      try{
+        await writeFile(file,png);
+        image=(await recognize({id:++serial,path:file,reviewCrop:true,gameLanguage:frame.language})).image;
+        if(!image)throw Error('Der Bildausschnitt konnte nicht erstellt werden.');
+      }finally{await unlink(file).catch(()=>{});}
+    }
+    gptReviewCalls++;
+    const {phase,offers,enemy,hearts,advice}=frame;
+    const evidence={mode:game.mode,phase,capture:frame.id,offers:offers.map(({name,action,quantity})=>({name,action,quantity})),
+      enemy:enemy?.map(({name,action,quantity})=>({name,action,quantity})),hearts,
+      chosen:frame.clicks.find(click=>click.ergebnis==='gesendet')?.karte,
+      tip:(advice?.best??advice?.fallback??advice?.provisional)?.name,
+      playerObservation:typeof data.observation==='string'?data.observation.slice(0,1500):''};
+    const draft=await proposeReview({key:process.env.OPENAI_API_KEY,model:process.env.COACH_REVIEW_MODEL,
+      language:data.uiLanguage,evidence,image});
+    if(typeof draft.observation!=='string'||typeof draft.uncertainty!=='string')throw Error('Ungültiger Analysevorschlag.');
+    const observation=[draft.observation,draft.uncertainty].filter(Boolean).join(' ').slice(0,1500);
+    let rule=null;
+    if(draft.rule){
+      try{
+        rule=validateTactic({...draft.rule,title:draft.rule.title?.slice(0,100),reason:observation,
+          mode:'beide',phase:['battle_choice','deck_choice','spell_choice'].includes(phase)?phase:'alle',status:'test'});
+      }catch{ /* Keep the observation when the suggested rule fails validation. */ }
+    }
+    return {observation,rule};
+  }finally{gptReviewBusy=false;}
+}
+async function reviewContext(matchId,capture,language){
+  const game=await archive.review.match(matchId);
+  if(!Number.isSafeInteger(capture)||!game.captureIds.includes(capture))throw Error('Aufnahme nicht gefunden.');
+  let frame=game.frames.find(item=>item.id===capture)??{id:capture,clicks:[]};
+  if(!frame.phase){
+    if(state.auto||state.capturing||queue.running||manualTapPending)throw Error('Für die Auswertung zuerst die Aufnahme stoppen.');
+    const png=await archive.review.image(game,capture);
+    if(!png)throw Error('Dieses ältere Bild ist nicht mehr verfügbar.');
+    const file=path.join(RUNTIME,'review-'+randomBytes(8).toString('hex')+'.png');
+    try{
+      await writeFile(file,png);
+      const result=await recognize({id:++serial,path:file,gameLanguage:language==='en'?'en':'de'});
+      const click=frame.clicks.find(entry=>entry.gegner?.length);
+      frame={...result,id:capture,language:language==='en'?'en':'de',clicks:frame.clicks,enemy:click?.gegner??result.enemy};
+    }finally{await unlink(file).catch(()=>{});}
+  }
+  return {game,frame};
+}
+async function saveBannerCorrection(data){
+  if(state.auto||state.capturing||queue.running||manualTapPending)throw Error('Für die Auswertung zuerst die Aufnahme stoppen.');
+  const {game,frame}=await reviewContext(data.matchId,data.capture,data.language);
+  const {name,action,quantity}=data;
+  if(!collection.units.units.some(card=>card.name===name)&&!CARDS.some(card=>card.kind==='unit'&&card.name===name))
+    throw Error('Wähle eine bekannte Gegnerfigur.');
+  if(!['add','multiply','upgrade'].includes(action)||action==='multiply'&&quantity!==2||
+     action==='add'&&(!Number.isInteger(quantity)||quantity<1||quantity>30))
+    throw Error('Prüfe die Aktion und ihre Anzahl.');
+  const image=await archive.review.image(game,frame.id);
+  if(!image)throw Error('Bild nicht mehr verfügbar.');
+  const file=path.join(RUNTIME,'review-'+randomBytes(8).toString('hex')+'.png');
+  try{
+    await writeFile(file,image);
+    const result=await recognize({id:++serial,path:file,bannerTemplate:true,gameLanguage:frame.language});
+    if(!result.rows)throw Error('Auf diesem Bild ist keine lesbare rote Gegneranzeige vorhanden.');
+    await archive.review.save(game,frame,[name,action,action==='upgrade'?'':quantity].filter(Boolean).join(' · '),null,
+      {name,action,quantity:action==='upgrade'?null:quantity,language:frame.language,rows:result.rows});
+    learnedBanners=await archive.review.templates();
+    return archive.review.list();
+  }finally{await unlink(file).catch(()=>{});}
+}
+async function handleReview(data,operation){
+  const {game,frame}=await reviewContext(data.matchId,data.capture,data.language);
+  const observation=typeof data.observation==='string'?data.observation.trim().slice(0,1500):'';
+  const rule=data.rule?validateTactic({...data.rule,id:undefined,status:'test'}):null;
+  const replay=reviewReplay(frame,game.mode,collection,db,tactics,rule);
+  if(operation==='frame')return {frame,replay};
+  if(operation==='save'){
+    if(!observation&&!rule)throw Error('Trage eine Beobachtung oder Regel ein.');
+    return {id:await archive.review.save(game,frame,observation,rule),replay};
+  }
+  const comparisons=[];
+  let checked=0;
+  if(rule){
+    const games=(await archive.review.matches()).slice(0,15);
+    for(const entry of games){
+      for(const candidate of entry.reviewFrames??[]){
+        if(entry.id===game.id&&candidate.id===frame.id)continue;
+        if(rule.phase!=='alle'&&candidate.phase!==rule.phase||rule.mode!=='beide'&&entry.mode!==rule.mode||
+           !candidate.offers.some(offer=>offer.name===rule.offer)||rule.enemy&&!candidate.enemy?.some(card=>card.name===rule.enemy))continue;
+        if(++checked>120)return {replay,comparisons};
+        const result=reviewReplay(candidate,entry.mode,collection,db,tactics,rule);
+        if(result.before?.name!==result.after?.name||result.before?.action!==result.after?.action){
+          comparisons.push({matchId:entry.id,capture:candidate.id,...result});
+          if(comparisons.length>=12)return {replay,comparisons};
+        }
+      }
+    }
+  }
+  return {replay,comparisons};
+}
+async function updateReviewRule({id,status}){
+  if(!['test','aktiv','zurueck'].includes(status))throw Error('Ungültiger Regelstatus.');
+  const item=(await archive.review.list()).find(item=>item.id===id);
+  if(!item?.rule)throw Error('Zu diesem Fall ist keine Regel gespeichert.');
+  const ruleId=item.revision?.ruleId;
+  const previous=tactics.find(rule=>rule.id===ruleId);
+  if(status==='zurueck'){
+    if(previous)await deleteTactic(previous.id);
+    await archive.review.revise(id,{status,ruleId:previous?.id??ruleId,rule:previous??item.rule});
+  }else{
+    const result=await saveTactic({...item.rule,id:previous?.id,status});
+    const rule=result.rules.find(rule=>rule.id===previous?.id)??result.rules.at(-1);
+    await archive.review.revise(id,{status,ruleId:rule.id,rule});
+  }
+  return archive.review.list();
 }
 function json(res,status,obj) {res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(obj));}
 async function body(req) {let text='';for await(const chunk of req){text+=chunk;if(text.length>12000)throw Error('Anfrage zu groß');}return text?JSON.parse(text):{};}
@@ -787,6 +928,17 @@ async function handleRequest(req,res){
         return json(res,200,{ok:true});
       }
       if(url.pathname==='/api/taktikregeln')return json(res,200,await saveTactic(data));
+      if(url.pathname==='/api/admin/review/gpt')return json(res,200,await reviewWithGpt(data));
+      if(url.pathname==='/api/admin/review/frame')return json(res,200,await handleReview(data,'frame'));
+      if(url.pathname==='/api/admin/review/preview')return json(res,200,await handleReview(data,'preview'));
+      if(url.pathname==='/api/admin/review/banner')return json(res,200,await saveBannerCorrection(data));
+      if(url.pathname==='/api/admin/review/template'){
+        await archive.review.toggleTemplate(data.id,data.enabled);
+        learnedBanners=await archive.review.templates();
+        return json(res,200,await archive.review.list());
+      }
+      if(url.pathname==='/api/admin/review/save')return json(res,200,await handleReview(data,'save'));
+      if(url.pathname==='/api/admin/review/rule')return json(res,200,await updateReviewRule(data));
       if(url.pathname==='/api/admin/archiv/uebernehmen'){
         if(state.auto||state.capturing||queue.running)throw Error('Für den Archivimport zuerst die Aufnahme stoppen.');
         return json(res,200,await archive.archiveGames());
@@ -945,6 +1097,23 @@ async function handleRequest(req,res){
       const devices=await scanDevices();
       return json(res,200,{devices,selected:device});
     }
+    if(url.pathname==='/api/admin/review/matches'){
+      const games=await archive.review.matches();
+      return json(res,200,{games:games.slice(0,50).map(({id,mode,outcome,ended})=>({id,mode,outcome,ended})),cards:tacticCards(),gpt:gptReviewEnabled});
+    }
+    if(url.pathname==='/api/admin/review/match'){
+      const {id,mode,outcome,captureIds,frames}=await archive.review.match(url.searchParams.get('id'));
+      return json(res,200,{id,mode,outcome,captureIds,frames:frames.map(({id,phase,language,advice,clicks})=>({id,phase,language,
+        tip:(advice?.best??advice?.fallback??advice?.provisional)?.name,clicked:clicks.find(click=>click.ergebnis==='gesendet')?.karte}))});
+    }
+    if(url.pathname==='/api/admin/review/cases')return json(res,200,await archive.review.list());
+    if(url.pathname==='/api/admin/review/image'){
+      const game=await archive.review.match(url.searchParams.get('id'));
+      const image=await archive.review.image(game,Number(url.searchParams.get('capture')));
+      if(!image)return json(res,404,{error:'Bild nicht mehr verfügbar.'});
+      res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+      return res.end(image);
+    }
     if(req.method==='GET'&&url.pathname==='/api/admin/archiv')return json(res,200,await archive.status());
     if(req.method==='GET'&&url.pathname==='/api/admin/archiv/sicherung'){
       await archive.sendBackup(res);
@@ -963,6 +1132,8 @@ async function handleRequest(req,res){
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));
   }catch(e){if(res.headersSent)res.destroy();else json(res,400,{error:e.message});}
 }
+await archive.initializeReview();
+learnedBanners=await archive.review.templates();
 const server=http.createServer(handleRequest);
 server.listen(PORT,'127.0.0.1',()=>console.log('Draft Coach: http://127.0.0.1:'+PORT));
 const lanServer=lanAddress?http.createServer(handleRequest):null;

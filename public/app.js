@@ -213,12 +213,13 @@ $('capture').onclick=async()=>{
 };
 let coachView='game';
 let gameMode=$('mode').value;
-const viewHints={quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Partien archivieren und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
+const viewHints={review:'Partie auswerten',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Partien archivieren und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
 function showCoachView(view){
   coachView=view;
   $('game-view').hidden=view!=='game';
   $('quick-panel').hidden=view!=='quick';
   $('tactics-panel').hidden=view!=='tactics';
+  $('review-panel').hidden=view!=='review';
   $('admin-panel').hidden=view!=='admin';
   $('help-panel').hidden=view!=='help';
   $('mode').value=view==='game'?gameMode:view;
@@ -232,6 +233,7 @@ $('mode').onchange=()=>{
   const mode=$('mode').value;
   if(Object.hasOwn(viewHints,mode)){
     showCoachView(mode);
+    if(mode==='review')void openReview();
     if(mode==='admin')void updateArchive();
     if(mode==='tactics')void openTactics();
     return;
@@ -461,6 +463,164 @@ const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spi
 const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
 if(config.localAdmin)$('organization-options').append(new Option('Admin · Archiv','admin'));
+if(config.localAdmin)$('organization-options').append(new Option('Partie auswerten','review'));
+let reviewedFrame=null,reviewGptEnabled=false;
+const reviewForm=$('review-form');
+const reviewRoot='/api/admin/review/';
+const reviewLabel=(source,value)=>[source,value].filter(Boolean).join(' · ');
+async function reviewGet(name){
+  const response=await fetch(reviewRoot+name);
+  const data=await response.json();
+  if(!response.ok)throw Error(data.error);
+  return data;
+}
+async function reviewAction(work){
+  $('review-message').textContent='';
+  try{await work();}catch(error){$('review-message').textContent=error.message;}
+}
+function clearReviewFrame(){
+  reviewedFrame=null;
+  reviewForm.hidden=true;
+  $('review-banner').hidden=true;
+  $('review-gpt').hidden=true;
+  $('review-image').hidden=true;
+  $('review-facts').replaceChildren();
+  $('review-comparison').replaceChildren();
+}
+async function loadReviewCaptures(){
+  clearReviewFrame();
+  const captures=$('review-capture');
+  captures.replaceChildren();
+  if(!$('review-match').value)return;
+  const game=await reviewGet('match?id='+encodeURIComponent($('review-match').value));
+  const recorded=new Set(game.frames.map(frame=>frame.id));
+  for(const frame of game.frames){
+    captures.append(new Option([frame.id,phaseNames[frame.phase],displayCardNames(frame.tip??frame.clicked??'')].filter(Boolean).join(' · '),frame.id));
+  }
+  const other=document.createElement('optgroup');
+  other.label=translate('Weitere Aufnahmen',language);
+  for(const id of game.captureIds)if(!recorded.has(id))other.append(new Option(String(id),id));
+  if(other.children.length)captures.append(other);
+}
+async function openReview(){
+  await reviewAction(async()=>{
+    clearReviewFrame();
+    const {games,cards,gpt}=await reviewGet('matches');
+    reviewGptEnabled=gpt;
+    $('review-banner-name').replaceChildren(...cards.map(card=>new Option(displayCardNames(card),card)));
+    $('review-match').replaceChildren(...games.map(game=>new Option(
+      [new Date(game.ended).toLocaleString(language),translate(game.mode==='arena'?'Schlacht':'Draft',language),
+        translate(game.outcome,language)].join(' · '),game.id)));
+    for(const field of ['offer','enemy'])reviewForm.elements.namedItem(field).replaceChildren(
+      new Option(translate(field==='enemy'?'Jeder Gegner':'Keine Karte · Notiz',language),''),
+      ...cards.map(card=>new Option(displayCardNames(card),card)));
+    $('review-language').value=language;
+    await loadReviewCaptures();
+    renderReviewCases(await reviewGet('cases'));
+  });
+}
+$('close-review').onclick=returnToGame;
+$('review-match').onchange=()=>reviewAction(loadReviewCaptures);
+$('review-capture').onchange=clearReviewFrame;
+$('review-load').onclick=()=>reviewAction(async()=>{
+  clearReviewFrame();
+  const matchId=$('review-match').value, capture=Number($('review-capture').value);
+  if(!matchId||!capture)return;
+  const data=await post(reviewRoot+'frame',{matchId,capture,language:$('review-language').value});
+  if(matchId!==$('review-match').value||capture!==Number($('review-capture').value))return;
+  const {frame,replay}=data;
+  reviewedFrame={matchId,capture,language:frame.language,phase:frame.phase};
+  const image=$('review-image');
+  image.src=reviewRoot+'image?id='+encodeURIComponent(matchId)+'&capture='+capture;
+  image.hidden=false;
+  image.onerror=()=>{image.hidden=true;};
+  reviewForm.reset();
+  reviewForm.hidden=false;
+  $('review-banner').hidden=false;
+  $('review-gpt').hidden=!reviewGptEnabled;
+  $('review-gpt-image').checked=false;
+  const facts=$('review-facts');
+  const tip=frame.advice?.best??frame.advice?.fallback??frame.advice?.provisional;
+  facts.append(textEl('p',reviewLabel('Angebote',frame.offers.map(card=>[card.name??'Unbekannt',offerAction(frame.phase,card)].join(' · ')).join(' / '))),
+    textEl('p',reviewLabel('Gegnerische Karten',frame.enemy?.map(card=>card.name).join(', '))),
+    textEl('p',reviewLabel('Damals empfohlen',tip?.name??'—')),
+    textEl('p',reviewLabel('Klickprotokoll',frame.clicks.map(click=>[click.karte,click.ergebnis,click.grund].filter(Boolean).join(' · ')).join(' / ')||'—')));
+  showReviewComparison(replay,[]);
+});
+$('review-banner-save').onclick=()=>reviewAction(async()=>{
+  if(!reviewedFrame)return;
+  const action=$('review-banner-action').value;
+  const cases=await post(reviewRoot+'banner',{...reviewedFrame,name:$('review-banner-name').value,action,
+    quantity:action==='multiply'?2:Number($('review-banner-quantity').value)});
+  renderReviewCases(cases);
+  $('review-message').textContent='Erkennungsvorlage gespeichert.';
+});
+$('review-gpt-run').onclick=()=>reviewAction(async()=>{
+  if(!reviewedFrame)return;
+  const button=$('review-gpt-run'), selected=reviewedFrame;
+  button.disabled=true;
+  $('review-message').textContent='GPT erstellt einen Entwurf …';
+  try{
+    const {observation,rule}=await post(reviewRoot+'gpt',{...selected,uiLanguage:language,
+      includeImage:$('review-gpt-image').checked,observation:reviewForm.elements.namedItem('observation').value});
+    if(reviewedFrame!==selected)return;
+    reviewForm.elements.namedItem('observation').value=observation;
+    for(const field of ['title','offer','enemy','mode','action','weight']){
+      if(rule)reviewForm.elements.namedItem(field).value=rule[field]??'';
+    }
+    $('review-message').textContent='Entwurf geladen. Prüfe ihn vor dem Speichern.';
+  }finally{button.disabled=false;}
+});
+function reviewDraft(){
+  if(!reviewedFrame)throw Error('Wähle zuerst ein Wahlfenster.');
+  const {observation,title,mode,offer,enemy,action,weight}=Object.fromEntries(new FormData(reviewForm));
+  const phase=['battle_choice','deck_choice','spell_choice'].includes(reviewedFrame.phase)?reviewedFrame.phase:'alle';
+  const rule=title||offer?{title,reason:observation,mode,phase,offer,enemy,action,weight:Number(weight)}:null;
+  return {...reviewedFrame,observation,rule};
+}
+function showReviewComparison(replay,comparisons){
+  const panel=$('review-comparison');
+  panel.replaceChildren();
+  const choice=pick=>pick?[pick.name,pick.action?offerAction(reviewedFrame.phase,pick):''].filter(Boolean).join(' · '):'—';
+  panel.append(textEl('p',reviewLabel('Replay bisher',choice(replay.before))),textEl('p',reviewLabel('Replay mit Regel',choice(replay.after))));
+  if(replay.after?.reason)panel.append(textEl('p',replay.after.reason,'muted'));
+  for(const row of comparisons)panel.append(textEl('p',row.capture+' · '+choice(row.before)+' → '+choice(row.after)));
+}
+$('review-preview').onclick=()=>reviewAction(async()=>{
+  const data=await post(reviewRoot+'preview',reviewDraft());
+  showReviewComparison(data.replay,data.comparisons);
+});
+reviewForm.onsubmit=event=>{
+  event.preventDefault();
+  void reviewAction(async()=>{
+    await post(reviewRoot+'save',reviewDraft());
+    $('review-message').textContent='Prüffall gespeichert.';
+    renderReviewCases(await reviewGet('cases'));
+  });
+};
+function renderReviewCases(cases){
+  const panel=$('review-cases');
+  panel.replaceChildren();
+  for(const item of cases){
+    const article=document.createElement('article');
+    article.append(textEl('p',[item.capture,item.rule?.title,item.observation,item.revision?.status].filter(Boolean).join(' · ')));
+    if(item.template){
+      const button=textEl('button',item.template.enabled?'Vorlage deaktivieren':'Vorlage aktivieren','small');
+      button.type='button';
+      button.onclick=()=>reviewAction(async()=>renderReviewCases(await post(reviewRoot+'template',{id:item.id,enabled:!item.template.enabled})));
+      article.append(button);
+    }
+    if(item.rule){
+      for(const [status,label] of [['test','Testregel'],['aktiv','Aktivieren'],['zurueck','Zurücknehmen']]){
+        const button=textEl('button',label,'small');
+        button.type='button';
+        button.onclick=()=>reviewAction(async()=>renderReviewCases(await post(reviewRoot+'rule',{id:item.id,status})));
+        article.append(button);
+      }
+    }
+    panel.append(article);
+  }
+}
 let archiveBusy=false;
 function renderArchive(data){
   const size=new Intl.NumberFormat('de',{maximumFractionDigits:1}).format(data.bytes/1024/1024);
