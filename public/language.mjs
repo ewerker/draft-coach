@@ -48,6 +48,7 @@ Kartenausschnitt an OpenAI senden|Send card crop to OpenAI
 GPT-Entwurf erstellen|Generate GPT draft
 GPT erstellt einen Entwurf …|GPT is preparing a draft…
 Entwurf geladen. Prüfe ihn vor dem Speichern.|Draft loaded. Review it before saving.
+Meine bevorzugte Wahl|My preferred choice
 Partie auswerten|Review match
 Wähle ein Wahlfenster und vergleiche den damaligen Tipp mit einer neuen Regel.|Choose a decision and compare the original tip with a new rule.
 Partie|Match
@@ -427,4 +428,31 @@ export function translate(text,language){
   if(!core)return text;
   const english=ui.get(core)??translatePreparation(core)??displayNames(core,'en').replace(fragmentPattern,word=>fragments.get(word));
   return english===core?text:text.replace(core,()=>english);
+}
+
+const reviewMessages={
+  offers:['Angebote','Offers'], enemies:['Gegnerische Karten','Enemy cards'],
+  original:['Damals empfohlen','Original recommendation'], clicks:['Klickprotokoll','Tap log'],
+  baseline:['Replay bisher','Baseline replay'], proposed:['Replay mit Regel','Replay with proposed rule'],
+  reason:['Begründung im Original','Reason in original language'],
+  gesendet:['Gesendet','Sent'], abgebrochen:['Abgebrochen','Cancelled'], fehler:['Fehler','Failed'],
+  gewonnen:['Gewonnen','Won'], verloren:['Verloren','Lost'],
+  arena:['Schlacht','Battle'], draft:['Draft','Draft'],
+  deck_choice:['Deckwahl','Deck choice'], battle_choice:['Kampfwahl','Battle choice'],
+  spell_choice:['Zauberauswahl','Spell choice'], unknown:['Unbekannt','Unknown'],
+  add:['Hinzufügen','Add'], upgrade:['Aufwerten','Upgrade'], multiply:['Verdoppeln','Double'],
+  multiply_upgrade:['Verdoppeln und aufwerten','Double and upgrade'], spell:['Zauber einsetzen','Cast spell'],
+  test:['Testregel','Test rule'], aktiv:['Aktiv','Active'], zurueck:['Zurückgenommen','Rolled back'],
+  openCase:['Prüffall öffnen','Open review case'],
+  preference:['Bevorzugte Wahl','Preferred choice'], noPreference:['Keine Auswahl','No preference'],
+  confirmation:['Wahlfenster hat sich geändert oder konnte nicht bestätigt werden','Choice changed or could not be verified'],
+  timeout:['Gerät antwortet nicht rechtzeitig.','Device did not respond in time.'],
+  interrupted:['Klickprüfung abgelaufen oder Automatik unterbrochen','Tap verification timed out or automation stopped'],
+};
+export function reviewMessage(key,language){
+  return Object.hasOwn(reviewMessages,key)?reviewMessages[key][language==='en'?1:0]:'';
+}
+export function reviewTapReason(reason,language){
+  const key=['confirmation','timeout','interrupted'].find(key=>reviewMessage(key,'de')===reason);
+  return key?reviewMessage(key,language):reason;
 }

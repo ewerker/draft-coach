@@ -18,7 +18,7 @@ export function reviewReplay(frame, mode, collection, db, rules, proposed){
   const score=list=>{
     const result=recommend(frame,mode,collection,db,false,list);
     const tip=result.best??result.fallback??result.provisional;
-    return tip?{name:tip.name,action:frame.offers[tip.index]?.action,score:tip.score,reason:tip.reason}:null;
+    return tip?{name:tip.name,action:frame.offers[tip.index]?.action,quantity:frame.offers[tip.index]?.quantity,score:tip.score,reason:tip.reason}:null;
   };
   return {before:score(rules),after:score(proposed?[...rules,{...proposed,status:'aktiv'}]:rules)};
 }
@@ -54,11 +54,11 @@ export function reviewQueries(journal,withDatabase,runtime){
       throw error;
     });
   }
-  async function save(game,frame,observation,rule,template=null){
+  async function save(game,frame,observation,rule,template=null,preferred=null){
     const id=randomUUID(), created=Date.now();
     const png=await image(game,frame.id);
     await withDatabase(false,db=>db.prepare('INSERT INTO review_cases VALUES (?,?,?,?,?,?)')
-      .run(id,game.id,frame.id,created,JSON.stringify({observation,rule,frame,template}),png));
+      .run(id,game.id,frame.id,created,JSON.stringify({observation,rule,frame,template,preferred}),png));
     return id;
   }
   async function list(){
@@ -66,8 +66,8 @@ export function reviewQueries(journal,withDatabase,runtime){
       SELECT id,match_id,capture,created,data,
         (SELECT data FROM review_revisions WHERE case_id=review_cases.id ORDER BY id DESC LIMIT 1) AS revision
       FROM review_cases ORDER BY created DESC LIMIT 100`).all().map(row=>{
-      const {observation,rule,template}=JSON.parse(row.data);
-      return {id:row.id,matchId:row.match_id,capture:row.capture,created:row.created,observation,rule,
+      const {observation,rule,template,preferred}=JSON.parse(row.data);
+      return {id:row.id,matchId:row.match_id,capture:row.capture,created:row.created,observation,rule,preferred,
         template:template?{name:template.name,language:template.language,enabled:template.enabled!==false}:null,revision:row.revision?JSON.parse(row.revision):null};
     }));
   }

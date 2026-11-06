@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LatestQueue} from './pipeline.mjs';
 import {allowedNames,observeChosenReinforcement,observeDraftLineup,recommend} from './advice.mjs';
-import {displayNames,translate} from './public/language.mjs';
+import {displayNames,translate,reviewMessage,reviewTapReason} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
 const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
@@ -163,4 +163,13 @@ test('optional GPT review requests structured output and only attaches a selecte
       });
     assert.deepEqual(draft,result);
   }
+});
+
+test('review labels, actions and tap statuses have explicit English and German translations',()=>{
+  assert.equal(reviewMessage('original','en'),'Original recommendation');
+  assert.equal(reviewMessage('clicks','en'),'Tap log');
+  assert.equal(reviewMessage('gesendet','en'),'Sent');
+  assert.equal(reviewMessage('upgrade','en'),'Upgrade');
+  assert.equal(reviewMessage('original','de'),'Damals empfohlen');
+  assert.equal(reviewTapReason('Gerät antwortet nicht rechtzeitig.','en'),'Device did not respond in time.');
 });

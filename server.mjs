@@ -861,8 +861,15 @@ async function handleReview(data,operation){
   const replay=reviewReplay(frame,game.mode,collection,db,tactics,rule);
   if(operation==='frame')return {frame,replay};
   if(operation==='save'){
-    if(!observation&&!rule)throw Error('Trage eine Beobachtung oder Regel ein.');
-    return {id:await archive.review.save(game,frame,observation,rule),replay};
+    let preferred=null;
+    if(data.preferredOffer!=null){
+      const index=data.preferredOffer;
+      if(!Number.isInteger(index)||!frame.offers[index])throw Error('Angebot nicht gefunden.');
+      const {name,action,quantity}=frame.offers[index];
+      preferred={index,name,action,quantity};
+    }
+    if(!observation&&!rule&&!preferred)throw Error('Trage eine Beobachtung, Regel oder bevorzugte Wahl ein.');
+    return {id:await archive.review.save(game,frame,observation,rule,null,preferred),replay};
   }
   const comparisons=[];
   let checked=0;

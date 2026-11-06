@@ -1,4 +1,4 @@
-import {displayNames,translate} from './language.mjs';
+import {reviewMessage,reviewTapReason,displayNames,translate} from './language.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -35,7 +35,13 @@ const originalText=new WeakMap(),originalAttributes=new WeakMap();
 const translatedAttributes=['title','aria-label','placeholder','alt','label'];
 function localizeNode(node){
   if(node.nodeType===Node.TEXT_NODE){
-    if(node.parentElement?.closest('.quick-user,script,style,textarea'))return;
+    const review=node.parentElement?.dataset.reviewKey;
+    if(review){
+      const value=reviewMessage(review,language);
+      if(node.data!==value)node.data=value;
+      return;
+    }
+    if(node.parentElement?.closest('[data-review-original],.quick-user,script,style,textarea'))return;
     const saved=originalText.get(node);
     const source=saved?.rendered===node.data?saved.source:node.data;
     const rendered=translate(source,language);
@@ -80,6 +86,7 @@ $('language').onchange=()=>{
   stopMic();
   speech?.cancel();
   applyLanguage();
+  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);}
   void action(()=>post('/api/settings',{gameLanguage:language}));
 };
 $('read-tip').checked=preferences.readTip===true;
@@ -464,10 +471,32 @@ const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
 if(config.localAdmin)$('organization-options').append(new Option('Admin · Archiv','admin'));
 if(config.localAdmin)$('organization-options').append(new Option('Partie auswerten','review'));
-let reviewedFrame=null,reviewGptEnabled=false;
+let reviewedFrame=null,reviewGptEnabled=false,reviewData=null,reviewCases=[],reviewGames=[],reviewGame=null;
 const reviewForm=$('review-form');
 const reviewRoot='/api/admin/review/';
-const reviewLabel=(source,value)=>[source,value].filter(Boolean).join(' · ');
+function reviewText(key){
+  const span=document.createElement('span');
+  span.dataset.reviewKey=key;
+  span.textContent=reviewMessage(key,language);
+  return span;
+}
+function reviewLine(key,contents){
+  const row=document.createElement('p');
+  row.append(reviewText(key),' · ',...contents);
+  return row;
+}
+function reviewCard(card){
+  const span=document.createElement('span');
+  span.append(card?.name?document.createTextNode(card.name):reviewText('unknown'));
+  if(card?.action&&reviewMessage(card.action,language)){
+    span.append(' · ',reviewText(card.action));
+    if(card.quantity!=null)span.append(' '+card.quantity);
+  }
+  return span;
+}
+function reviewList(items){
+  return items.length?items.flatMap((item,index)=>index?[' / ',item]:[item]):['—'];
+}
 async function reviewGet(name){
   const response=await fetch(reviewRoot+name);
   const data=await response.json();
@@ -480,6 +509,7 @@ async function reviewAction(work){
 }
 function clearReviewFrame(){
   reviewedFrame=null;
+  reviewData=null;
   reviewForm.hidden=true;
   $('review-banner').hidden=true;
   $('review-gpt').hidden=true;
@@ -493,14 +523,32 @@ async function loadReviewCaptures(){
   captures.replaceChildren();
   if(!$('review-match').value)return;
   const game=await reviewGet('match?id='+encodeURIComponent($('review-match').value));
-  const recorded=new Set(game.frames.map(frame=>frame.id));
-  for(const frame of game.frames){
-    captures.append(new Option([frame.id,phaseNames[frame.phase],displayCardNames(frame.tip??frame.clicked??'')].filter(Boolean).join(' · '),frame.id));
+  reviewGame=game;
+  renderReviewCaptures();
+}
+function renderReviewCaptures(){
+  if(!reviewGame||reviewGame.id!==$('review-match').value)return;
+  const captures=$('review-capture'), selected=captures.value;
+  const {frames,captureIds}=reviewGame;
+  captures.replaceChildren();
+  const recorded=new Set(frames.map(frame=>frame.id));
+  for(const frame of frames){
+    captures.append(new Option([frame.id,reviewMessage(frame.phase,language)||phaseNames[frame.phase],
+      displayNames(frame.tip??frame.clicked??'',language)].filter(Boolean).join(' · '),frame.id));
   }
   const other=document.createElement('optgroup');
   other.label=translate('Weitere Aufnahmen',language);
-  for(const id of game.captureIds)if(!recorded.has(id))other.append(new Option(String(id),id));
+  for(const id of captureIds)if(!recorded.has(id))other.append(new Option(String(id),id));
   if(other.children.length)captures.append(other);
+  if([...captures.options].some(option=>option.value===selected))captures.value=selected;
+}
+function renderReviewMatches(){
+  const matches=$('review-match'),selected=matches.value;
+  const extra=[...matches.options].filter(option=>!reviewGames.some(game=>game.id===option.value));
+  matches.replaceChildren(...reviewGames.map(game=>new Option(
+    [new Date(game.ended).toLocaleString(language),reviewMessage(game.mode,language),
+      reviewMessage(game.outcome,language)].join(' · '),game.id)),...extra);
+  if([...matches.options].some(option=>option.value===selected))matches.value=selected;
 }
 async function openReview(){
   await reviewAction(async()=>{
@@ -508,9 +556,8 @@ async function openReview(){
     const {games,cards,gpt}=await reviewGet('matches');
     reviewGptEnabled=gpt;
     $('review-banner-name').replaceChildren(...cards.map(card=>new Option(displayCardNames(card),card)));
-    $('review-match').replaceChildren(...games.map(game=>new Option(
-      [new Date(game.ended).toLocaleString(language),translate(game.mode==='arena'?'Schlacht':'Draft',language),
-        translate(game.outcome,language)].join(' · '),game.id)));
+    reviewGames=games;
+    renderReviewMatches();
     for(const field of ['offer','enemy'])reviewForm.elements.namedItem(field).replaceChildren(
       new Option(translate(field==='enemy'?'Jeder Gegner':'Keine Karte · Notiz',language),''),
       ...cards.map(card=>new Option(displayCardNames(card),card)));
@@ -522,7 +569,7 @@ async function openReview(){
 $('close-review').onclick=returnToGame;
 $('review-match').onchange=()=>reviewAction(loadReviewCaptures);
 $('review-capture').onchange=clearReviewFrame;
-$('review-load').onclick=()=>reviewAction(async()=>{
+async function loadReviewFrame(){
   clearReviewFrame();
   const matchId=$('review-match').value, capture=Number($('review-capture').value);
   if(!matchId||!capture)return;
@@ -539,14 +586,43 @@ $('review-load').onclick=()=>reviewAction(async()=>{
   $('review-banner').hidden=false;
   $('review-gpt').hidden=!reviewGptEnabled;
   $('review-gpt-image').checked=false;
-  const facts=$('review-facts');
-  const tip=frame.advice?.best??frame.advice?.fallback??frame.advice?.provisional;
-  facts.append(textEl('p',reviewLabel('Angebote',frame.offers.map(card=>[card.name??'Unbekannt',offerAction(frame.phase,card)].join(' · ')).join(' / '))),
-    textEl('p',reviewLabel('Gegnerische Karten',frame.enemy?.map(card=>card.name).join(', '))),
-    textEl('p',reviewLabel('Damals empfohlen',tip?.name??'—')),
-    textEl('p',reviewLabel('Klickprotokoll',frame.clicks.map(click=>[click.karte,click.ergebnis,click.grund].filter(Boolean).join(' · ')).join(' / ')||'—')));
+  reviewData=frame;
+  renderPreferredOffers();
+  renderReviewFacts();
   showReviewComparison(replay,[]);
-});
+}
+$('review-load').onclick=()=>reviewAction(loadReviewFrame);
+function renderPreferredOffers(){
+  if(!reviewData)return;
+  const field=reviewForm.elements.namedItem('preferredOffer'),selected=field.value;
+  field.replaceChildren(new Option(reviewMessage('noPreference',language),''),
+    ...reviewData.offers.map((card,index)=>new Option(
+      [index+1,card.name?displayNames(card.name,language):reviewMessage('unknown',language),
+        reviewMessage(card.action,language),card.quantity].filter(value=>value!=null&&value!=='').join(' · '),String(index))));
+  if([...field.options].some(option=>option.value===selected))field.value=selected;
+}
+function renderReviewFacts(){
+  if(!reviewData)return;
+  const frame=reviewData;
+  const tip=frame.advice?.best??frame.advice?.fallback??frame.advice?.provisional;
+  const clicks=frame.clicks.map(click=>{
+    const detail=document.createElement('span');
+    if(click.karte)detail.append(click.karte,' · ');
+    detail.append(reviewText(click.ergebnis));
+    if(click.grund){
+      const reason=document.createElement('span');
+      reason.dataset.reviewOriginal='';
+      reason.textContent=reviewTapReason(click.grund,language);
+      detail.append(' · ',reason);
+    }
+    return detail;
+  });
+  $('review-facts').replaceChildren(
+    reviewLine('offers',reviewList(frame.offers.map(reviewCard))),
+    reviewLine('enemies',reviewList((frame.enemy??[]).map(reviewCard))),
+    reviewLine('original',[tip?.name??'—']),
+    reviewLine('clicks',reviewList(clicks)));
+}
 $('review-banner-save').onclick=()=>reviewAction(async()=>{
   if(!reviewedFrame)return;
   const action=$('review-banner-action').value;
@@ -573,18 +649,31 @@ $('review-gpt-run').onclick=()=>reviewAction(async()=>{
 });
 function reviewDraft(){
   if(!reviewedFrame)throw Error('Wähle zuerst ein Wahlfenster.');
-  const {observation,title,mode,offer,enemy,action,weight}=Object.fromEntries(new FormData(reviewForm));
+  const {observation,title,mode,offer,enemy,action,weight,preferredOffer}=Object.fromEntries(new FormData(reviewForm));
   const phase=['battle_choice','deck_choice','spell_choice'].includes(reviewedFrame.phase)?reviewedFrame.phase:'alle';
   const rule=title||offer?{title,reason:observation,mode,phase,offer,enemy,action,weight:Number(weight)}:null;
-  return {...reviewedFrame,observation,rule};
+  return {...reviewedFrame,observation,rule,preferredOffer:preferredOffer===''?null:Number(preferredOffer)};
 }
 function showReviewComparison(replay,comparisons){
   const panel=$('review-comparison');
   panel.replaceChildren();
-  const choice=pick=>pick?[pick.name,pick.action?offerAction(reviewedFrame.phase,pick):''].filter(Boolean).join(' · '):'—';
-  panel.append(textEl('p',reviewLabel('Replay bisher',choice(replay.before))),textEl('p',reviewLabel('Replay mit Regel',choice(replay.after))));
-  if(replay.after?.reason)panel.append(textEl('p',replay.after.reason,'muted'));
-  for(const row of comparisons)panel.append(textEl('p',row.capture+' · '+choice(row.before)+' → '+choice(row.after)));
+  const choice=pick=>pick?reviewCard(pick):'—';
+  panel.append(reviewLine('baseline',[choice(replay.before)]),reviewLine('proposed',[choice(replay.after)]));
+  if(replay.after?.reason){
+    const reason=document.createElement('span');
+    reason.dataset.reviewOriginal='';
+    reason.textContent=replay.after.reason;
+    const details=document.createElement('details');
+    const summary=document.createElement('summary');
+    summary.append(reviewText('reason'));
+    details.append(summary,reason);
+    panel.append(details);
+  }
+  for(const row of comparisons){
+    const line=document.createElement('p');
+    line.append(row.capture+' · ',choice(row.before),' → ',choice(row.after));
+    panel.append(line);
+  }
 }
 $('review-preview').onclick=()=>reviewAction(async()=>{
   const data=await post(reviewRoot+'preview',reviewDraft());
@@ -599,11 +688,40 @@ reviewForm.onsubmit=event=>{
   });
 };
 function renderReviewCases(cases){
+  reviewCases=cases;
   const panel=$('review-cases');
   panel.replaceChildren();
   for(const item of cases){
     const article=document.createElement('article');
-    article.append(textEl('p',[item.capture,item.rule?.title,item.observation,item.revision?.status].filter(Boolean).join(' · ')));
+    const details=document.createElement('p');
+    const note=document.createElement('span');
+    note.dataset.reviewOriginal='';
+    note.textContent=[item.rule?.title,item.observation].filter(Boolean).join(' · ');
+    details.append(item.capture+' · ',note);
+    if(item.preferred)details.append(' · ',reviewText('preference'),' · ',reviewCard(item.preferred));
+    if(item.revision?.status)details.append(' · ',reviewText(item.revision.status));
+    article.append(details);
+    const open=document.createElement('button');
+    open.type='button';
+    open.append(reviewText('openCase'));
+    open.onclick=()=>reviewAction(async()=>{
+      const matches=$('review-match');
+      if(![...matches.options].some(option=>option.value===item.matchId)){
+        matches.append(new Option(item.matchId,item.matchId));
+      }
+      matches.value=item.matchId;
+      await loadReviewCaptures();
+      $('review-capture').value=String(item.capture);
+      if(item.template?.language)$('review-language').value=item.template.language;
+      await loadReviewFrame();
+      if(!reviewedFrame)return;
+      reviewForm.elements.namedItem('observation').value=item.observation??'';
+      reviewForm.elements.namedItem('preferredOffer').value=item.preferred?String(item.preferred.index):'';
+      if(item.rule)for(const field of ['title','offer','enemy','mode','action','weight']){
+        reviewForm.elements.namedItem(field).value=item.rule[field]??'';
+      }
+    });
+    article.append(open);
     if(item.template){
       const button=textEl('button',item.template.enabled?'Vorlage deaktivieren':'Vorlage aktivieren','small');
       button.type='button';
