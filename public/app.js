@@ -285,7 +285,8 @@ $('mode').onchange=()=>{
   showCoachView('game');
   if(mode===gameMode){void refresh();return;}
   return action(async()=>{
-    await post('/api/settings',{mode,autoTap:mode!=='prep'&&preferences.autoTap===true});
+    await post('/api/settings',{mode,autoTap:mode!=='prep'&&preferences.autoTap===true,
+      continuum:mode!=='prep'&&preferences.continuum===true});
     rememberPreferences({mode});
   });
 };
@@ -414,9 +415,15 @@ $('apply-collection').onclick=async()=>{
 $('auto').onclick=()=>{
   armTapAudio();
   return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:preferences.autoTap??$('auto-tap').checked,
-    continuum:gameMode!=='prep'&&$('continuum').checked}));
+    continuum:gameMode!=='prep'&&(preferences.continuum??$('continuum').checked)}));
 };
-$('continuum').onchange=()=>action(()=>post('/api/settings',{continuum:$('continuum').checked}));
+$('continuum').onchange=()=>{
+  const enabled=$('continuum').checked;
+  return action(async()=>{
+    await post('/api/settings',{continuum:enabled});
+    rememberPreferences({continuum:enabled});
+  });
+};
 $('setup-wifi-connect').onsubmit=event=>{
   event.preventDefault();
   return action(async()=>{
@@ -1592,6 +1599,7 @@ await action(async()=>{
   if(state.gameLanguage!==language)settings.gameLanguage=language;
   if(mode!==selectedMode)settings.mode=mode;
   if(mode!=='prep'&&typeof preferences.autoTap==='boolean')settings.autoTap=preferences.autoTap;
+  if(mode!=='prep'&&typeof preferences.continuum==='boolean')settings.continuum=preferences.continuum;
   if(Object.keys(settings).length)await post('/api/settings',{...settings,restoreBrowser:true});
 });
 let pollError;
