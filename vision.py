@@ -360,7 +360,7 @@ def game_navigation(small,outcome):
         return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')
     panel=gray[125:226,10:158]
     if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
-           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel','arena_weaker_win_panel','arena_stronger_panel_de')):
+           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel','arena_weaker_win_panel','arena_stronger_panel_de','arena_weaker_panel_de')):
         area=(25,292,143,356)
         return (navigation_button(gray,'arena_recap',area,'recap','arena') or
                 navigation_button(gray,'arena_recap_de',area,'recap','arena'))
@@ -444,8 +444,9 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
         for c in range(3):
             x=40+c*350+dx
             card=classify(img,[x+35,940+dy,x+278,1140+dy],preferred); card.update(position=c,action='add',quantity=None)
-            if geometry['layout']=='centered' or language=='en':
-                card.update(read_deck_caption(img,x,dy,language))
+            caption=read_deck_caption(img,x,dy,language)
+            if geometry['layout']=='centered' or language=='en' or caption.get('similarity',0)>=.85:
+                card.update(caption)
             if english_deck:
                 card['experimentalLanguage']=True
             card['orange']=number(img,[x+14,1242+dy,x+69,1308+dy]); card['blue']=number(img,[x+251,885+dy,x+300,934+dy])
