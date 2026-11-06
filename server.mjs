@@ -388,6 +388,32 @@ function recordTiming(job,result,ageMs){
   bucket.ageMs=Math.max(bucket.ageMs,ageMs);
   timingBuckets.set(minute,bucket);
 }
+const recognitionIssues=[];
+const recognitionIssueSeen=new Map();
+function recordRecognitionIssues(job,result,advice,at){
+  if(job.source==='reference'||!['deck_choice','battle_choice','spell_choice'].includes(result.phase))return;
+  const offers=result.offers??[];
+  const positions=new Map(offers.filter(card=>Number.isInteger(card.position)).map(card=>[card.position,card]));
+  const expected=advice.expectedOffers??0;
+  if(expected===3)for(let position=0;position<3;position++){
+    if(!positions.has(position))positions.set(position,null);
+  }
+  const issues=[...positions].sort((a,b)=>a[0]-b[0]).flatMap(([position,card])=>{
+    const missingName=!card?.name;
+    const missingAction=!!card&&card.action==='unknown';
+    const missingQuantity=!!card&&result.phase==='battle_choice'&&
+      ['add','multiply','multiply_upgrade'].includes(card.action)&&!Number.isInteger(card.quantity);
+    return missingName||missingAction||missingQuantity?[{position,name:card?.name??null,missingName,missingAction,missingQuantity}]:[];
+  });
+  if(!issues.length)return;
+  const key=JSON.stringify([job.matchId??null,result.phase,issues]);
+  const last=recognitionIssueSeen.get(key)??0;
+  if(at-last<10000)return;
+  recognitionIssueSeen.set(key,at);
+  for(const [seenKey,time] of recognitionIssueSeen)if(at-time>=10000)recognitionIssueSeen.delete(seenKey);
+  recognitionIssues.unshift({at,phase:result.phase,issues,captureId:job.id});
+  if(recognitionIssues.length>100)recognitionIssues.length=100;
+}
 function record(job,result) {
   const match=activeMatch;
   const liveMatch=job.matchId&&job.matchId===match?.id&&job.target===device;
@@ -416,6 +442,7 @@ function record(job,result) {
   const item={...job,path:undefined,...result,ageMs,expired,advice};
   state.current=item;state.error=null;
   recordTiming(job,result,ageMs);
+  recordRecognitionIssues(job,result,advice,job.started+ageMs);
   if(ageMs>2000){
     state.history.unshift({id:job.id,at:job.started+ageMs,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});
     state.history=state.history.slice(0,20);
@@ -1372,7 +1399,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,recentMatchResults,timingTrend,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,recentMatchResults,timingTrend,recognitionIssues,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();

@@ -220,7 +220,7 @@ async function post(url,data={},signal) {
 }
 let errorTimer;
 const loggedErrors=[];
-let loggedMatches=[],loggedTimings=[],activityLogKey;
+let loggedMatches=[],loggedTimings=[],loggedRecognitionIssues=[],activityLogKey;
 function error(e){
   const banner=$('error');
   banner.textContent=e.message||String(e);
@@ -1406,12 +1406,13 @@ function renderTimingCharts(buckets){
   }));
 }
 function renderActivityLog(){
-  const key=JSON.stringify([language,loggedMatches,loggedTimings,loggedErrors]);
+  const key=JSON.stringify([language,loggedMatches,loggedTimings,loggedRecognitionIssues,loggedErrors]);
   if(key===activityLogKey)return;
   activityLogKey=key;
   const entries=[
     ...loggedMatches.map(game=>({at:game.ended,game})),
     ...loggedTimings.filter(timing=>timing.ageMs>2000&&Number.isFinite(timing.at)).map(timing=>({at:timing.at,timing})),
+    ...loggedRecognitionIssues.map(issue=>({at:issue.at,recognition:issue})),
     ...loggedErrors
   ].sort((a,b)=>b.at-a.at);
   const log=$('history');
@@ -1420,7 +1421,7 @@ function renderActivityLog(){
     return;
   }
   const dates=new Intl.DateTimeFormat(language==='en'?'en-GB':'de-DE',{dateStyle:'short',timeStyle:'medium'});
-  log.replaceChildren(...entries.map(({at,game,timing,message})=>{
+  log.replaceChildren(...entries.map(({at,game,timing,message,recognition})=>{
     const row=document.createElement('div');
     const timestamp=document.createElement('time');
     timestamp.dateTime=new Date(at).toISOString();
@@ -1434,6 +1435,19 @@ function renderActivityLog(){
       row.append(translate(timing.title,language),' · ',Math.round(timing.visionMs)+' ms ',
         translate('Erkennung',language),' · ',(timing.ageMs/1000).toFixed(3)+' s ',translate('gesamt',language));
       if(timing.expired)row.append(' · ',translate('abgelaufen',language));
+    }else if(recognition){
+      row.append(reviewText(recognition.phase),' · ');
+      recognition.issues.forEach((issue,index)=>{
+        if(index)row.append(' | ');
+        const details=[];
+        if(issue.missingName)details.push(recognition.phase==='spell_choice'?'Zauber nicht erkannt':'Figur nicht erkannt');
+        if(issue.missingAction)details.push('Aktion nicht erkannt');
+        if(issue.missingQuantity)details.push('Anzahl nicht erkannt');
+        row.append(translate(pos[issue.position]??'Position',language),' · ',
+          ...(issue.name?[displayNames(issue.name,language)+' · ']:[]),
+          details.map(detail=>translate(detail,language)).join(' / '));
+      });
+      row.append(' · ',translate('Aufnahme',language),' ',String(recognition.captureId));
     }else{
       row.append(textEl('strong','Fehler','log-error'),' · ',message);
     }
@@ -1648,6 +1662,7 @@ async function refresh(){
   renderTacticFeedback(current);
   loggedMatches=state.recentMatchResults??[];
   loggedTimings=state.history??[];
+  loggedRecognitionIssues=state.recognitionIssues??[];
   renderActivityLog();
   renderTimingCharts(state.timingTrend??[]);
 }
