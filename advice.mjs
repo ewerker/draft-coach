@@ -52,11 +52,20 @@ export function observeOwnCardValues(pending,result,units){
     return updated;
   });
 }
+export function ambiguousReinforcementNames(offers){
+  return offers.filter(card=>card.variantIndex).map(card=>card.name);
+}
+export function sameReinforcementVariant(before,after){
+  const a=before?.variantSample,b=after?.variantSample;
+  if(!a&&!b)return true;
+  if(!a||!b||a.length!==432||b.length!==a.length)return false;
+  return a.reduce((sum,value,index)=>sum+Math.abs(value-b[index]),0)/a.length<=.65;
+}
 export function observeChosenReinforcement(counts, offer){
   if(!offer?.name||!Number.isInteger(offer.quantity)||offer.quantity<1)return;
   const previous=counts.get(offer.name)??0;
   if(offer.action==='add')counts.set(offer.name,previous+offer.quantity);
-  if(previous&&['multiply','multiply_upgrade'].includes(offer.action))
+  if(previous&&!offer.variantIndex&&!offer.variantUncertain&&['multiply','multiply_upgrade'].includes(offer.action))
     counts.set(offer.name,previous*offer.quantity);
 }
 
@@ -199,16 +208,17 @@ function visibleAdditions(result,offer){
 
 function reinforcementValue(result,offer){
   if(result.phase!=='battle_choice'||!['multiply','upgrade','multiply_upgrade'].includes(offer.action))return null;
-  const tracked=result.ownReinforcements?.[offer.name]??0;
-  const count=Math.max(tracked,result.own?.filter(card=>card.name===offer.name).length??0)||null;
+  const uncertain=offer.variantIndex||result.ownVariantUncertain?.includes(offer.name);
+  const tracked=uncertain?0:result.ownReinforcements?.[offer.name]??0;
+  const count=uncertain?null:Math.max(tracked,result.own?.filter(card=>card.name===offer.name).length??0)||null;
   const upgrade=offer.action!=='multiply';
   const double=offer.action!=='upgrade';
   const points=(upgrade?(count===null?11:Math.min(count*(count>2?4:2),30)):0)+
     (double?(count===null?14:Math.min(count*3,20)):0);
   const action=upgrade&&double?'Verdopplung mit Aufwertung':upgrade?'Aufwertung':'Verdopplung';
-  const scope=tracked&&count===tracked?`mindestens ${tracked} aus beobachteten Wahlen`:count===null?'Bestand unbekannt':`${count} vorhandene Figuren`;
+  const scope=uncertain?'Bestand dieser Variante unbekannt':tracked&&count===tracked?`mindestens ${tracked} aus beobachteten Wahlen`:count===null?'Bestand unbekannt':`${count} vorhandene Figuren`;
   return {points,reason:`${action} bevorzugt (${scope}).`,
-    preferIfClose:count===null||count>2||(double&&count>=2)};
+    preferIfClose:!uncertain&&(count===null||count>2||(double&&count>=2))};
 }
 
 function preferReinforcement(result,ranked,evaluated){

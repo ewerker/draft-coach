@@ -9,7 +9,7 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend,suggestLineup} from './advice.mjs';
+import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
@@ -224,7 +224,7 @@ function withObservedEnemies(result,job){
   for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,event);
   if(result.enemyEvent)enemy.set(result.enemyEvent.name,result.enemyEvent);
   const observedDraftUnits=activeMatch.draftObservation?[...activeMatch.draftObservation.seen]:[];
-  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
+  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],ownVariantUncertain:[...activeMatch.ownVariantUncertain],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
 }
 function newDraftObservation(){
   return {seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
@@ -377,6 +377,9 @@ function record(job,result) {
       match.pendingReinforcement=null;
     }
   }
+  if(job.matchId&&job.matchId===match?.id&&job.target===device){
+    for(const name of ambiguousReinforcementNames(result.offers))match.ownVariantUncertain.add(name);
+  }
   result=withObservedEnemies(result,job);
   const ageMs=Date.now()-job.started;
   const expired=job.source!=='reference' && ageMs>6000;
@@ -386,9 +389,9 @@ function record(job,result) {
   const cardChoice=choiceSignature(item,true);
   if(job.source!=='reference'&&job.matchId&&job.matchId===match?.id&&
      (cardChoice||item.phase==='spell_choice')){
-    const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,enemyAdditions,hearts,specialStep,advice}=item;
+    const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
     match.reviewFrames.push({id:item.id,language:job.gameLanguage,phase,offers,enemy,own,ownDeckPicks,
-      ownReinforcements,enemyAdditions,hearts,specialStep,advice});
+      ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice});
   }
   if(job.source!=='reference'&&(cardChoice||item.phase==='spell_choice'))latestRelevant=item;
   if(job.source!=='reference'&&cardChoice){
@@ -464,6 +467,9 @@ async function tapRecommendation(job,item,choice,selection=null){
     const verified=openSpell?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
       automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false),chooseSpell);
     const box=openSpell?checked.spellButton:checked.offers[best.index]?.box;
+    if(!openSpell&&!sameReinforcementVariant(offer,checked.offers[best.index]))return;
+    if(!selection&&offer.variantIndex&&checked.offers.some((card,index)=>index!==best.index&&
+      card.variantIndex&&card.name===offer.name&&card.action===offer.action&&sameReinforcementVariant(offer,card)))return;
     if(verified?.index!==best.index||verified.name!==best.name||(!selection&&checked.offers[best.index]?.poolHint)||
        box?.length!==4||box.some(n=>!Number.isFinite(n)))return;
     const width=png.readUInt32BE(16),height=png.readUInt32BE(20);
@@ -487,7 +493,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     }
     lastTappedChoice=choice;
     if(job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
-      if(item.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer};
+      if(item.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer:{...offer,variantUncertain:activeMatch.ownVariantUncertain.has(offer.name)}};
       if(chooseSpell)activeMatch.spellChosen=true;
       if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
     }
@@ -563,6 +569,7 @@ function selectDevice(target) {
     activeMatch?.enemyAdditionTimes.clear();
     activeMatch?.ownDeckPicks.clear();
     activeMatch?.ownReinforcements.clear();
+    activeMatch?.ownVariantUncertain.clear();
     if(activeMatch)activeMatch.pendingReinforcement=null;
     activeMatch?.enemyDeck.clear();
     if(activeMatch?.draftObservation)activeMatch.draftObservation=newDraftObservation();
@@ -649,7 +656,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   let match, captureDone;
   if(!probe&&!preparationKind){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
-      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),pendingReinforcement:null,
+      draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),ownVariantUncertain:new Set(),pendingReinforcement:null,
       lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
     captureDone=Promise.withResolvers();
@@ -788,7 +795,7 @@ async function tapImage({id,u,v}){
       if(choice&&result===state.current){
         lastTappedChoice=choice;
         if(result.matchId&&activeMatch?.id===result.matchId){
-          if(result.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer:card};
+          if(result.phase==='battle_choice')activeMatch.pendingReinforcement={choice,offer:{...card,variantUncertain:activeMatch.ownVariantUncertain.has(card.name)}};
           if(result.phase==='deck_choice'&&card.name)activeMatch.ownDeckPicks.add(card.name);
         }
       }

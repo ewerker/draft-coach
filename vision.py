@@ -301,6 +301,22 @@ def spell_choices(img,language):
                        'orange':number(img,badge)})
     return offers
 
+def mark_reinforcement_variants(img,offers):
+    groups={}
+    for card in offers:
+        if card['name'] and card['action'] in ('upgrade','multiply','multiply_upgrade'):
+            groups.setdefault((card['name'],card['action']),[]).append(card)
+    for group in groups.values():
+        if len(group)<2:
+            continue
+        for index,card in enumerate(group,1):
+            x1,y1,x2,y2=card['box']
+            icon=cut(img,[x1+15,y1+8,x2-15,y2-8])
+            sample=cv2.resize(icon,(12,12),interpolation=cv2.INTER_AREA)
+            card['variantIndex']=index
+            card['variantSample']=(sample//16).flatten().tolist()
+
+
 def recognize(path,preferred=None,language='de',learned_banners=()):
     start=time.perf_counter()
     raw=decode(path)
@@ -375,6 +391,8 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                 offers=[]
         notes.append('Spielfeld-Zählung noch nicht automatisiert. Überlappende Figuren werden nicht als sicher gezählt.')
     else: notes.append('Bildschirmtyp noch nicht sicher erkannt.')
+    if phase=='battle_choice':
+        mark_reinforcement_variants(img,offers)
     if phase!='battle_choice' or not all(card['name'] for card in offers):
         special_step=None
     if special_step:

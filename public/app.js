@@ -86,6 +86,7 @@ $('language').onchange=()=>{
   stopMic();
   speech?.cancel();
   applyLanguage();
+  if(current&&coachView==='game')renderOffers(current);
   if(coachView==='tactics'&&tacticsData){
     renderTactics(tacticsData);
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
@@ -1201,7 +1202,7 @@ function canChoose(result,card){
     ['deck_choice','battle_choice','spell_choice'].includes(result.phase);
 }
 function offerKey(result,card){
-  return [card.position,card.name,card.action,card.quantity,!!canChoose(result,card),
+  return [card.position,card.name,card.action,card.quantity,card.variantIndex,card.variantIndex?language:null,!!canChoose(result,card),
     card.action==='spell'?card.orange?.value:null];
 }
 function draw(result,sentTap){
@@ -1284,7 +1285,7 @@ function renderOfferRows(result){
   for(const c of result.offers){
     const row=textEl('div','','offer');row.dataset.position=c.position;
     const details=textEl('div','','offer-details');
-    details.append(textEl('strong',c.name||(result.phase==='spell_choice'?'Zauber':'Figur nicht erkannt')),textEl('span',offerAction(result.phase,c),'offer-action'));
+    details.append(textEl('strong',c.name||(result.phase==='spell_choice'?'Zauber':'Figur nicht erkannt')),textEl('span',offerAction(result.phase,c)+(c.variantIndex?` · ${language==='en'?'Variant':'Variante'} ${c.variantIndex}`:''),'offer-action'));
     row.append(textEl('span',pos[c.position],'offer-position'),details);
     if(canChoose(result,c)){
       const tap=textEl('button','Wählen','small');

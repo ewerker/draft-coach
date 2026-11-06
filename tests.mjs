@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,observeChosenReinforcement,observeDraftLineup,recommend} from './advice.mjs';
+import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,recommend} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
@@ -201,4 +201,18 @@ test('Quick Advice resolves Melinor and sends a bounded text-only AI request',as
       return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:'Try Captain.'}]}]})};
     });
   assert.equal(answer,'Try Captain.');
+});
+
+test('a visually ambiguous reinforcement never doubles the whole tracked stock',()=>{
+  const counts=new Map([['Totem',12]]);
+  const sample=Array(432).fill(3), other=Array(432).fill(5);
+  const offer={name:'Totem',action:'multiply',quantity:2,variantIndex:1,variantSample:sample};
+  observeChosenReinforcement(counts,offer);
+  observeChosenReinforcement(counts,{...offer,variantIndex:undefined,variantUncertain:true});
+  assert.equal(counts.get('Totem'),12);
+  assert.equal(sameReinforcementVariant(offer,{variantSample:[...sample]}),true);
+  assert.equal(sameReinforcementVariant(offer,{variantSample:other}),false);
+  assert.equal(sameReinforcementVariant(offer,{}),false);
+  const replay=recommend({phase:'battle_choice',offers:[offer],ownReinforcements:{Totem:12}},'arena',collection,db);
+  assert.match(replay.evaluated[0].reason,/Bestand dieser Variante unbekannt/);
 });
