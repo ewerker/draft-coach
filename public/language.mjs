@@ -314,10 +314,11 @@ Bilderkennung und Bewertung laufen lokal. Die Browser-Spracherkennung kann einen
 Sprachbefehle: Jetzt / Klick / Start → eine Aufnahme. Stopp → Mikrofon und Automatik aus.|Voice commands: Now / Click / Start → one capture. Stop → microphone and auto capture off.
 Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vollständig berücksichtigt.|Experimental scoring. Quantities and enemy strength are only partly accounted for.
 Log-Protokoll|Activity log
-Partieergebnisse|Match results
 Spielsprache offen|Game language unknown
 Fehler|Error
-Keine Aufnahmen über zwei Sekunden.|No captures took longer than two seconds.
+Noch keine Log-Einträge.|No log entries yet.
+gesamt|total
+abgelaufen|expired
 Draft Coach · Prototyp|Draft Coach · Prototype
 Sicher erkannt|Recognised confidently
 Tipp|Recommendation

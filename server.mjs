@@ -417,7 +417,7 @@ function record(job,result) {
   state.current=item;state.error=null;
   recordTiming(job,result,ageMs);
   if(ageMs>2000){
-    state.history.unshift({id:job.id,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});
+    state.history.unshift({id:job.id,at:job.started+ageMs,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});
     state.history=state.history.slice(0,20);
   }
   if(confirmedOutcome){
