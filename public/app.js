@@ -1537,23 +1537,24 @@ function renderMatchStatistics(stats,hours,resetAt){
     return card;
   }));
   const byHour=new Map(hours.map(bucket=>[bucket.hour,bucket]));
+  const maximum=Math.max(0,...hours.flatMap(bucket=>modes.map(([mode])=>(bucket[mode]?.won??0)+(bucket[mode]?.lost??0))));
   const clock=new Intl.DateTimeFormat(language==='en'?'en-GB':'de-DE',{hour:'2-digit',minute:'2-digit'});
   trends.replaceChildren(...modes.map(([mode,label])=>{
     const card=textEl('div','','match-hour-chart');
-    card.append(textEl('strong',label));
+    card.append(textEl('strong',label),textEl('span',translate('Skala',language)+': '+maximum+' '+translate('Spiele pro Stunde',language),'muted'));
     const svg=svgNode('svg',{viewBox:'0 0 240 64',role:'img',
-      'aria-label':translate(label,language)+' · '+translate('Gewinnanteil pro Stunde',language)});
+      'aria-label':translate(label,language)+' · '+translate('Spiele pro Stunde',language)});
     svg.append(svgNode('line',{x1:0,x2:240,y1:61,y2:61}));
     for(let i=0;i<24;i++){
       const hour=nowHour-23+i,values=byHour.get(hour)?.[mode];
       if(!values||values.won+values.lost===0)continue;
-      const total=values.won+values.lost,winHeight=58*values.won/total,lossHeight=58-winHeight;
+      const winHeight=58*values.won/maximum,lossHeight=58*values.lost/maximum;
       const group=svgNode('g');
       const tip=svgNode('title');
       tip.textContent=clock.format(hour*3600000)+' · '+translate('Gewonnen',language)+' '+values.won+' · '+translate('Verloren',language)+' '+values.lost;
       group.append(tip);
       if(winHeight)group.append(svgNode('rect',{x:i*10,y:61-winHeight,width:7,height:winHeight,class:'hour-won'}));
-      if(lossHeight)group.append(svgNode('rect',{x:i*10,y:3,width:7,height:lossHeight,class:'hour-lost'}));
+      if(lossHeight)group.append(svgNode('rect',{x:i*10,y:61-winHeight-lossHeight,width:7,height:lossHeight,class:'hour-lost'}));
       svg.append(group);
     }
     const axis=textEl('div','','hour-axis');
@@ -1776,6 +1777,9 @@ async function refresh(){
   matchIdentity.hidden=!state.activeMatchId;
   matchIdentity.textContent=state.activeMatchId?translate('Partie',language)+' #'+state.activeMatchId.slice(0,8):'';
   matchIdentity.title=state.activeMatchId??'';
+  const valueUpdate=$('own-card-update'),changes=state.ownCardValueChanges??[];
+  valueUpdate.hidden=!changes.length;
+  valueUpdate.textContent=changes.length?translate('Vorrat aktualisiert',language)+' · '+changes.map(change=>displayNames(change.name,language)+' '+translate(change.field==='blue_star'?'Sternwert':'Stufe',language)+' '+change.to).join(' · '):'';
   renderMatchStatistics(state.matchStats,state.matchHours??[],state.logResetAt);
   loggedMatches=state.recentMatchResults??[];
   loggedTimings=state.history??[];

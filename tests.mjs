@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,recommend} from './advice.mjs';
+import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
@@ -320,4 +320,23 @@ test('variant evidence links the first timely field image in the same round',()=
   assert.equal(match.variantEvidence.length,1);
   followVariantChoice(match,49,offer,null,1850,'first choice');
   assert.equal(match.pendingVariantEvidence,null);
+});
+
+
+test('own collection values require repeated confident readings and ignore enemies and temporary upgrades',()=>{
+  const unit={name:'Agent B',bottom_badge:10,blue_star:7},pending=new Map();
+  const card={name:'Agent B',nameSource:'Kartenbeschriftung',similarity:.95,captionMargin:.2,action:'add',orange:{value:11,similarity:.95},blue:{value:8,similarity:.95}};
+  const frame={phase:'battle_choice',offers:[card],enemy:[{...card,orange:{value:20,similarity:1}}]};
+  assert.equal(observeOwnCardValues(pending,frame,[unit])[0],unit);
+  assert.deepEqual(observeOwnCardValues(pending,frame,[unit])[0],{...unit,bottom_badge:11,blue_star:8});
+  const other=new Map();
+  const upgrade={...frame,offers:[{...card,action:'upgrade'}]};
+  observeOwnCardValues(other,upgrade,[unit]);
+  assert.equal(observeOwnCardValues(other,upgrade,[unit])[0],unit);
+  const uncertain={...frame,offers:[{...card,captionMargin:.01}]};
+  observeOwnCardValues(other,uncertain,[unit]);
+  assert.equal(observeOwnCardValues(other,uncertain,[unit])[0],unit);
+  const lower={...frame,offers:[{...card,orange:{value:9,similarity:1},blue:{value:6,similarity:1}}]};
+  observeOwnCardValues(other,lower,[unit]);
+  assert.equal(observeOwnCardValues(other,lower,[unit])[0],unit);
 });

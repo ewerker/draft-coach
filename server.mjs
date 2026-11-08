@@ -1475,7 +1475,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,activeMatchId:activeMatch?.id??null,recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,activeMatchId:activeMatch?.id??null,ownCardValueChanges:activeMatch?.cardValueChanges.slice(-3)??[],recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
