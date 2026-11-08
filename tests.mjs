@@ -361,6 +361,10 @@ test('failed spell attempt does not block card choice on the same offer',()=>{
   assert.equal(shouldTrySpell(item,match,true,3,'choice-a'),false);
   assert.equal(shouldTrySpell(item,match,true,3,'choice-a',true),true);
   assert.equal(shouldTrySpell(item,match,true,3,'choice-b'),true);
+  match.spellRetryAfter=Date.now()+30000;
+  assert.equal(shouldTrySpell(item,match,true,3,'choice-b'),false);
+  match.spellRetryAfter=Date.now()-1;
+  assert.equal(shouldTrySpell(item,match,true,3,'choice-b'),true);
   assert.equal(shouldTrySpell(item,match,false,3,'choice-b'),false);
 });
 

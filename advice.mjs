@@ -8,7 +8,7 @@ export function allowedNames(collection,mode,extended=false) {
 }
 export function shouldTrySpell(item,match,auto,spellCount,choice,checking=false){
   return !!(auto&&match?.id&&match.id===item.matchId&&!match.spellOpenedUntil&&item.phase==='battle_choice'&&item.spellButton&&
-    spellCount>0&&item.hearts?.own>0&&(checking||match.spellAttemptChoice!==choice)&&
+    spellCount>0&&item.hearts?.own>0&&(checking||(!match.spellRetryAfter||Date.now()>=match.spellRetryAfter)&&match.spellAttemptChoice!==choice)&&
     (item.hearts.own<item.hearts.enemy||!item.advice.best));
 }
 export function observeDraftLineup(tracker,result,owned){

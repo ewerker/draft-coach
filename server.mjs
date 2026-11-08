@@ -677,6 +677,7 @@ async function tapRecommendation(job,item,choice,selection=null){
   }finally{
     await unlink(checkPath).catch(()=>{});
     state.capturing=false;
+    if(openSpell&&outcome!=='gesendet'&&activeMatch?.id===job.matchId)activeMatch.spellRetryAfter=Date.now()+30000;
     if(!selection&&(job.tapGeneration===tapGeneration||outcome==='fehler')){
       autoTapResult={id:job.id,outcome};
     }
