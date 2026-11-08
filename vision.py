@@ -902,6 +902,8 @@ calibrated_names=[
     for name,patterns in json.loads((ROOT/'data'/'battle-names.json').read_text(encoding='utf-8')).items()
     for rows in (patterns if isinstance(patterns[0],list) else [patterns])
 ]
+splime_caption_mask=(cv2.imdecode(np.fromfile(str(ROOT/'data'/'splime-caption.png'),dtype=np.uint8),cv2.IMREAD_GRAYSCALE)>0).astype(np.uint8)
+calibrated_names.append(('Splime',splime_caption_mask))
 battle_names=[
     (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
     for name,mask in collection_names['units']+calibrated_names
@@ -909,7 +911,7 @@ battle_names=[
 ]
 english_battle_names=[
     (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
-    for name,mask in vision_english.collection_names['units']+vision_english.battle_names
+    for name,mask in vision_english.collection_names['units']+vision_english.battle_names+[('Splime',splime_caption_mask)]
     for scale in (.85,.90,.95,1,1.05,1.10,1.15,1.20,1.25)
 ]
 action_digits=[(value,template) for value,template in numbers if 1<=value<=9]
