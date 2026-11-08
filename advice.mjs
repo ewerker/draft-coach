@@ -190,6 +190,11 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=18;
       why+=' Agent B ergänzt vorhandene Draklinge um frühen Zugriff auf die Hinterreihe; Bestand nur aus beobachteten Wahlen.';
     }
+    if(result.phase==='battle_choice'&&enemy.includes('Kupid')&&(result.enemyAdditions?.Kupid??0)>=6&&
+       ['Schildling','Agent B','Assassine'].includes(offer.name)){
+      score+=16;
+      why+=' Gegen mindestens sechs beobachtete Kupid wird der Zugriff auf die Hinterreihe höher gewichtet.';
+    }
     if(result.phase==='battle_choice'&&snail){
       if(deckRanged.has(offer.name)){
         score+=12;

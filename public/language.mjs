@@ -178,7 +178,7 @@ Was kann ich ins Mikrofon sagen?|What can I say into the microphone?
 Löst eine einzelne Aufnahme aus. Den Automodus startest du mit dem eigenen Button.|Takes one screenshot. Use the separate button to start auto capture.
 „Stopp“ oder „Ende“|“Stop” or “End”
 Beendet Mikrofon, Automodus und automatisches Antippen. Bei einer laufenden Partie kannst du anschließend das Ergebnis angeben.|Turns off the microphone, auto capture and auto-tap. If a match is in progress, you can then record the outcome.
-Falls der Browser kein Mikrofon anbietet oder die Freigabe fehlt, nutze den Aufnahmebutton oder die Leertaste. Die Browser-Spracherkennung kann einen externen Dienst verwenden. „Tipp vorlesen“ steuert die Sprachausgabe unabhängig vom Mikrofon.|If microphone access is unavailable, use the capture button or Space. Browser speech recognition may use an external service. “Read recommendation aloud” controls speech output independently of the microphone.
+Falls der Browser kein Mikrofon anbietet oder die Freigabe fehlt, nutze den Aufnahmebutton oder die Leertaste. Die Browser-Spracherkennung kann einen externen Dienst verwenden. „Tipp vorlesen“ steuert die Sprachausgabe unabhängig vom Mikrofon. Beim automatischen Antippen wartet der Coach kurz auf das Ende der Ansage. Falls der Browser die Ausgabe nicht bestätigt, wird dieser Klick abgebrochen.|If microphone access is unavailable, use the capture button or Space. Browser speech recognition may use an external service. “Read recommendation aloud” controls speech output independently of the microphone. Auto-tap briefly waits for the announcement to finish. If the browser does not confirm speech output, the tap is cancelled.
 Im Draft orientiert sich der Coach an deiner aktiven Aufstellung. In der Schlacht kann er eigene Einheiten aus der Sammlung berücksichtigen. Zauber stammen in beiden Modi normalerweise aus der aktiven Zauberauswahl.|In Draft, the Coach uses your active unit lineup. In Battle, it can consider units from your collection. In both modes spells normally come from your active loadout.
 Was bedeuten relevante Aufnahmen?|What are relevant captures?
 Im Automodus bleibt normalerweise das letzte erkannte Wahlfenster im Bild. Mit „Zwischenbilder anzeigen“ kannst du auch die Aufnahmen dazwischen sehen.|Auto capture normally keeps the last recognised choice on screen. “Show intermediate frames” also shows captures between choices.
@@ -314,7 +314,15 @@ Bilderkennung und Bewertung laufen lokal. Die Browser-Spracherkennung kann einen
 Sprachbefehle: Jetzt / Klick / Start → eine Aufnahme. Stopp → Mikrofon und Automatik aus.|Voice commands: Now / Click / Start → one capture. Stop → microphone and auto capture off.
 Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vollständig berücksichtigt.|Experimental scoring. Quantities and enemy strength are only partly accounted for.
 Automatischer Klick: Kontrollaufnahme zu langsam.|Auto-tap: verification capture was too slow.
+Sprachausgabe nicht bestätigt · kein automatischer Klick.|Speech output was not confirmed · auto-tap cancelled.
 Log-Protokoll|Activity log
+Filter|Filter
+Alle Einträge|All entries
+Aufnahmezeiten|Capture times
+Gewonnene Partien|Won matches
+Verlorene Partien|Lost matches
+Erkennungsprobleme|Recognition problems
+Keine passenden Log-Einträge.|No matching log entries.
 Spielsprache offen|Game language unknown
 Fehler|Error
 Noch keine Log-Einträge.|No log entries yet.
@@ -426,6 +434,7 @@ Automatik an|Auto capture on
 `.trim().split('\n').map(line=>line.split('|')));
 
 const fragments=new Map(`
+Gegen mindestens sechs beobachtete Cupid wird der Zugriff auf die Hinterreihe höher gewichtet.|Backline access is weighted more highly against at least six observed Cupid.
 Agent B ergänzt vorhandene Whelp um frühen Zugriff auf die Hinterreihe; Bestand nur aus beobachteten Wahlen.|Agent B complements existing Whelps with early backline access; counts are based on observed choices.
 Gegen Cupid Assassinen für den Angriff auf die Hinterreihe aufbauen; eigener Bestand nur soweit beobachtet.|Build up Assassins to attack opposing Cupid in the back line; own numbers are based on observed choices.
 Zusätzlicher Fernkampf kann gegen gegnerische Cupid Druck aufbauen.|Additional ranged units can put pressure on opposing Cupid.

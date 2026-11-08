@@ -13,6 +13,10 @@
 .timing-chart line{stroke:var(--line);stroke-width:1}
 .timing-chart rect{fill:var(--accent)}
 @media(max-width:640px){.timing-charts{grid-template-columns:1fr}}
+.log-header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.log-header h2{margin-right:auto}
+.log-header label{font-size:.8rem;color:var(--muted)}
+.log-header select{font-size:.8rem;padding:6px 10px}
 .activity-log{max-height:350px;overflow-wrap:anywhere}
 .activity-log time{font-variant-numeric:tabular-nums}
 .log-error{color:#ffb4b9}

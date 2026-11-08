@@ -100,8 +100,29 @@ const playTapDeadline=7000;
 const capturePattern=/^capture-(\d+)\.png$/;
 let serial=0,autoTimer=null,autoBusy=false,lastClientSeen=Date.now(),interruptibleCapture=null;
 let audioClient=null;
+let readTipEnabled=false, pendingSpeech=null;
+function finishSpeech(client,id,success){
+  if(!pendingSpeech||pendingSpeech.client!==client||pendingSpeech.id!==id)return;
+  pendingSpeech.finish(success);
+}
+function waitForSpeech(job,deadline,tip,position){
+  if(!readTipEnabled||!audioClient)return Promise.resolve(true);
+  return new Promise(resolve=>{
+    const client=audioClient;
+    const ms=Math.min(3000,Math.max(0,deadline-Date.now()-800));
+    let timer;
+    const finish=success=>{
+      clearTimeout(timer);
+      if(pendingSpeech?.id===job.id&&pendingSpeech.client===client)pendingSpeech=null;
+      resolve(success);
+    };
+    pendingSpeech={id:job.id,client,tip:{index:tip.index,name:tip.name,position},finish};
+    timer=setTimeout(()=>finish(false),ms);
+  });
+}
 function claimBrowser(client){
   if(!client)return;
+  if(audioClient!==client)readTipEnabled=false;
   audioClient=client;
   lastClientSeen=Date.now();
 }
@@ -514,7 +535,7 @@ async function tapRecommendation(job,item,choice,selection=null){
 
   const battleAuto=!selection&&item.phase==='battle_choice';
   const checkTimeout=Math.max(3500,Math.min(6500,Math.ceil(job.captureMs*1.6)));
-  const verificationDeadline=selection?.deadline??job.started+playTapDeadline;
+  const verificationDeadline=selection?.deadline??job.started+playTapDeadline+(readTipEnabled&&!selection?3000:0);
   const isCurrent=()=>job.tapGeneration===tapGeneration&&job.target===device&&job.mode===state.mode&&
     Date.now()-lastClientSeen<10000&&(selection?Date.now()<selection.deadline:
       autoTap&&!manualTapPending&&job.id===state.latestId&&Date.now()<verificationDeadline);
@@ -1248,7 +1269,18 @@ async function handleRequest(req,res){
           return json(res,200,{summary,entries:[],subjects:local.subjects,source:'ai'});
         }finally{quickAiBusy=false;}
       }
-      if(url.pathname==='/api/browser/audio'){claimBrowser(client);return json(res,200,{ok:true});}
+      if(url.pathname==='/api/browser/audio'){
+        claimBrowser(client);
+        if(typeof data.readTip==='boolean'){
+          readTipEnabled=data.readTip;
+          if(!readTipEnabled&&pendingSpeech?.client===client)pendingSpeech.finish(false);
+        }
+        return json(res,200,{ok:true});
+      }
+      if(url.pathname==='/api/browser/spoken'){
+        if(client&&Number.isSafeInteger(data.id)&&typeof data.success==='boolean')finishSpeech(client,data.id,data.success);
+        return json(res,200,{ok:true});
+      }
       if(url.pathname==='/api/browser/leave'){
         if(client&&client===audioClient){
           audioClient=null;
@@ -1344,8 +1376,12 @@ async function handleRequest(req,res){
           state.current.advice=calculateAdvice(state.current);
         if(data.preparationKind!==undefined){if(!preparationKinds.includes(data.preparationKind))throw Error('Ungültige Aufnahmeart.');if(state.capturing)throw Error('Aufnahme zuerst abwarten.');state.preparationKind=data.preparationKind;}
         if(data.device!==undefined){if(!/^[a-zA-Z0-9._:-]{1,180}$/.test(data.device))throw Error('Ungültige Geräteadresse.');if(state.capturing||state.auto)throw Error('Aufnahme und Automatik zuerst stoppen');if(device!==data.device)setAutoTap(false);selectDevice(data.device);}
+        if(data.readTip!==undefined){
+          if(typeof data.readTip!=='boolean')throw Error('Ungültige Einstellung für Sprachausgabe.');
+          if(client&&client===audioClient)readTipEnabled=data.readTip;
+        }
         if(data.auto!==undefined){
-          if(data.auto&&state.mode!=='prep')claimBrowser(client);
+          if(data.auto&&state.mode!=='prep'){claimBrowser(client);if(typeof data.readTip==='boolean')readTipEnabled=data.readTip;}
           setAuto(state.mode!=='prep'&&data.auto);
         }
         return json(res,200,{ok:true});
@@ -1401,7 +1437,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,recentMatchResults,timingTrend,recognitionIssues,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,recentMatchResults,timingTrend,recognitionIssues,pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();

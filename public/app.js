@@ -141,12 +141,16 @@ $('test-audio').onclick=async()=>{
   status.textContent=unlocked&&playClickTone(true)?'Testton in diesem Browser gestartet.':
     'Der Browser hat Audio nicht freigegeben.';
 };
-let spokenChoice='',spokenSpell='',spokenSpellSlots=0,muteThroughId=0,manualCapturePending=false;
+let spokenChoice='',spokenSpell='',spokenSpellSlots=0,muteThroughId=0,manualCapturePending=false,lastPendingSpeechId=null;
 const spellSpeechKey=(matchId,position,name)=>JSON.stringify([matchId,position,name]);
-function speakTip(position,name){
+function speakTip(position,name,ackId){
   speech.cancel();
   const utterance=new SpeechSynthesisUtterance([translate(position,language),displayNames(name,language)].filter(Boolean).join('. '));
   utterance.lang=language==='en'?'en-US':'de-DE';
+  if(ackId!=null){
+    utterance.onend=()=>void post('/api/browser/spoken',{id:ackId,success:true}).catch(()=>{});
+    utterance.onerror=()=>void post('/api/browser/spoken',{id:ackId,success:false}).catch(()=>{});
+  }
   speech.speak(utterance);
 }
 function readTip(state){
@@ -159,8 +163,9 @@ function readTip(state){
     return;
   }
   const frame=state.current;
+  const pending=state.pendingSpeech?.id===frame?.id?state.pendingSpeech:null;
   const sent=state.lastSpellTap;
-  if(sent?.name&&sent.id>muteThroughId&&sent.mode===state.mode&&sent.matchId===frame?.matchId&&Date.now()-sent.time<6000){
+  if(!pending&&sent?.name&&sent.id>muteThroughId&&sent.mode===state.mode&&sent.matchId===frame?.matchId&&Date.now()-sent.time<6000){
     const key=spellSpeechKey(sent.matchId,pos[sent.position],sent.name);
     if(key!==spokenSpell){
       spokenSpell=key;
@@ -179,24 +184,27 @@ function readTip(state){
     spokenChoice='';
     return;
   }
-  if(frame.sentChoice)return;
+  if(frame.sentChoice&&!pending)return;
   const {best,fallback,provisional}=frame.advice;
-  const tip=best??fallback??provisional;
+  const tip=pending?.tip??best??fallback??provisional;
   if(!tip||(spell&&!tip.name))return;
   const offer=frame.offers[tip.index];
   const position=pos[tip.position??offer?.position??tip.index];
   // After a multi-card spell offer, the confirmed card can remain visible on its own.
-  if(spell&&spokenSpellSlots>1&&frame.offers.length===1)return;
+  const pendingId=pending?.id??null;
+  if(spell&&spokenSpellSlots>1&&frame.offers.length===1&&!pendingId)return;
   if(spell){
     spokenSpellSlots=frame.offers.length;
     const key=spellSpeechKey(frame.matchId,position,tip.name);
-    if(key===spokenSpell)return;
+    if(key===spokenSpell&&!pendingId)return;
     spokenSpell=key;
   }
   const choice=JSON.stringify([frame.phase,position,tip.name,offer?.action,offer?.quantity]);
-  if(choice===spokenChoice)return;
+  if(pendingId&&lastPendingSpeechId===pendingId)return;
+  if(choice===spokenChoice&&!pendingId)return;
   spokenChoice=choice;
-  speakTip(position,tip.name);
+  if(pendingId)lastPendingSpeechId=pendingId;
+  speakTip(position,tip.name,pendingId);
 }
 async function post(url,data={},signal) {
   const send = () => fetch(url, {
@@ -298,8 +306,9 @@ $('auto-tap').onchange=()=>{
 };
 $('read-tip').onchange=()=>{
   rememberPreferences({readTip:$('read-tip').checked});
-  if($('read-tip').checked)return action(()=>post('/api/browser/audio'));
-  speech?.cancel();
+  const enabled=!!speech&&$('read-tip').checked;
+  if(!enabled)speech?.cancel();
+  return action(()=>post('/api/browser/audio',{readTip:enabled}));
 };
 $('prep-kind').onchange=()=>action(()=>post('/api/settings',{preparationKind:$('prep-kind').value}));
 $('suggest-lineup').onclick=async()=>{
@@ -413,7 +422,7 @@ $('apply-collection').onclick=async()=>{
 $('auto').onclick=()=>{
   armTapAudio();
   return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:preferences.autoTap??$('auto-tap').checked,
-    continuum:gameMode!=='prep'&&(preferences.continuum??$('continuum').checked)}));
+    readTip:!!speech&&$('read-tip').checked,continuum:gameMode!=='prep'&&(preferences.continuum??$('continuum').checked)}));
 };
 $('continuum').onchange=()=>{
   const enabled=$('continuum').checked;
@@ -1406,7 +1415,8 @@ function renderTimingCharts(buckets){
   }));
 }
 function renderActivityLog(){
-  const key=JSON.stringify([language,loggedMatches,loggedTimings,loggedRecognitionIssues,loggedErrors]);
+  const filter=$('log-filter').value;
+  const key=JSON.stringify([language,filter,loggedMatches,loggedTimings,loggedRecognitionIssues,loggedErrors]);
   if(key===activityLogKey)return;
   activityLogKey=key;
   const entries=[
@@ -1414,10 +1424,12 @@ function renderActivityLog(){
     ...loggedTimings.filter(timing=>timing.ageMs>2000&&Number.isFinite(timing.at)).map(timing=>({at:timing.at,timing})),
     ...loggedRecognitionIssues.map(issue=>({at:issue.at,recognition:issue})),
     ...loggedErrors
-  ].sort((a,b)=>b.at-a.at);
+  ].filter(entry=>filter==='all'||filter==='timing'&&entry.timing||
+    filter==='won'&&entry.game?.outcome==='gewonnen'||filter==='lost'&&entry.game?.outcome==='verloren'||
+    filter==='errors'&&entry.message||filter==='recognition'&&entry.recognition).sort((a,b)=>b.at-a.at);
   const log=$('history');
   if(!entries.length){
-    log.textContent='Noch keine Log-Einträge.';
+    log.textContent=filter==='all'?'Noch keine Log-Einträge.':'Keine passenden Log-Einträge.';
     return;
   }
   const dates=new Intl.DateTimeFormat(language==='en'?'en-GB':'de-DE',{dateStyle:'short',timeStyle:'medium'});
@@ -1454,6 +1466,7 @@ function renderActivityLog(){
     return row;
   }));
 }
+$('log-filter').onchange=renderActivityLog;
 async function refresh(){
   const request=++refreshRequest;
   const r=await fetchState();if(!r.ok)throw Error('Server nicht erreichbar');const state=await r.json();

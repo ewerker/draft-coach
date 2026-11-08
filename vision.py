@@ -360,7 +360,7 @@ def game_navigation(small,outcome):
         return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')
     panel=gray[125:226,10:158]
     if any(cv2.minMaxLoc(cv2.matchTemplate(panel,navigation_labels[name],cv2.TM_CCOEFF_NORMED))[1]>=.86
-           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel','arena_weaker_win_panel','arena_stronger_panel_de','arena_weaker_panel_de')):
+           for name in ('arena_win_panel','arena_loss_panel','arena_stronger_panel','arena_weaker_panel','arena_weaker_win_panel','arena_stronger_panel_de','arena_weaker_panel_de','arena_equal_panel_de')):
         area=(25,292,143,356)
         return (navigation_button(gray,'arena_recap',area,'recap','arena') or
                 navigation_button(gray,'arena_recap_de',area,'recap','arena'))

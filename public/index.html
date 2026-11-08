@@ -34,7 +34,7 @@
     <dt><strong>„Jetzt“, „Klick“ oder „Start“</strong></dt><dd>Löst eine einzelne Aufnahme aus. Den Automodus startest du mit dem eigenen Button.</dd>
     <dt><strong>„Stopp“ oder „Ende“</strong></dt><dd>Beendet Mikrofon, Automodus und automatisches Antippen. Bei einer laufenden Partie kannst du anschließend das Ergebnis angeben.</dd>
   </dl>
-  <p class="muted">Falls der Browser kein Mikrofon anbietet oder die Freigabe fehlt, nutze den Aufnahmebutton oder die Leertaste. Die Browser-Spracherkennung kann einen externen Dienst verwenden. „Tipp vorlesen“ steuert die Sprachausgabe unabhängig vom Mikrofon.</p>
+  <p class="muted">Falls der Browser kein Mikrofon anbietet oder die Freigabe fehlt, nutze den Aufnahmebutton oder die Leertaste. Die Browser-Spracherkennung kann einen externen Dienst verwenden. „Tipp vorlesen“ steuert die Sprachausgabe unabhängig vom Mikrofon. Beim automatischen Antippen wartet der Coach kurz auf das Ende der Ansage. Falls der Browser die Ausgabe nicht bestätigt, wird dieser Klick abgebrochen.</p>
   <details><summary>Was ist der Unterschied zwischen Draft und Schlacht?</summary><p>Im Draft kommen reguläre Einheitenangebote aus deiner aktiven Aufstellung. In der Schlacht stellst du das Deck zu Beginn aus den angebotenen Figuren zusammen. Zauber kommen in beiden Modi normalerweise aus deiner aktiven Zauberauswahl. Sonderangebote können den üblichen Pool erweitern.</p></details>
   <details><summary>Wie schlage ich ein Deck und Zauber vor?</summary><p>Öffne Vorbereitung und wähle Vorschlag anzeigen unter Deck und Zauber vorschlagen. Der Coach nutzt deine gespeicherte Sammlung und empfiehlt bis zu vier Einheiten und drei Zauber mit Kartenstufe und Aufgabe. Du kannst die Auswahl im Spiel übernehmen.</p></details>
   <details><summary>Wann stoppt der Automodus von selbst?</summary><p>Sobald der Coach zweimal dasselbe Sieg- oder Niederlagenbild erkennt, stoppt die Aufnahme und speichert das Ergebnis mit dem Endbild. Warte im Draft und in der Schlacht kurz auf die Bestätigung im Coach. Wenn sie ausbleibt, kannst du über Stopp das Ergebnis selbst angeben.</p></details>
@@ -275,6 +275,14 @@
     <div id="timing-charts" class="timing-charts"></div>
   </details>
 </div></section>
-<section class="panel measurement"><h2>Log-Protokoll</h2>
+<section class="panel measurement"><div class="log-header"><h2>Log-Protokoll</h2>
+  <label for="log-filter">Filter</label><select id="log-filter">
+    <option value="all">Alle Einträge</option>
+    <option value="timing">Aufnahmezeiten</option>
+    <option value="won">Gewonnene Partien</option>
+    <option value="lost">Verlorene Partien</option>
+    <option value="errors">Fehler</option>
+    <option value="recognition">Erkennungsprobleme</option>
+  </select></div>
   <div id="history" class="history activity-log">Noch keine Log-Einträge.</div></section>
 </div></main><footer id="collection-footer">Draft Coach · Prototyp</footer><script type="module" src="/app.js"></script></body></html>
