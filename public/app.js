@@ -141,7 +141,7 @@ $('test-audio').onclick=async()=>{
   status.textContent=unlocked&&playClickTone(true)?'Testton in diesem Browser gestartet.':
     'Der Browser hat Audio nicht freigegeben.';
 };
-let spokenChoice='',spokenSpell='',spokenSpellSlots=0,muteThroughId=0,manualCapturePending=false,lastPendingSpeechId=null;
+let spokenChoice='',spokenSpell='',spokenSpellSlots=0,muteThroughId=0,manualCapturePending=false,lastPendingSpeechId=null,lastSpokenAutoTap=null;
 const spellSpeechKey=(matchId,position,name)=>JSON.stringify([matchId,position,name]);
 function speakTip(position,name,ackId){
   speech.cancel();
@@ -163,6 +163,15 @@ function readTip(state){
     return;
   }
   const frame=state.current;
+  if(state.autoTap){
+    const sent=state.lastCardTap;
+    const key=sent?.automatic?JSON.stringify([sent.matchId,sent.id]):null;
+    if(key&&key!==lastSpokenAutoTap&&sent.name&&sent.mode===state.mode&&Date.now()-sent.time<6000){
+      lastSpokenAutoTap=key;
+      speakTip(pos[sent.index],sent.name);
+    }
+    return;
+  }
   const pending=state.pendingSpeech?.id===frame?.id?state.pendingSpeech:null;
   const sent=state.lastSpellTap;
   if(!pending&&sent?.name&&sent.id>muteThroughId&&sent.mode===state.mode&&sent.matchId===frame?.matchId&&Date.now()-sent.time<6000){
@@ -1414,6 +1423,17 @@ function renderTimingCharts(buckets){
     return chart;
   }));
 }
+async function copyMatchId(id,button){
+  try{
+    if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(id);
+    else{
+      const input=document.createElement('textarea');input.value=id;input.style.position='fixed';input.style.opacity='0';document.body.append(input);input.select();
+      const ok=document.execCommand('copy');input.remove();if(!ok)throw Error('copy');
+    }
+    button.textContent=translate('Kopiert',language);
+    setTimeout(()=>{button.textContent=translate('Kopieren',language);},2000);
+  }catch{button.textContent=translate('Kopieren fehlgeschlagen',language);}
+}
 function renderActivityLog(){
   const filter=$('log-filter').value;
   const key=JSON.stringify([language,filter,loggedMatches,loggedTimings,loggedRecognitionIssues,loggedErrors]);
@@ -1444,6 +1464,12 @@ function renderActivityLog(){
       row.append(reviewText(game.mode),' · ',
         gameLanguage?.[language==='en'?1:0]??translate('Spielsprache offen',language),' · ',reviewText(game.outcome),
         ...(game.id?[' · ',translate('Partie',language),' #',game.id.slice(0,8)]:[]));
+      if(game.id){
+        const copy=textEl('button','Kopieren','small copy-match-id');
+        copy.type='button'; copy.title=translate('Partiekennung kopieren',language);
+        copy.onclick=()=>copyMatchId(game.id,copy);
+        row.append(' ',copy);
+      }
     }else if(timing){
       row.append(translate(timing.title,language),' · ',Math.round(timing.visionMs)+' ms ',
         translate('Erkennung',language),' · ',(timing.ageMs/1000).toFixed(3)+' s ',translate('gesamt',language));

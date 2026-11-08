@@ -175,3 +175,5 @@
 .review-images:has(#review-variant:not([hidden])){grid-template-columns:repeat(2,minmax(0,1fr));max-width:736px}
 .review-images h3{font-size:.9rem;margin-bottom:0}
 @media(max-width:600px){.review-images:has(#review-variant:not([hidden])){grid-template-columns:1fr}}
+
+.copy-match-id{margin-left:6px;padding:3px 8px;vertical-align:middle}

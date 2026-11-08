@@ -659,7 +659,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       if(chooseSpell)activeMatch.spellChosen=true;
       if(item.phase==='deck_choice'&&offer.name)activeMatch.ownDeckPicks.add(offer.name);
     }
-    lastCardTap={id:job.id,index:best.index,name:best.name,choice,matchId:job.matchId};
+    lastCardTap={id:job.id,index:best.index,name:best.name,choice,matchId:job.matchId,mode:job.mode,time:Date.now(),automatic:true};
     if(chooseSpell)lastSpellTap={id:job.id,matchId:job.matchId,mode:job.mode,name:best.name,position:offer.position??best.index,time:Date.now()};
     if(job.tapGeneration===tapGeneration)tapMessage=selection?(best.name??'Position '+(offer.position+1))+' · Auswahl an das Handy gesendet.':(best.name??'Zauber')+' automatisch angetippt.';
     return true;
