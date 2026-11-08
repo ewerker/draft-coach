@@ -1442,7 +1442,8 @@ function renderActivityLog(){
     if(game){
       const gameLanguage={de:['Deutsch','German'],en:['Englisch','English']}[game.language];
       row.append(reviewText(game.mode),' · ',
-        gameLanguage?.[language==='en'?1:0]??translate('Spielsprache offen',language),' · ',reviewText(game.outcome));
+        gameLanguage?.[language==='en'?1:0]??translate('Spielsprache offen',language),' · ',reviewText(game.outcome),
+        ...(game.id?[' · ',translate('Partie',language),' #',game.id.slice(0,8)]:[]));
     }else if(timing){
       row.append(translate(timing.title,language),' · ',Math.round(timing.visionMs)+' ms ',
         translate('Erkennung',language),' · ',(timing.ageMs/1000).toFixed(3)+' s ',translate('gesamt',language));
@@ -1745,6 +1746,10 @@ async function refresh(){
     loggedResetAt=state.logResetAt;
     for(let i=loggedErrors.length-1;i>=0;i--)if(loggedErrors[i].at<=loggedResetAt)loggedErrors.splice(i,1);
   }
+  const matchIdentity=$('match-identity');
+  matchIdentity.hidden=!state.activeMatchId;
+  matchIdentity.textContent=state.activeMatchId?translate('Partie',language)+' #'+state.activeMatchId.slice(0,8):'';
+  matchIdentity.title=state.activeMatchId??'';
   renderMatchStatistics(state.matchStats,state.matchHours??[],state.logResetAt);
   loggedMatches=state.recentMatchResults??[];
   loggedTimings=state.history??[];

@@ -143,7 +143,7 @@ function waitForSpeech(job,deadline,tip,position){
   if(!readTipEnabled||!audioClient)return Promise.resolve(true);
   return new Promise(resolve=>{
     const client=audioClient;
-    const ms=Math.min(3000,Math.max(0,deadline-Date.now()-800));
+    const ms=Math.min(1200,Math.max(0,deadline-Date.now()-800));
     let timer;
     const finish=success=>{
       clearTimeout(timer);
@@ -680,7 +680,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     if(!selection&&(job.tapGeneration===tapGeneration||outcome==='fehler')){
       autoTapResult={id:job.id,outcome};
     }
-    const entry={zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
+    const entry={partie:job.matchId??null,zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
       aufnahme:job.id,karte:best.name,position:openSpell?undefined:best.index+1,aktion:openSpell?'zauber-oeffnen':chooseSpell?'zauber-waehlen':undefined,ergebnis:outcome,grund:reason,koordinaten:coordinates,
       pruefschritt:stage,aufnahmeMs:job.captureMs,erkennungMs:item.visionMs,
       kontrollaufnahmeMs:checkCaptureMs,kontrollerkennungMs:checkVisionMs,gesamtMs:Date.now()-job.started,
@@ -1475,7 +1475,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,activeMatchId:activeMatch?.id??null,recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
