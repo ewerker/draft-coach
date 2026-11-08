@@ -385,6 +385,23 @@ def game_navigation(small,outcome):
                 button=navigation_button(gray,mode+'_home'+suffix,(12,237,156,314),'home',mode)
                 if button:
                     return button
+                if mode=='arena':
+                    label=navigation_labels['arena_paid_label'+('_en' if suffix=='' else suffix)]
+                    region=gray[250:289,32:136]
+                    _,label_score,_,(label_x,label_y)=cv2.minMaxLoc(
+                        cv2.matchTemplate(region,label,cv2.TM_CCOEFF_NORMED))
+                    coin=navigation_labels['arena_paid_coin']
+                    _,coin_score,_,(coin_x,coin_y)=cv2.minMaxLoc(
+                        cv2.matchTemplate(region,coin,cv2.TM_CCOEFF_NORMED))
+                    label_x+=32
+                    label_y+=250
+                    coin_x+=32
+                    coin_y+=250
+                    if (label_score>=.88 and coin_score>=.88 and
+                        abs(coin_x-(label_x+label.shape[1]/2+4))<=12 and
+                        1<=coin_y-(label_y+label.shape[0])<=14):
+                        return {'step':'home','mode':'arena',
+                                'point':[(label_x+label.shape[1]/2)/168,(coin_y+4)/364]}
     return None
 
 
