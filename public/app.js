@@ -333,7 +333,7 @@ $('suggest-lineup').onclick=async()=>{
   finally{button.disabled=false;}
 };
 function showSavedCollection(collection) {
-  $('collection-footer').textContent='Draft Coach · '+collection.units.units.length+' Einheiten · '+collection.spells.spells.length+' Zauber';
+  $('collection-footer').textContent='Draft Coach · '+(config.version??(language==='en'?'Version unknown':'Version unbekannt'))+' · Build '+(config.build??(language==='en'?'unknown':'unbekannt'))+' · '+collection.units.units.length+' '+(language==='en'?'units':'Einheiten')+' · '+collection.spells.spells.length+' '+(language==='en'?'spells':'Zauber');
   $('saved-collection').textContent =
     'Aktiver Stand · '+collection.units.units.length+' Einheiten und '+collection.spells.spells.length+' Zauber. '+
     'Einheiten: '+(displayCardNames(collection.units.active_lineup.join(', '))||'keine ausgewählt')+'. '+

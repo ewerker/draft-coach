@@ -18,6 +18,7 @@ import {followVariantChoice,observeVariantEvidence,reviewReplay} from './review.
 import {answerTactics,proposeReview,translateTactic} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
+const {version,build}=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8'));
 const archive=createArchive(archiveFile,RUNTIME);
 const PREPARATION=path.join(RUNTIME,'vorbereitung');
 const preparationKinds=['units','spells','deck-units','deck-spells'];
@@ -1430,7 +1431,7 @@ async function handleRequest(req,res){
       return;
     }
     if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
-    if(url.pathname==='/api/config')return json(res,200,{token,collection,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
+    if(url.pathname==='/api/config')return json(res,200,{token,collection,version,build,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
     if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
