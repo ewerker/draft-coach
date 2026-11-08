@@ -8,7 +8,7 @@ import path from 'node:path';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
-import {LatestQueue} from './pipeline.mjs';
+import {LatestQueue,autoCaptureBusy} from './pipeline.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -983,7 +983,7 @@ function setAuto(on) {
     }
     // Give the recognized offer a chance to reserve ADB for tap verification
     // before the next scheduled screenshot starts.
-    if(autoBusy||state.capturing||manualTapPending||(autoTap&&state.recognizing)){
+    if(autoCaptureBusy({autoBusy,capturing:state.capturing,manualTapPending,recognizing:state.recognizing,queueRunning:queue.running})){
       autoTimer=setTimeout(tick,100);
       return;
     }

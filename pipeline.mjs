@@ -14,3 +14,7 @@ export class LatestQueue {
     } finally { this.running=false; }
   }
 }
+
+export function autoCaptureBusy({autoBusy,capturing,manualTapPending,recognizing,queueRunning}) {
+  return !!(autoBusy||capturing||manualTapPending||recognizing||queueRunning);
+}

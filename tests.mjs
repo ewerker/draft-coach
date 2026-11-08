@@ -3,7 +3,7 @@ import {answerTactics,proposeReview} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {LatestQueue} from './pipeline.mjs';
+import {LatestQueue,autoCaptureBusy} from './pipeline.mjs';
 import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -362,4 +362,13 @@ test('failed spell attempt does not block card choice on the same offer',()=>{
   assert.equal(shouldTrySpell(item,match,true,3,'choice-a',true),true);
   assert.equal(shouldTrySpell(item,match,true,3,'choice-b'),true);
   assert.equal(shouldTrySpell(item,match,false,3,'choice-b'),false);
+});
+
+
+test('automatic capture waits for recognition even when automatic tapping is disabled',()=>{
+  const idle={autoBusy:false,capturing:false,manualTapPending:false,recognizing:false,queueRunning:false};
+  assert.equal(autoCaptureBusy(idle),false);
+  assert.equal(autoCaptureBusy({...idle,recognizing:true}),true);
+  assert.equal(autoCaptureBusy({...idle,queueRunning:true}),true);
+  assert.equal(autoCaptureBusy({...idle,capturing:true}),true);
 });
