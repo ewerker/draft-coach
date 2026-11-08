@@ -20,7 +20,7 @@ const cardPattern=new RegExp('(?<![\\p{L}\\p{N}])(?:'+cards.map(([key])=>escapeR
 const englishCards=new Map(cards);
 export function displayNames(text,language){
   if(typeof text!=='string')return text;
-  if(language==='en')return text.replace(cardPattern,name=>englishCards.get(name));
+  if(language==='en')return text.replaceAll('Viele Assassinen sind bereits beobachtet; Sniper ergänzt Fernkampf gegen Boomlinge.','Many Assassins have already been observed; Sniper adds ranged support against Boomlings.').replace(cardPattern,name=>englishCards.get(name));
   return text.replaceAll('Zerstörer','Verwüster');
 }
 
@@ -316,6 +316,8 @@ Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vol
 Automatischer Klick: Kontrollaufnahme zu langsam.|Auto-tap: verification capture was too slow.
 Sprachausgabe nicht bestätigt · kein automatischer Klick.|Speech output was not confirmed · auto-tap cancelled.
 Log-Protokoll|Activity log
+Verhältnis Siege : Niederlagen|Wins : losses
+Siege|wins
 Vorrat aktualisiert|Collection updated
 Sternwert|Star value
 Partiekennung kopieren|Copy match ID

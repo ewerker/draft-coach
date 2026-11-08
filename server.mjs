@@ -9,7 +9,7 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend,suggestLineup} from './advice.mjs';
+import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
@@ -557,9 +557,8 @@ function choiceSignature(result,manual=false,verifyBadges=false){
     offer.position,offer.name,offer.action,offer.quantity,verifyBadges||offer.action==='spell'?offer.orange?.value:null,verifyBadges?offer.blue?.value:null
   ])]);
 }
-function shouldOpenSpell(item,match){
-  return state.auto&&match?.id===item.matchId&&!match.spellOpenedUntil&&item.phase==='battle_choice'&&item.spellButton&&
-    collection.spells.active_loadout.length>0&&item.hearts?.own>0&&(item.hearts.own<item.hearts.enemy||!item.advice.best);
+function shouldOpenSpell(item,match,checking=false){
+  return shouldTrySpell(item,match,state.auto,collection.spells.active_loadout.length,choiceSignature(item,true),checking);
 }
 async function tapRecommendation(job,item,choice,selection=null){
   if(!selection&&(item.advice?.reroll||item.advice?.incompleteSlots))return;
@@ -578,6 +577,7 @@ async function tapRecommendation(job,item,choice,selection=null){
   if(!best||!isCurrent()||(!selection&&(item.expired||Date.now()-job.started>6000))||lastTappedChoice===choice||state.capturing)return;
   const offer=openSpell?{name:null,box:item.spellButton}:item.offers[best.index];
   if(!offer||offer.name!==best.name||offer.box?.length!==4)return;
+  if(openSpell&&activeMatch?.id===job.matchId)activeMatch.spellAttemptChoice=choice;
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
   let outcome='abgebrochen',reason='Wahlfenster hat sich geändert oder konnte nicht bestätigt werden',coordinates,stage='control_capture';
@@ -609,7 +609,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
       if(!selection&&!openSpell&&checked.offers.some(offer=>offer.experimentalLanguage))return;
       if(openSpell){
-        if(!shouldOpenSpell({...checked,matchId:job.matchId,advice:calculateAdvice(withObservedEnemies(checked,job),false)},activeMatch))return;
+        if(!shouldOpenSpell({...checked,matchId:job.matchId,advice:calculateAdvice(withObservedEnemies(checked,job),false)},activeMatch,true))return;
       }else if(battleAuto){
         const fresh=checked.offers[best.index];
         if(checked.phase!==item.phase||!fresh||fresh.position!==offer.position||fresh.name!==offer.name||

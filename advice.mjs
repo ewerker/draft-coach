@@ -6,6 +6,11 @@ export function allowedNames(collection,mode,extended=false) {
   const spells=extended?collection.spells.spells.map(card=>card.name):collection.spells.active_loadout;
   return new Set([...units,...spells]);
 }
+export function shouldTrySpell(item,match,auto,spellCount,choice,checking=false){
+  return !!(auto&&match?.id&&match.id===item.matchId&&!match.spellOpenedUntil&&item.phase==='battle_choice'&&item.spellButton&&
+    spellCount>0&&item.hearts?.own>0&&(checking||match.spellAttemptChoice!==choice)&&
+    (item.hearts.own<item.hearts.enemy||!item.advice.best));
+}
 export function observeDraftLineup(tracker,result,owned){
   if(tracker.confirmed||result.phase!=='battle_choice'||!result.deckEvidence)return null;
   const reliable=card=>owned.has(card.name)&&card.nameSource==='Kartenbeschriftung'&&!card.poolHint&&
@@ -194,6 +199,11 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
        ['Schildling','Agent B','Assassine'].includes(offer.name)){
       score+=16;
       why+=' Gegen mindestens sechs beobachtete Kupid wird der Zugriff auf die Hinterreihe höher gewichtet.';
+    }
+    if(result.phase==='battle_choice'&&enemy.includes('Boomling')&&(tracked.Assassine??0)>=9&&
+       offer.name==='Sniper'&&offer.action==='add'&&(tracked.Sniper??0)<4){
+      score+=18;
+      why+=' Viele Assassinen sind bereits beobachtet; Sniper ergänzt Fernkampf gegen Boomlinge.';
     }
     if(result.phase==='battle_choice'&&snail){
       if(deckRanged.has(offer.name)){

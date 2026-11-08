@@ -1532,7 +1532,8 @@ function renderMatchStatistics(stats,hours,resetAt){
     }
     const info=textEl('div','','match-stat-info');
     info.append(textEl('strong',label),textEl('span',translate('Gewonnen',language)+' · '+won,'match-won'),
-      textEl('span',translate('Verloren',language)+' · '+lost,'match-lost'));
+      textEl('span',translate('Verloren',language)+' · '+lost,'match-lost'),
+      textEl('span',translate('Verhältnis Siege : Niederlagen',language)+' · '+won+' : '+lost+(total?' · '+Math.round(won/total*100)+' % '+translate('Siege',language):''),'muted'));
     card.append(svg,info);
     return card;
   }));

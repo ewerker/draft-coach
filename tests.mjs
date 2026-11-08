@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {LatestQueue} from './pipeline.mjs';
-import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,recommend} from './advice.mjs';
+import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
@@ -339,4 +339,27 @@ test('own collection values require repeated confident readings and ignore enemi
   const lower={...frame,offers:[{...card,orange:{value:9,similarity:1},blue:{value:6,similarity:1}}]};
   observeOwnCardValues(other,lower,[unit]);
   assert.equal(observeOwnCardValues(other,lower,[unit])[0],unit);
+});
+
+
+test('existing Assassin mass raises Sniper reinforcement against Boomling without applying to early choices',()=>{
+  const offers=[{name:'Sniper',action:'add',quantity:2},{name:'Assassine',action:'add',quantity:3}];
+  const score=(ownReinforcements,enemy=[{name:'Boomling'}])=>recommend({phase:'battle_choice',offers,enemy,ownReinforcements},'arena',collection,db).evaluated[0];
+  const early=score({Assassine:3}),established=score({Assassine:9}),enoughSnipers=score({Assassine:9,Sniper:4});
+  assert.equal(established.score-early.score,18);
+  assert.match(established.reason,/Viele Assassinen/);
+  assert.doesNotMatch(enoughSnipers.reason,/Viele Assassinen/);
+  assert.doesNotMatch(score({Assassine:9},[{name:'Ritter'}]).reason,/Viele Assassinen/);
+});
+
+
+test('failed spell attempt does not block card choice on the same offer',()=>{
+  const item={matchId:'m',phase:'battle_choice',spellButton:[1,2,3,4],hearts:{own:2,enemy:3},advice:{best:{index:0}}};
+  const match={id:'m'};
+  assert.equal(shouldTrySpell(item,match,true,3,'choice-a'),true);
+  match.spellAttemptChoice='choice-a';
+  assert.equal(shouldTrySpell(item,match,true,3,'choice-a'),false);
+  assert.equal(shouldTrySpell(item,match,true,3,'choice-a',true),true);
+  assert.equal(shouldTrySpell(item,match,true,3,'choice-b'),true);
+  assert.equal(shouldTrySpell(item,match,false,3,'choice-b'),false);
 });

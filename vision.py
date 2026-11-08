@@ -474,6 +474,10 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
             for c in range(4):
                 x=100+c*225+side_dx
                 card=classify(img,[x+23,y1+dy,x+177,y2+dy],preferred if side=='own' else None)
+                if side=='enemy' and not card['name']:
+                    snail_score=similarity(feature(cut(img,[x+23,y1+dy,x+177,y2+dy])),enemy_snail_feature)
+                    if snail_score>=.82 and snail_score-card['similarity']>=.10:
+                        card.update(name='Schnecke',candidate='Schnecke',similarity=round(snail_score,3),margin=round(snail_score-card['similarity'],3),poolHint=False)
                 if card['similarity']>.56 and card['name']:
                     card['box']=[x+30,y1+dy-(40 if side=='enemy' else 55),x+230,y2+dy+110]
                     card.update(position=c,side=side,orange=number(img,[x+7,oy+dy-23,x+48,oy+dy+23]),blue=number(img,[x+170,by+dy-19,x+205,by+dy+19]))
@@ -814,6 +818,7 @@ def read_collection(path, kind):
 
 def build_calibration(file):
     prepare()
+enemy_snail_feature=feature(decode(ROOT/'data'/'enemy-snail-reference.png'))
     names=collection_templates()
     add_digit(load(IMAGES/'kampf-auswahl-1.png'),12,[613,414,663,469])
     reference=load(IMAGES/'kampf-spielstaerke-1.png')
