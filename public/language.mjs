@@ -339,6 +339,7 @@ Verloren|Lost
 Filter|Filter
 Alle Einträge|All entries
 Aufnahmezeiten|Capture times
+Gewonnene und verlorene Partien|Won and lost matches
 Gewonnene Partien|Won matches
 Verlorene Partien|Lost matches
 Erkennungsprobleme|Recognition problems

@@ -1445,7 +1445,7 @@ function renderActivityLog(){
     ...loggedRecognitionIssues.map(issue=>({at:issue.at,recognition:issue})),
     ...loggedErrors.filter(entry=>entry.at>loggedResetAt)
   ].filter(entry=>filter==='all'||filter==='timing'&&entry.timing||
-    filter==='won'&&entry.game?.outcome==='gewonnen'||filter==='lost'&&entry.game?.outcome==='verloren'||
+    filter==='results'&&['gewonnen','verloren'].includes(entry.game?.outcome)||
     filter==='errors'&&entry.message||filter==='recognition'&&entry.recognition).sort((a,b)=>b.at-a.at);
   const log=$('history');
   if(!entries.length){
