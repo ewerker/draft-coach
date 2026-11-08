@@ -17,6 +17,17 @@
 .log-header h2{margin-right:auto}
 .log-header label{font-size:.8rem;color:var(--muted)}
 .log-header select{font-size:.8rem;padding:6px 10px}
+.log-reset-note{margin:10px 0}
+.match-stats,.match-hours{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.match-stat{display:flex;align-items:center;gap:14px;padding:12px;border:1px solid var(--line);border-radius:9px}
+.match-stat svg{width:70px;flex:none}.match-stat circle{fill:none;stroke-width:8}
+.pie-base{stroke:var(--line)}.pie-win{stroke:#73c991}.pie-loss{stroke:#f0878e}
+.match-stat-info{display:grid;gap:4px;font-size:.8rem}.match-won{color:#8fe1aa}.match-lost{color:#ffadb1}
+.match-hour-chart{padding:10px;border:1px solid var(--line);border-radius:9px;font-size:.8rem}
+.match-hour-chart svg{display:block;width:100%;height:64px;margin-top:5px}.match-hour-chart line{stroke:var(--line);stroke-width:1}
+.hour-won{fill:#73c991}.hour-lost{fill:#f0878e}.hour-axis{display:flex;justify-content:space-between}
+[data-theme=light] .match-won{color:#276a42}[data-theme=light] .match-lost{color:#9b303a}
+@media(max-width:520px){.match-stats,.match-hours{grid-template-columns:1fr}}
 .activity-log{max-height:350px;overflow-wrap:anywhere}
 .activity-log time{font-variant-numeric:tabular-nums}
 .log-error{color:#ffb4b9}

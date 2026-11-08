@@ -316,6 +316,13 @@ Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vol
 Automatischer Klick: Kontrollaufnahme zu langsam.|Auto-tap: verification capture was too slow.
 Sprachausgabe nicht bestätigt · kein automatischer Klick.|Speech output was not confirmed · auto-tap cancelled.
 Log-Protokoll|Activity log
+Log zurücksetzen|Reset log
+Zurücksetzen leert Logansicht und Statistik. Archivierte Partien bleiben erhalten.|Reset clears the log view and statistics. Archived matches are retained.
+Gewinnanteil pro Stunde · letzte 24 Stunden|Win share per hour · last 24 hours
+Gewinnanteil pro Stunde|Win share per hour
+Statistik nicht verfügbar.|Statistics unavailable.
+Gewonnen|Won
+Verloren|Lost
 Filter|Filter
 Alle Einträge|All entries
 Aufnahmezeiten|Capture times

@@ -283,6 +283,11 @@
     <option value="lost">Verlorene Partien</option>
     <option value="errors">Fehler</option>
     <option value="recognition">Erkennungsprobleme</option>
-  </select></div>
-  <div id="history" class="history activity-log">Noch keine Log-Einträge.</div></section>
+  </select><button id="log-reset" class="small" type="button">Log zurücksetzen</button></div>
+  <div id="history" class="history activity-log">Noch keine Log-Einträge.</div>
+  <p class="muted log-reset-note">Zurücksetzen leert Logansicht und Statistik. Archivierte Partien bleiben erhalten.</p>
+  <div id="match-stats" class="match-stats" aria-live="polite"></div>
+  <p class="muted">Gewinnanteil pro Stunde · letzte 24 Stunden</p>
+  <div id="match-hours" class="match-hours"></div>
+</section>
 </div></main><footer id="collection-footer">Draft Coach · Prototyp</footer><script type="module" src="/app.js"></script></body></html>

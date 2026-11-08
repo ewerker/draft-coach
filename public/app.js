@@ -228,7 +228,7 @@ async function post(url,data={},signal) {
 }
 let errorTimer;
 const loggedErrors=[];
-let loggedMatches=[],loggedTimings=[],loggedRecognitionIssues=[],activityLogKey;
+let loggedMatches=[],loggedTimings=[],loggedRecognitionIssues=[],activityLogKey,loggedResetAt=0,matchStatsKey;
 function error(e){
   const banner=$('error');
   banner.textContent=e.message||String(e);
@@ -1423,7 +1423,7 @@ function renderActivityLog(){
     ...loggedMatches.map(game=>({at:game.ended,game})),
     ...loggedTimings.filter(timing=>timing.ageMs>2000&&Number.isFinite(timing.at)).map(timing=>({at:timing.at,timing})),
     ...loggedRecognitionIssues.map(issue=>({at:issue.at,recognition:issue})),
-    ...loggedErrors
+    ...loggedErrors.filter(entry=>entry.at>loggedResetAt)
   ].filter(entry=>filter==='all'||filter==='timing'&&entry.timing||
     filter==='won'&&entry.game?.outcome==='gewonnen'||filter==='lost'&&entry.game?.outcome==='verloren'||
     filter==='errors'&&entry.message||filter==='recognition'&&entry.recognition).sort((a,b)=>b.at-a.at);
@@ -1467,6 +1467,74 @@ function renderActivityLog(){
   }));
 }
 $('log-filter').onchange=renderActivityLog;
+$('log-reset').onclick=()=>action(async()=>{
+  const response=await post('/api/log/reset');
+  loggedResetAt=response.resetAt;
+  loggedErrors.length=0;
+  loggedMatches=[];loggedTimings=[];loggedRecognitionIssues=[];
+  renderActivityLog();
+});
+function renderMatchStatistics(stats,hours,resetAt){
+  const nowHour=Math.floor(Date.now()/3600000);
+  const key=JSON.stringify([language,stats,hours,resetAt,nowHour]);
+  if(key===matchStatsKey)return;
+  matchStatsKey=key;
+  const pies=$('match-stats'),trends=$('match-hours');
+  if(!stats){
+    pies.replaceChildren(textEl('p','Statistik nicht verfügbar.','muted'));
+    trends.replaceChildren();
+    return;
+  }
+  const svgNode=(tag,attrs={})=>{
+    const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+    for(const [name,value] of Object.entries(attrs))el.setAttribute(name,value);
+    return el;
+  };
+  const modes=[['draft','Draft'],['arena','Schlacht']];
+  pies.replaceChildren(...modes.map(([mode,label])=>{
+    const {won,lost}=stats[mode];
+    const total=won+lost;
+    const card=textEl('div','','match-stat');
+    const svg=svgNode('svg',{viewBox:'0 0 42 42',role:'img',
+      'aria-label':[translate(label,language),won+' '+translate('Gewonnen',language),lost+' '+translate('Verloren',language)].join(' · ')});
+    svg.append(svgNode('circle',{cx:21,cy:21,r:16,class:'pie-base'}));
+    if(total){
+      svg.append(svgNode('circle',{cx:21,cy:21,r:16,class:'pie-loss'}));
+      svg.append(svgNode('circle',{cx:21,cy:21,r:16,class:'pie-win',pathLength:100,
+        'stroke-dasharray':(won/total*100)+' '+(100-won/total*100),transform:'rotate(-90 21 21)'}));
+    }
+    const info=textEl('div','','match-stat-info');
+    info.append(textEl('strong',label),textEl('span',translate('Gewonnen',language)+' · '+won,'match-won'),
+      textEl('span',translate('Verloren',language)+' · '+lost,'match-lost'));
+    card.append(svg,info);
+    return card;
+  }));
+  const byHour=new Map(hours.map(bucket=>[bucket.hour,bucket]));
+  const clock=new Intl.DateTimeFormat(language==='en'?'en-GB':'de-DE',{hour:'2-digit',minute:'2-digit'});
+  trends.replaceChildren(...modes.map(([mode,label])=>{
+    const card=textEl('div','','match-hour-chart');
+    card.append(textEl('strong',label));
+    const svg=svgNode('svg',{viewBox:'0 0 240 64',role:'img',
+      'aria-label':translate(label,language)+' · '+translate('Gewinnanteil pro Stunde',language)});
+    svg.append(svgNode('line',{x1:0,x2:240,y1:61,y2:61}));
+    for(let i=0;i<24;i++){
+      const hour=nowHour-23+i,values=byHour.get(hour)?.[mode];
+      if(!values||values.won+values.lost===0)continue;
+      const total=values.won+values.lost,winHeight=58*values.won/total,lossHeight=58-winHeight;
+      const group=svgNode('g');
+      const tip=svgNode('title');
+      tip.textContent=clock.format(hour*3600000)+' · '+translate('Gewonnen',language)+' '+values.won+' · '+translate('Verloren',language)+' '+values.lost;
+      group.append(tip);
+      if(winHeight)group.append(svgNode('rect',{x:i*10,y:61-winHeight,width:7,height:winHeight,class:'hour-won'}));
+      if(lossHeight)group.append(svgNode('rect',{x:i*10,y:3,width:7,height:lossHeight,class:'hour-lost'}));
+      svg.append(group);
+    }
+    const axis=textEl('div','','hour-axis');
+    axis.append(textEl('span',clock.format((nowHour-23)*3600000),'muted'),textEl('span',clock.format(nowHour*3600000),'muted'));
+    card.append(svg,axis);
+    return card;
+  }));
+}
 async function refresh(){
   const request=++refreshRequest;
   const r=await fetchState();if(!r.ok)throw Error('Server nicht erreichbar');const state=await r.json();
@@ -1673,6 +1741,11 @@ async function refresh(){
   canTapImage=!prep&&conn.status==='device'&&!!current?.frame&&current.frame.target===state.device;
   screenshot.parentElement.classList.toggle('direct-tap',canTapImage);
   renderTacticFeedback(current);
+  if(Number.isFinite(state.logResetAt)&&state.logResetAt!==loggedResetAt){
+    loggedResetAt=state.logResetAt;
+    for(let i=loggedErrors.length-1;i>=0;i--)if(loggedErrors[i].at<=loggedResetAt)loggedErrors.splice(i,1);
+  }
+  renderMatchStatistics(state.matchStats,state.matchHours??[],state.logResetAt);
   loggedMatches=state.recentMatchResults??[];
   loggedTimings=state.history??[];
   loggedRecognitionIssues=state.recognitionIssues??[];

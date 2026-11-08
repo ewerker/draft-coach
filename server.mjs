@@ -78,6 +78,40 @@ let lastSpellTap=null;
 let latestRelevant=null, manualTapPending=false;
 let activeMatch=null, stoppedMatch=null;
 let recentMatchResults=[];
+const logResetFile=path.join(RUNTIME,'log-reset.json');
+let logResetAt=0, logResetting=false, matchStats=null;
+const matchHours=new Map();
+function emptyMatchStats(){return {draft:{won:0,lost:0},arena:{won:0,lost:0}};}
+function addMatchStats(game){
+  const outcome=game.outcome==='gewonnen'?'won':game.outcome==='verloren'?'lost':null;
+  if(!matchStats||!outcome||!Object.hasOwn(matchStats,game.mode)||game.ended<=logResetAt)return;
+  matchStats[game.mode][outcome]++;
+  const hour=Math.floor(game.ended/3600000);
+  const currentHour=Math.floor(Date.now()/3600000);
+  if(hour>currentHour-24&&hour<=currentHour){
+    const bucket=matchHours.get(hour)??{hour,...emptyMatchStats()};
+    bucket[game.mode][outcome]++;
+    matchHours.set(hour,bucket);
+  }
+  for(const key of matchHours.keys())if(key<=currentHour-24)matchHours.delete(key);
+}
+async function resetActivityLog(){
+  if(logResetting)throw Error('Log wird bereits zurückgesetzt.');
+  logResetting=true;
+  const next=Date.now(),temporary=logResetFile+'.tmp';
+  try{
+    await writeFile(temporary,JSON.stringify({resetAt:next})+'\n');
+    await rename(temporary,logResetFile);
+    logResetAt=next;
+    recentMatchResults=[];
+    state.history=[];
+    recognitionIssues.length=0;
+    recognitionIssueSeen.clear();
+    matchStats=emptyMatchStats();
+    matchHours.clear();
+    return {ok:true,resetAt:next};
+  }finally{logResetting=false;await unlink(temporary).catch(()=>{});}
+}
 function matchLogEntry({id,mode,ended,outcome,language,reviewFrames}){
   return {id,mode,ended,outcome,language:language??reviewFrames?.at(-1)?.language??null};
 }
@@ -1058,7 +1092,10 @@ async function saveMatchOutcome({matchId,outcome}){
     const game={id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,
       reviewFrames,variantEvidence,resultCapture,outcome,language:reviewFrames.at(-1)?.language??state.gameLanguage};
     await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify(game)+'\n');
-    recentMatchResults=[matchLogEntry(game),...recentMatchResults].sort((a,b)=>b.ended-a.ended).slice(0,20);
+    if(game.ended>logResetAt){
+      recentMatchResults=[matchLogEntry(game),...recentMatchResults].sort((a,b)=>b.ended-a.ended).slice(0,20);
+      addMatchStats(game);
+    }
     if(stoppedMatch===match)stoppedMatch=null;
     if(resultCapture||variantEvidence.length)void archive.archiveGames(id).catch(error=>console.error('Partiebelege:',error.message));
     return {ok:true};
@@ -1226,6 +1263,7 @@ async function handleRequest(req,res){
         res.once('finish',()=>{shutdown();process.exit();});
         return json(res,200,{ok:true});
       }
+      if(url.pathname==='/api/log/reset')return json(res,200,await resetActivityLog());
       if(url.pathname==='/api/taktikregeln')return json(res,200,await saveTactic(data));
       if(url.pathname==='/api/admin/ai')return json(res,200,await setAiKey(data));
       if(url.pathname==='/api/admin/review/gpt')return json(res,200,await reviewWithGpt(data));
@@ -1437,7 +1475,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,recentMatchResults,timingTrend,recognitionIssues,pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
@@ -1481,7 +1519,15 @@ async function handleRequest(req,res){
 }
 await archive.initializeReview();
 try{
-  recentMatchResults=(await archive.review.matches()).slice(0,20).map(matchLogEntry);
+  const reset=JSON.parse(await readFile(logResetFile,'utf8').catch(error=>{
+    if(error.code==='ENOENT')return '{}';
+    throw error;
+  }));
+  if(Number.isSafeInteger(reset.resetAt)&&reset.resetAt>=0)logResetAt=reset.resetAt;
+  const games=(await archive.review.matches()).filter(game=>game.ended>logResetAt);
+  matchStats=emptyMatchStats();
+  for(const game of games)addMatchStats(game);
+  recentMatchResults=games.slice(0,20).map(matchLogEntry);
 }catch(error){
   console.error('Partienprotokoll:',error.message);
 }
