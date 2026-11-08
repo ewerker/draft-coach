@@ -426,6 +426,7 @@ Automatik an|Auto capture on
 `.trim().split('\n').map(line=>line.split('|')));
 
 const fragments=new Map(`
+Agent B ergänzt vorhandene Whelp um frühen Zugriff auf die Hinterreihe; Bestand nur aus beobachteten Wahlen.|Agent B complements existing Whelps with early backline access; counts are based on observed choices.
 Gegen Cupid Assassinen für den Angriff auf die Hinterreihe aufbauen; eigener Bestand nur soweit beobachtet.|Build up Assassins to attack opposing Cupid in the back line; own numbers are based on observed choices.
 Zusätzlicher Fernkampf kann gegen gegnerische Cupid Druck aufbauen.|Additional ranged units can put pressure on opposing Cupid.
 Zaubertipp|Spell recommendation

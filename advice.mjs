@@ -185,6 +185,11 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=34;
       why+=' Gegen Kupid Assassinen für den Angriff auf die Hinterreihe aufbauen; eigener Bestand nur soweit beobachtet.';
     }
+    if(result.phase==='battle_choice'&&offer.name==='Agent B'&&offer.action==='add'&&offer.quantity>=2&&
+       (tracked.Drakling??0)>=4&&(tracked['Agent B']??0)<4){
+      score+=18;
+      why+=' Agent B ergänzt vorhandene Draklinge um frühen Zugriff auf die Hinterreihe; Bestand nur aus beobachteten Wahlen.';
+    }
     if(result.phase==='battle_choice'&&snail){
       if(deckRanged.has(offer.name)){
         score+=12;
