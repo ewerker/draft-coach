@@ -1,6 +1,8 @@
 """Offline visual prototype. One JSON request/response per line; no network calls."""
 import sys, os, json, time, traceback
 import base64
+import hashlib
+from collections import OrderedDict
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 import cv2
@@ -678,7 +680,28 @@ def showdown_step(img):
     return None
 
 
+_caption_cache=OrderedDict()
+_CAPTION_CACHE_LIMIT=512
+
 def read_battle_caption(img, x, preferred, icon=None, language='de'):
+    # Cache only identical caption pixels and card-color classification. The
+    # candidate pool and English icon evidence also affect the result.
+    footer=lettering(cut(img,[x+11,1377,x+322,1480]))
+    color=cv2.cvtColor(cut(img,[x+15,1080,x+36,1240]),cv2.COLOR_BGR2HSV)
+    green=bool(np.mean((color[:,:,0]>=35)&(color[:,:,0]<=90)&(color[:,:,1]>55))>.55)
+    purple=bool(np.mean((color[:,:,0]>=125)&(color[:,:,0]<=160)&(color[:,:,1]>80))>.55)
+    identity=(icon.get('name'),icon.get('poolHint'),icon.get('similarity'),icon.get('margin')) if language=='en' and icon else None
+    key=(language,tuple(sorted(preferred or ())),identity,green,purple,hashlib.blake2b(footer.tobytes(),digest_size=16).digest())
+    if key in _caption_cache:
+        _caption_cache.move_to_end(key)
+        return dict(_caption_cache[key])
+    result=_read_battle_caption_uncached(img,x,preferred,icon,language)
+    _caption_cache[key]=dict(result)
+    if len(_caption_cache)>_CAPTION_CACHE_LIMIT:
+        _caption_cache.popitem(last=False)
+    return result
+
+def _read_battle_caption_uncached(img, x, preferred, icon=None, language='de'):
     footer = lettering(cut(img,[x+11,1377,x+322,1480]))
     matches = {}
     patterns=english_battle_names if language=='en' else battle_names

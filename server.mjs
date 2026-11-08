@@ -1534,6 +1534,12 @@ try{
 }
 learnedBanners=await archive.review.templates();
 const server=http.createServer(handleRequest);
+server.on('error',error=>{
+  console.error(error.code==='EADDRINUSE'?`Port ${PORT} ist bereits belegt. Ein Coach könnte bereits laufen.`:'Coach-Start fehlgeschlagen: '+error.message);
+  worker.kill();
+  lanServer?.close(()=>{});
+  process.exitCode=1;
+});
 server.listen(PORT,'127.0.0.1',()=>console.log('Draft Coach: http://127.0.0.1:'+PORT));
 const lanServer=lanAddress?http.createServer(handleRequest):null;
 lanServer?.on('error',error=>console.error('LAN-Zugriff:',error.message));
