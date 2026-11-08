@@ -500,7 +500,7 @@ function record(job,result) {
   recordTiming(job,result,ageMs);
   recordRecognitionIssues(job,result,advice,job.started+ageMs);
   if(ageMs>2000){
-    state.history.unshift({id:job.id,at:job.started+ageMs,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,ageMs,expired});
+    state.history.unshift({id:job.id,at:job.started+ageMs,title:job.title,phase:result.phase,captureMs:job.captureMs,visionMs:result.visionMs,visionProfile:result.visionProfile??null,ageMs,expired});
     state.history=state.history.slice(0,20);
   }
   if(confirmedOutcome){

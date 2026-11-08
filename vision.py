@@ -425,6 +425,7 @@ def match_outcome_small(small):
 
 def recognize(path,preferred=None,language='de',learned_banners=()):
     start=time.perf_counter()
+    caption_ms=0.0
     raw=decode(path)
     geometry=screen_geometry(raw)
     if geometry is None:
@@ -498,7 +499,9 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                 card=classify(img,[x+25,1090,x+295,1305]); card.update(position=c,action='unknown',quantity=None,
                     visible=bool(has_orange_badge(img,[x+206,1022,x+259,1070])))
                 card['orange']=number(img,[x+206,1022,x+259,1070]); card['blue']=number(img,[x+270,1024,x+317,1073])
+                caption_started=time.perf_counter()
                 card.update(read_battle_caption(img,x,None if special_step else preferred,card,language))
+                caption_ms+=(time.perf_counter()-caption_started)*1000
                 if card['action']=='unknown':
                     caption=cv2.cvtColor(cut(img,[x+22,1385,x+300,1475]),cv2.COLOR_BGR2GRAY)
                     for pattern,name,action in legacy_captions:
@@ -524,7 +527,9 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
     deck_evidence=(phase=='battle_choice' and not is_showdown and
                    not any(card['action']=='multiply_upgrade' or (card['quantity'] or 0)>4 for card in offers) and
                    not has_comeback_label(img))
+    enemy_started=time.perf_counter()
     enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') or (phase=='unknown' and hearts is not None) else None
+    enemy_ms=(time.perf_counter()-enemy_started)*1000
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     spell_button=None
@@ -532,7 +537,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
         star=cut(img,[950,1627,1020,1702])
         if cv2.matchTemplate(star,spell_button_star,cv2.TM_SQDIFF_NORMED)[0,0]<.025:
             spell_button=[950,1627,1020,1702]
-    return {'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'lastDeckReroll':last_deck_reroll,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
+    return {'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'lastDeckReroll':last_deck_reroll,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'visionProfile':{'captionMs':round(caption_ms,1),'enemyBannerMs':round(enemy_ms,1)},'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
 
 def lettering(img):
     return ((img.min(axis=2)>200)&(np.ptp(img,axis=2)<45)).astype(np.uint8)

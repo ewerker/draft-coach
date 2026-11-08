@@ -316,6 +316,8 @@ Experimentelle Basiswertung. Mengen und gegnerische Stärken sind noch nicht vol
 Automatischer Klick: Kontrollaufnahme zu langsam.|Auto-tap: verification capture was too slow.
 Sprachausgabe nicht bestätigt · kein automatischer Klick.|Speech output was not confirmed · auto-tap cancelled.
 Log-Protokoll|Activity log
+Beschriftung|Card labels
+Gegneranzeige|Enemy banner
 Verhältnis Siege : Niederlagen|Wins : losses
 Siege|wins
 Vorrat aktualisiert|Collection updated

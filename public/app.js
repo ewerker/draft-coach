@@ -1473,6 +1473,7 @@ function renderActivityLog(){
     }else if(timing){
       row.append(translate(timing.title,language),' · ',Math.round(timing.visionMs)+' ms ',
         translate('Erkennung',language),' · ',(timing.ageMs/1000).toFixed(3)+' s ',translate('gesamt',language));
+      if(timing.visionProfile)row.append(' · ',translate('Beschriftung',language),' ',Math.round(timing.visionProfile.captionMs),' ms · ',translate('Gegneranzeige',language),' ',Math.round(timing.visionProfile.enemyBannerMs),' ms');
       if(timing.expired)row.append(' · ',translate('abgelaufen',language));
     }else if(recognition){
       row.append(reviewText(recognition.phase),' · ');
