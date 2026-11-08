@@ -7,9 +7,13 @@ export function allowedNames(collection,mode,extended=false) {
   return new Set([...units,...spells]);
 }
 export function shouldTrySpell(item,match,auto,spellCount,choice,checking=false){
-  return !!(auto&&match?.id&&match.id===item.matchId&&!match.spellOpenedUntil&&item.phase==='battle_choice'&&item.spellButton&&
-    spellCount>0&&item.hearts?.own>0&&(checking||(!match.spellRetryAfter||Date.now()>=match.spellRetryAfter)&&match.spellAttemptChoice!==choice)&&
-    (item.hearts.own<item.hearts.enemy||!item.advice.best));
+  if(!auto||!match?.id||match.id!==item.matchId||match.spellOpenedUntil||item.phase!=='battle_choice'||!item.spellButton||
+     spellCount<=0||!(item.hearts?.own>0))return false;
+  const observedUnits=[...(match.ownReinforcements?.values()??[])].some(count=>count>0);
+  if(item.hearts.own===4&&item.hearts.enemy===4&&!observedUnits)return false;
+  if(!checking&&((match.spellRetryAfter&&Date.now()<match.spellRetryAfter)||match.spellAttemptChoice===choice))return false;
+  const hasTip=!!(item.advice?.best??item.advice?.fallback??item.advice?.provisional);
+  return item.hearts.own<item.hearts.enemy||!hasTip;
 }
 export function observeDraftLineup(tracker,result,owned){
   if(tracker.confirmed||result.phase!=='battle_choice'||!result.deckEvidence)return null;

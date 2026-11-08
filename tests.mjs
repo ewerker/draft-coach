@@ -376,3 +376,17 @@ test('automatic capture waits for recognition even when automatic tapping is dis
   assert.equal(autoCaptureBusy({...idle,queueRunning:true}),true);
   assert.equal(autoCaptureBusy({...idle,capturing:true}),true);
 });
+
+
+test('do not open a spell before observed first units or merely because a tip is provisional',()=>{
+  const item={matchId:'m',phase:'battle_choice',spellButton:[1,2,3,4],hearts:{own:4,enemy:4},advice:{best:null,fallback:{index:1}}};
+  const match={id:'m',ownReinforcements:new Map()};
+  assert.equal(shouldTrySpell(item,match,true,3,'opening'),false);
+  item.advice={best:null,fallback:null,provisional:null};
+  assert.equal(shouldTrySpell(item,match,true,3,'opening'),false);
+  match.ownReinforcements.set('Spartheus',3);
+  item.advice={best:null,fallback:{index:1}};
+  assert.equal(shouldTrySpell(item,match,true,3,'later'),false);
+  item.hearts={own:3,enemy:4};
+  assert.equal(shouldTrySpell(item,match,true,3,'later'),true);
+});
