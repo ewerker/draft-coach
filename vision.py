@@ -269,6 +269,23 @@ def read_deck_caption(img,x,dy,language='de'):
                 'captionMargin':round(margin,3),'poolHint':False,'nameSource':'Kartenbeschriftung'}
     return {}
 
+def use_deck_caption(card,caption,layout,language):
+    # Preserve existing thresholds; a very distinct label can identify an otherwise unknown icon.
+    return (layout=='centered' or language=='en' or caption.get('similarity',0)>=.85 or
+            (not card.get('name') and caption.get('name') and caption.get('similarity',0)>=.84 and
+             caption.get('captionMargin',0)>=.30))
+
+def enemy_lineup_side_dx(img,layout,dy):
+    # Some Battle layouts start the opponent row at x=100 rather than x=10.
+    # The first card changes the area at x=115 from red background to card fill.
+    def red_fraction(x):
+        patch=cut(img,[x,350+dy,x+10,480+dy])
+        if patch.size==0:return 1.0
+        hsv=cv2.cvtColor(patch,cv2.COLOR_BGR2HSV)
+        return float(np.mean(((hsv[:,:,0]<10)|(hsv[:,:,0]>170))&(hsv[:,:,1]>70)))
+    if red_fraction(40)>.90 and red_fraction(115)<.55:return 0
+    return -82 if layout=='centered' else -90
+
 def read_enemy_deck_caption(img,x,dy,language='de'):
     # The visible enemy lineup has smaller labels than the choice cards.
     region=lettering(cut(img,[x+5,490+dy,x+220,560+dy]))
@@ -493,7 +510,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
             x=40+c*350+dx
             card=classify(img,[x+35,940+dy,x+278,1140+dy],preferred); card.update(position=c,action='add',quantity=None)
             caption=read_deck_caption(img,x,dy,language)
-            if geometry['layout']=='centered' or language=='en' or caption.get('similarity',0)>=.85:
+            if use_deck_caption(card,caption,geometry['layout'],language):
                 card.update(caption)
             if english_deck:
                 card['experimentalLanguage']=True
@@ -501,7 +518,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
             offers.append(card)
         for side,y1,y2,by,oy,target in [('enemy',365,502,328,582,enemies),('own',1734,1857,1697,1949,own)]:
             centered=geometry['layout']=='centered'
-            side_dx=(-82 if centered else -90) if side=='enemy' else (25 if centered else 0)
+            side_dx=enemy_lineup_side_dx(img,geometry['layout'],dy) if side=='enemy' else (25 if centered else 0)
             for c in range(4):
                 x=100+c*225+side_dx
                 card=classify(img,[x+23,y1+dy,x+177,y2+dy],preferred if side=='own' else None)
@@ -917,6 +934,9 @@ with np.load(calibration_file,allow_pickle=False) as calibration:
                             for index,name in enumerate(calibration[kind+'_names'])] for kind in ('units','spells')}
     legacy_captions=[(calibration[f'legacy_{index}'],name,action)
                      for index,name,action in [(0,'Boomling','add'),(1,'Astra','add'),(2,'Astra','multiply')]]
+
+# Labeled level-12 badge from a verified card, usable for both game languages.
+add_digit(decode(ROOT/'data'/'deck-choice-tnt.png'),12,[54,392,109,458])
 
 def spell_caption_patterns(names):
     patterns={}
