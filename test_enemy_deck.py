@@ -20,4 +20,12 @@ class OpponentDeckRecognition(unittest.TestCase):
         self.assertEqual(vision.read_enemy_deck_caption(image,460,0)['name'],'TNT')
         self.assertEqual(vision.number(image,[480,560,546,625])['value'],13)
 
+class DraftEvidence(unittest.TestCase):
+    def test_goose_plus_five_is_normal_but_special_offers_are_not(self):
+        goose={'name':'Gans','action':'add','quantity':5}
+        self.assertTrue(vision.normal_draft_deck_evidence('battle_choice',False,[goose],False))
+        self.assertFalse(vision.normal_draft_deck_evidence('battle_choice',True,[goose],False))
+        self.assertFalse(vision.normal_draft_deck_evidence('battle_choice',False,[{'name':'Assassine','action':'add','quantity':12}],False))
+        self.assertFalse(vision.normal_draft_deck_evidence('battle_choice',False,[{'name':'Gans','action':'multiply_upgrade','quantity':2}],False))
+
 if __name__=='__main__': unittest.main()

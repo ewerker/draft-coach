@@ -1108,7 +1108,7 @@ function editTactic(rule){
   $('tactics-form-title').textContent=rule?'Erkenntnis bearbeiten':'Neue Erkenntnis';
   tacticsForm.reset();
   const text=rule?tacticText(rule,language):null;
-  if(rule)for(const name of ['mode','phase','offer','enemy','weight','status','action'])
+  if(rule)for(const name of ['mode','phase','offer','enemy','weight','status','action','condition'])
     tacticsForm.elements.namedItem(name).value=rule[name]??'';
   for(const field of ['title','reason'])tacticsForm.elements.namedItem(field).value=text?.[field]??'';
   const note=$('tactics-text-language');

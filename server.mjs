@@ -385,11 +385,12 @@ function validateTactic(data){
   if(data.id&&!previous)throw Error('Diese Taktikregel ist nicht mehr verfügbar.');
   const title=typeof data.title==='string'?data.title.trim():'';
   const reason=typeof data.reason==='string'?data.reason.trim():'';
-  const {mode,phase,offer,enemy,weight,status,action=previous?.action??''}=data;
+  const {mode,phase,offer,enemy,weight,status,action=previous?.action??'',condition=previous?.condition??''}=data;
   const cards=tacticCards();
   if(!title||title.length>100||!reason||reason.length>1500||!['draft','arena','beide'].includes(mode)||
     !['alle','deck_choice','battle_choice','spell_choice'].includes(phase)||!['notiz','test','aktiv'].includes(status)||
     !['','add','upgrade','multiply','multiply_upgrade','spell'].includes(action)||
+    !['','enemy_developed_no_observed_support'].includes(condition)||
     (offer!==''&&!cards.includes(offer))||(enemy!==''&&!cards.includes(enemy))||
     !Number.isInteger(weight)||Math.abs(weight)>20||(status!=='notiz'&&(!offer||weight===0)))
     throw Error('Prüfe die Angaben. Eine Testregel oder aktive Regel braucht eine Angebotskarte und ein Gewicht ungleich null.');
@@ -402,7 +403,7 @@ function validateTactic(data){
   }
   texts[textLanguage]={title,reason};
   return {...previous,id:previous?.id??randomBytes(12).toString('hex'),...(texts.de??texts.en),
-    texts,textLanguage,mode,phase,offer,enemy,weight,status,action};
+    texts,textLanguage,mode,phase,offer,enemy,weight,status,action,condition};
 }
 async function saveTactic(data){
   if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');

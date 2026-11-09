@@ -446,6 +446,13 @@ def match_outcome_small(small):
     return best if scores[best]>=.79 and scores[best]-scores[other]>=.10 else None
 
 
+def normal_draft_deck_evidence(phase,is_showdown,offers,comeback):
+    # Goose is normally offered as +5; that quantity alone is not a special round.
+    return (phase=='battle_choice' and not is_showdown and not comeback and
+            not any(card.get('action')=='multiply_upgrade' or
+                    ((card.get('quantity') or 0)>4 and not (card.get('name')=='Gans' and card.get('action')=='add' and card.get('quantity')==5))
+                    for card in offers))
+
 def recognize(path,preferred=None,language='de',learned_banners=()):
     start=time.perf_counter()
     caption_ms=0.0
@@ -556,9 +563,7 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
         special_step=None
     if special_step:
         notes.append(f'Showdown-Auswahl {special_step}/2 · mögliche Angebote aus der Sammlung.')
-    deck_evidence=(phase=='battle_choice' and not is_showdown and
-                   not any(card['action']=='multiply_upgrade' or (card['quantity'] or 0)>4 for card in offers) and
-                   not has_comeback_label(img))
+    deck_evidence=normal_draft_deck_evidence(phase,is_showdown,offers,has_comeback_label(img))
     enemy_started=time.perf_counter()
     enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') or (phase=='unknown' and hearts is not None) else None
     enemy_ms=(time.perf_counter()-enemy_started)*1000

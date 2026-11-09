@@ -531,3 +531,13 @@ test('research extraction requests constrained bilingual facts',async()=>{
   return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({facts:[{title_de:'Ritter',title_en:'Knight',reason_de:'Beobachtung',reason_en:'Observation',offer:'Ritter',enemy:'',source:'https://example.org/a',weight:1}]})}]}]})};
  });assert.equal(facts[0].offer,'Ritter');assert.equal(facts[0].source,'https://example.org/a');
 });
+
+test('Astra note needs a developed enemy and no observed allied support',()=>{
+  const rule={title:'Astra threatened',reason:'needs support',offer:'Astra',enemy:'Agent B',mode:'beide',phase:'battle_choice',status:'notiz',weight:-3,condition:'enemy_developed_no_observed_support'};
+  const base={phase:'battle_choice',offers:[{name:'Astra',action:'add',quantity:2}],enemy:[{name:'Agent B',action:'upgrade'}],ownReinforcements:{Astra:4}};
+  const score=x=>recommend(x,'arena',collection,db,false,[rule]).evaluated[0].delta;
+  assert.equal(score(base),-3);
+  assert.equal(score({...base,enemy:[{name:'Agent B',action:'add'}]}),0);
+  assert.equal(score({...base,ownReinforcements:{Astra:4,'Agent B':2}}),0);
+  assert.equal(score({...base,ownReinforcements:{}}),0);
+});

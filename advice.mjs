@@ -149,7 +149,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     const applicable=rules.filter(rule=>rule.offer===offer.name&&
       (rule.mode==='beide'||rule.mode===mode)&&(rule.phase==='alle'||rule.phase===result.phase)&&
       (!rule.action||rule.action===offer.action||rule.action==='upgrade'&&offer.action==='multiply_upgrade')&&
-      (!rule.enemy||enemy.includes(rule.enemy)));
+      (!rule.enemy||enemy.includes(rule.enemy))&&
+      (!rule.condition||(rule.condition==='enemy_developed_no_observed_support'&&
+        (result.enemy??[]).some(card=>card.name===rule.enemy&&['upgrade','multiply','multiply_upgrade'].includes(card.action))&&
+        (tracked[offer.name]??0)>0&&Object.entries(tracked).every(([name,count])=>name===offer.name||!(count>0)))));
     const established=applicable.filter(rule=>rule.status==='aktiv'||includeTests&&rule.status==='test');
     // Notes need explicit structured criteria and a weight; free text alone is not executable.
     const notes=applicable.filter(rule=>rule.status==='notiz'&&Number.isInteger(rule.weight)&&rule.weight!==0&&
