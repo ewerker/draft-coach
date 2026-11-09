@@ -224,6 +224,12 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=18;
       why+=' Viele Assassinen sind bereits beobachtet; Sniper ergänzt Fernkampf gegen Boomlinge.';
     }
+    const enemyAgentDeveloped=(result.enemyAdditions?.['Agent B']??0)>=4||
+      (result.enemy??[]).some(card=>card.name==='Agent B'&&['upgrade','multiply','multiply_upgrade'].includes(card.action));
+    if(result.phase==='battle_choice'&&offer.name==='Schnecke'&&enemyAgentDeveloped){
+      score-=18;
+      why+=' Schnecke zurückstellen: Der Gegner hat Agent B verstärkt; Schutz und Alternativen prüfen.';
+    }
     if(result.phase==='battle_choice'&&snail&&offer.name==='Agent B'&&
        offer.action==='add'&&(offer.quantity??0)>=2&&(tracked['Agent B']??0)<4){
       score+=26;

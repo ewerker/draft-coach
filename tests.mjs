@@ -586,3 +586,12 @@ test('build Agent B early against an observed enemy Snail without overprioritizi
  assert.ok(early.evaluated[0].score>later.evaluated[0].score);
  const noSnail=recommend({...frame,enemy:[{name:'Ritter'}]},'arena',collection,db);assert.ok(early.evaluated[0].score>noSnail.evaluated[0].score);
 });
+
+test('developed enemy Agent B reduces Snail reinforcement without assuming an unknown build-up',()=>{
+ const frame={phase:'battle_choice',enemy:[{name:'Agent B',action:'upgrade'}],offers:[{name:'Schnecke',action:'add',quantity:1},{name:'Agent B',action:'add',quantity:2},{name:'Sniper',action:'add',quantity:2}]};
+ const get=x=>recommend(x,'arena',collection,db).evaluated[0];
+ const developed=get(frame);const basic=get({...frame,enemy:[{name:'Agent B',action:'add'}]});
+ assert.equal(basic.score-developed.score,18);
+ assert.match(developed.reason,/Schnecke zurückstellen/);
+ assert.equal(get({...frame,enemy:[{name:'Agent B',action:'add'}],enemyAdditions:{'Agent B':4}}).score,developed.score);
+});
