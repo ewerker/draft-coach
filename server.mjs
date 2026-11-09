@@ -15,7 +15,7 @@ import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
 import {makeReviewFrame,selectEvidenceIds,followVariantChoice,observeVariantEvidence,reviewReplay} from './review.mjs';
-import {answerTactics,proposeReview,translateTactic} from './review-gpt.mjs';
+import {answerTactics,proposeReview,translateTactic,extractResearchFacts} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
 const {version,build}=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8'));
@@ -409,7 +409,7 @@ async function saveTactic(data){
   const updated=validateTactic(data);
   const previous=tactics.find(rule=>rule.id===updated.id);
   const next=previous?tactics.map(rule=>rule===previous?updated:rule):[...tactics,updated];
-  const saved=await persistTactics(next,previous?.status==='aktiv'||updated.status==='aktiv');
+  const saved=await persistTactics(next,previous?.status==='aktiv'||updated.status==='aktiv'||previous?.status==='notiz'&&previous.weight!==0||updated.status==='notiz'&&updated.weight!==0);
   const from=updated.textLanguage,to=from==='en'?'de':'en';
   const target=updated.texts[to];
   if(!openAiKey()||(target&&(!target.machine||!target.stale)))return saved;
@@ -429,7 +429,7 @@ async function deleteTactic(id){
   if(savingTactics)throw Error('Bitte warte, bis die laufende Speicherung fertig ist.');
   const previous=tactics.find(rule=>rule.id===id);
   if(!previous)throw Error('Diese Taktikregel ist nicht mehr verfügbar.');
-  return persistTactics(tactics.filter(rule=>rule!==previous),previous.status==='aktiv');
+  return persistTactics(tactics.filter(rule=>rule!==previous),previous.status==='aktiv'||previous.status==='notiz'&&previous.weight!==0);
 }
 function tacticLibrary(){
   return {rules:tactics,cards:tacticCards(),baseCount:db.length};
@@ -1305,6 +1305,34 @@ async function handleRequest(req,res){
       if(url.pathname==='/api/admin/archiv/uebernehmen'){
         if(state.auto||state.capturing||queue.running)throw Error('Für den Archivimport zuerst die Aufnahme stoppen.');
         return json(res,200,await archive.archiveGames());
+      }
+      if(url.pathname==='/api/taktikregeln/recherche'){
+        if(!openAiKey())throw Error('Für die Internetrecherche zuerst den OpenAI-API-Key einrichten.');
+        if(quickAiBusy||savingTactics)throw Error('Eine Recherche oder Speicherung läuft bereits.');
+        quickAiBusy=true;
+        try{
+          const language=data.language==='en'?'en':'de', cards=tacticCards();
+          const question='Research Draft Showdown game community and official sources for recent, concrete unit and spell tactics, counters and synergies. Look beyond previously known forums. Separate observations from confirmed mechanics.';
+          const research=await answerTactics({key:openAiKey(),model:quickModel(),language,question,webSearch:true,
+            knowledge:{cards:cards.map(name=>[name,EN_CARD_NAMES[name]??name]),known:tactics.map(rule=>rule.title).slice(0,200)}});
+          const sources=[...new Set(research.citations.map(c=>c.url).filter(url=>url.length<=350))];
+          if(!sources.length)return json(res,200,{...tacticLibrary(),added:0,sources:0});
+          const facts=await extractResearchFacts({key:openAiKey(),model:quickModel(),summary:research.summary,sources,cards});
+          const next=[...tactics];let added=0;
+          for(const fact of facts){
+            if(!sources.includes(fact.source)||!fact.title_de?.trim()||!fact.title_en?.trim()||!fact.reason_de?.trim()||!fact.reason_en?.trim())continue;
+            const offer=cards.includes(fact.offer)?fact.offer:'',enemy=cards.includes(fact.enemy)?fact.enemy:'';
+            const weight=offer&&Number.isInteger(fact.weight)?Math.max(-3,Math.min(3,fact.weight)):0;
+            const title=fact.title_de.trim().slice(0,100),reason=(fact.reason_de.trim().slice(0,1000)+' '+fact.source).slice(0,1500);
+            if(next.some(rule=>normalizeTacticText(rule.title).toLowerCase()===normalizeTacticText(title).toLowerCase()||
+              normalizeTacticText(rule.reason).toLowerCase()===normalizeTacticText(reason).toLowerCase()))continue;
+            const rule=validateTactic({title,reason,mode:'beide',phase:'alle',offer,enemy,weight,status:'notiz',textLanguage:'de',
+              texts:{en:{title:fact.title_en.trim().slice(0,100),reason:(fact.reason_en.trim().slice(0,1000)+' '+fact.source).slice(0,1500),machine:true}}});
+            next.push({...rule,researchSource:fact.source,researchDate:new Date().toISOString()});added++;
+          }
+          if(added){if(savingTactics)throw Error('Taktikregeln werden gerade gespeichert.');await persistTactics(next,next.slice(tactics.length).some(rule=>rule.weight!==0));}
+          return json(res,200,{...tacticLibrary(),added,sources:sources.length});
+        }finally{quickAiBusy=false;}
       }
       if(url.pathname==='/api/taktikregeln/loeschen')return json(res,200,await deleteTactic(data.id));
       if(url.pathname==='/api/schnellauskunft'){

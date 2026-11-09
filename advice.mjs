@@ -146,11 +146,16 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     (tracked.Spartheus??0)>=6&&(tracked['Kapitän']??0)<2;
   const evaluated=(result.offers||[]).map((offer,index)=>{
     const reinforcement=reinforcementValue(result,offer);
-    const applied=rules.filter(rule=>rule.offer===offer.name&&
-      (rule.status==='aktiv'||includeTests&&rule.status==='test')&&
+    const applicable=rules.filter(rule=>rule.offer===offer.name&&
       (rule.mode==='beide'||rule.mode===mode)&&(rule.phase==='alle'||rule.phase===result.phase)&&
       (!rule.action||rule.action===offer.action||rule.action==='upgrade'&&offer.action==='multiply_upgrade')&&
       (!rule.enemy||enemy.includes(rule.enemy)));
+    const established=applicable.filter(rule=>rule.status==='aktiv'||includeTests&&rule.status==='test');
+    // Notes need explicit structured criteria and a weight; free text alone is not executable.
+    const notes=applicable.filter(rule=>rule.status==='notiz'&&Number.isInteger(rule.weight)&&rule.weight!==0&&
+      !established.some(active=>!active.enemy||!rule.enemy||active.enemy===rule.enemy))
+      .map(rule=>({...rule,weight:Math.max(-4,Math.min(4,rule.weight))}));
+    const applied=[...established,...notes];
     let ruleOnly=!CARDS.some(card=>card.name===offer.name);
     const isChoice=['deck_choice','battle_choice'].includes(result.phase);
     const spellChoice=result.phase==='spell_choice'&&offer.action==='spell';
@@ -266,7 +271,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=32;
       why+=' Sniper priorisiert, weil Schnecke die einzige erkannte Gegnerfigur ist.';
     }
-    const delta=Math.max(-25,Math.min(25,applied.reduce((total,rule)=>total+rule.weight,0)));
+    const confirmedDelta=established.reduce((total,rule)=>total+rule.weight,0);
+    const noteDelta=Math.max(-4,Math.min(4,notes.reduce((total,rule)=>total+rule.weight,0)));
+    const delta=Math.max(-25,Math.min(25,confirmedDelta+noteDelta));
+    if(noteDelta)why+=' Unbestätigte, schwach gewichtete Notiz berücksichtigt.';
     return {index,name:offer.name,score:Math.round((score+delta)*10)/10,reason:why,ruleOnly,delta,
       rules:applied.map(({title,reason,texts,weight,status})=>({title,reason,texts,weight,status}))};
   });

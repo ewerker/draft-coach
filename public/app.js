@@ -1166,6 +1166,17 @@ function renderTacticList(){
   }
   if(!matches.length)list.append(textEl('p','Keine passenden Regeln.','muted'));
 }
+$('research-tactics').onclick=async()=>{
+  const button=$('research-tactics');if(button.disabled)return;
+  button.disabled=true;$('tactics-message').textContent=translate('Internetrecherche läuft …',language);
+  try{
+    const result=await post('/api/taktikregeln/recherche',{language});
+    renderTactics(result);
+    $('tactics-message').textContent=translate('Internetrecherche abgeschlossen.',language)+' '+
+      (language==='en'?`${result.added} new notes, ${result.sources} sources.`:`${result.added} neue Notizen, ${result.sources} Quellen.`);
+  }catch(error){$('tactics-message').textContent=error.message;}
+  finally{button.disabled=false;}
+};
 $('tactics-search').oninput=renderTacticList;
 $('tactics-filter').onchange=renderTacticList;
 async function openTactics(){
@@ -1212,14 +1223,16 @@ tacticsForm.onsubmit=async event=>{
 function renderTacticFeedback(result){
   const feedback=$('tactic-feedback');
   const {trial,evaluated=[]}=result?.advice||{};
-  const applied=evaluated.filter(card=>card.rules?.length);
+  const applied=evaluated.filter(card=>card.rules?.some(rule=>rule.status==='aktiv'));
+  const noted=evaluated.filter(card=>card.rules?.some(rule=>rule.status==='notiz'));
   const tested=trial?.evaluated.filter(card=>card.rules?.some(rule=>rule.status==='test'))||[];
   const summary=[];
-  if(applied.length)summary.push('Aktive Regeln · '+applied.map(card=>`${card.name} ${card.delta>0?'+':''}${card.delta}`).join(', '));
+  if(applied.length)summary.push('Aktive Regeln · '+applied.map(card=>card.name).join(', '));
+  if(noted.length)summary.push((language==='en'?'Unconfirmed notes':'Unbestätigte Hinweise')+' · '+noted.map(card=>card.name).join(', '));
   if(tested.length&&trial.pick)summary.push(`Testvorschau · ${pos[trial.pick.index]} · ${trial.pick.name}`);
   feedback.hidden=!summary.length;
   feedback.textContent=displayCardNames(summary.join(' | '));
-  feedback.title=displayCardNames([...new Set([...applied,...tested].flatMap(card=>card.rules.flatMap(rule=>{const text=tacticText(rule,language);return text?[text.title+' · '+text.reason]:[];})))].join('\n'));
+  feedback.title=displayCardNames([...new Set([...applied,...noted,...tested].flatMap(card=>card.rules.flatMap(rule=>{const text=tacticText(rule,language);return text?[text.title+' · '+text.reason]:[];})))].join('\n'));
 }
 const hiddenReferenceKey='draft-coach.hidden-references';
 let hiddenReferences=new Set();

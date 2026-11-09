@@ -1,7 +1,7 @@
 import {followVariantChoice,observeVariantEvidence,makeReviewFrame,selectEvidenceIds} from './review.mjs';
 import {createArchive} from './archive.mjs';
 import {DatabaseSync} from 'node:sqlite';
-import {answerTactics,proposeReview} from './review-gpt.mjs';
+import {answerTactics,proposeReview,extractResearchFacts} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
@@ -513,4 +513,21 @@ test('optional AI web search returns validated source citations',async()=>{
     return {ok:true,json:async()=>({status:'completed',output:[{type:'message',content:[{type:'output_text',text:'Eine Beobachtung.',annotations:[{type:'url_citation',url:'https://example.org/astra',title:'Quelle',end_index:18},{type:'url_citation',url:'javascript:alert(1)',end_index:18}]}]}]})};
   });
   assert.equal(answer.summary,'Eine Beobachtung.');assert.equal(answer.citations.length,1);assert.equal(answer.citations[0].url,'https://example.org/astra');
+});
+
+test('weighted notes apply weakly only where active rules do not supersede them',()=>{
+  const result={phase:'battle_choice',enemy:[{name:'Agent B'}],offers:[{name:'Ritter',action:'add',quantity:2}]};
+  const note={title:'unconfirmed',reason:'maybe',offer:'Ritter',enemy:'Agent B',mode:'beide',phase:'alle',status:'notiz',weight:12};
+  const score=rules=>recommend(result,'arena',collection,db,false,rules).evaluated[0];
+  assert.equal(score([note]).delta,4);
+  assert.equal(score([{...note,weight:0}]).delta,0);
+  const active={...note,title:'confirmed',status:'aktiv',weight:-7};
+  assert.equal(score([note,active]).delta,-7);
+  assert.ok(score([note]).reason.includes('Unbestätigte'));
+});
+test('research extraction requests constrained bilingual facts',async()=>{
+ const facts=await extractResearchFacts({key:'test',model:'test',summary:'An observation',sources:['https://example.org/a'],cards:['Ritter']},async(url,options)=>{
+  const body=JSON.parse(options.body);assert.equal(body.text.format.type,'json_schema');
+  return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({facts:[{title_de:'Ritter',title_en:'Knight',reason_de:'Beobachtung',reason_en:'Observation',offer:'Ritter',enemy:'',source:'https://example.org/a',weight:1}]})}]}]})};
+ });assert.equal(facts[0].offer,'Ritter');assert.equal(facts[0].source,'https://example.org/a');
 });

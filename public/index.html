@@ -46,6 +46,7 @@
   <details><summary>Wie bearbeite ich zweisprachige Taktikregeln?</summary><p>Der Sprachschalter bestimmt im Regeleditor die Sprache von Titel und Begründung. Karten, Bedingungen, Gewicht und Status gelten gemeinsam. Mit einem API-Key ergänzt der Coach beim Speichern fehlende Sprachfassungen und aktualisiert veraltete maschinelle Übersetzungen. Handbearbeitete Fassungen bleiben erhalten und werden bei Bedarf zur Prüfung markiert. Falls die Übersetzung fehlschlägt, bleibt der Originaltext gespeichert.</p></details>
   <details><summary>Wie lernt der Coach aus einer Partie?</summary><p>Speichere nach Stopp das Ergebnis. Öffne am Host-PC Partie auswerten, lade ein Wahlfenster und vergleiche Tipp und gesendeten Klick. Speichere deine bevorzugte Wahl oder eine Beobachtung als Prüffall. Neue Regeln kannst du im Replay prüfen, als Testregel übernehmen, aktivieren und zurücknehmen. Eine korrigierte rote Gegneranzeige wird als Vorlage für ihre Spielsprache gespeichert. Der optionale GPT-Entwurf verwendet die ausgewählten Textdaten und überträgt den Kartenausschnitt nur, wenn du ihn ausdrücklich auswählst.</p></details>
   <details><summary>Wie funktioniert die Internetrecherche in der Schnellauskunft?</summary><p>Wähle Standalone-KI und aktiviere die Internetrecherche. Die Frage und passende lokale Hinweise werden an den KI-Dienst gesendet; dabei können zusätzliche Kosten entstehen. Gefundene Aussagen mit Quellen werden als unbestätigte Notiz in den Taktikregeln gespeichert und beeinflussen die Spieltipps nicht automatisch. Ohne Quellen wird nichts gespeichert.</p></details>
+  <details><summary>Wie erweitere ich die Taktikdatenbank?</summary><p>Unter Taktikregeln startet Internetrecherche starten einen einmaligen KI-Recherchelauf mit Quellen. Pro Lauf werden bis zu acht neue Hinweise als Notizen in Deutsch und Englisch gespeichert. Eine passend zugeordnete Notiz mit Gewicht kann die Tipps schwach beeinflussen; eine aktive Regel hat Vorrang. Bearbeite eine Notiz und ändere ihren Status auf Testvorschau oder Aktiv, um sie zu prüfen oder stärker zu verwenden. Die Recherche benötigt einen API-Key und kann zusätzliche Kosten verursachen.</p></details>
   <details><summary>Was enthält die Sicherung?</summary><p>Unter Admin · Archiv übernimmst du abgeschlossene Partien und lädst die SQLite-Sicherung herunter. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek wird separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
 </section>
 <section id="review-panel" class="panel" hidden>
@@ -171,7 +172,7 @@
 </section>
 <section id="tactics-panel" class="panel" aria-labelledby="tactics-title" hidden>
   <div class="panel-head"><h2 id="tactics-title">Taktikregeln <span id="tactics-total" class="pill"></span></h2><button id="close-tactics" type="button" class="small">Zurück zum Spiel</button></div>
-  <p class="muted">Eine Notiz hält Wissen fest. Eine Testregel zeigt eine Vorschau. Eine aktive Regel beeinflusst den Tipp.</p>
+  <p class="muted">Eine zugeordnete, gewichtete Notiz kann den Tipp schwach beeinflussen, sofern keine passende aktive Regel vorliegt. Eine Testregel zeigt eine Vorschau. Eine aktive Regel hat Vorrang.</p>
   <p id="tactics-sources" class="muted"></p>
   <div class="tactics-layout">
   <div>
@@ -179,6 +180,7 @@
     <label>Regeln durchsuchen <input id="tactics-search" type="search" placeholder="z. B. Verwüster, Kapitän"></label>
     <label>Status filtern <select id="tactics-filter"><option value="">Alle</option><option value="aktiv">Aktiv</option><option value="test">Testvorschau</option><option value="notiz">Notiz</option></select></label>
     <button id="new-tactic" type="button">Neue Erkenntnis</button>
+    <button id="research-tactics" type="button">Internetrecherche starten</button>
   </div>
   <p id="tactics-found" class="muted" role="status"></p>
   <div id="tactics-list" class="tactics-list"></div>
