@@ -1,9 +1,11 @@
-import {followVariantChoice,observeVariantEvidence} from './review.mjs';
+import {followVariantChoice,observeVariantEvidence,makeReviewFrame,selectEvidenceIds} from './review.mjs';
+import {createArchive} from './archive.mjs';
+import {DatabaseSync} from 'node:sqlite';
 import {answerTactics,proposeReview} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import {readFile,writeFile,rename,unlink,mkdtemp,rm} from 'node:fs/promises';
+import {readFile,writeFile,rename,unlink,mkdtemp,rm,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {tmpdir} from 'node:os';
 import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
@@ -453,4 +455,44 @@ test('opponent moves preserve the known lineup and caption evidence wins over un
   assert.deepEqual(mergeEnemyEvent(null,{name:'Maulwurf',action:'add',box:[1,2,3,4]}),{name:'Maulwurf',action:'add'});
   assert.equal(preferEnemyDeckCard({name:'Splime',similarity:.9},{name:'Obergeist',similarity:.84,nameSource:'opponent-deck-caption'}),true);
   assert.equal(preferEnemyDeckCard({name:'Obergeist',similarity:.84,nameSource:'opponent-deck-caption'},{name:'Splime',similarity:.95}),false);
+});
+
+test('review keeps current image detections separate from earlier opponent evidence',()=>{
+  const match={enemyDeck:new Map([[0,{name:'Obergeist',position:0}]]),enemyEvents:new Map(),ownDeckPicks:new Set(['Ritter']),enemyAdditions:new Map(),ownReinforcements:new Map()};
+  const raw={enemy:[],own:[{name:'Ritter'}],enemyEvent:{name:'Maulwurf',quantity:3},visionMs:42};
+  const item={id:7,phase:'battle_choice',enemy:[{name:'Obergeist'}],own:[],offers:[],ageMs:70,expired:false};
+  const frame=makeReviewFrame({started:100,gameLanguage:'en',mode:'arena',captureMs:20},raw,item,match);
+  assert.deepEqual(frame.observedInFrame.enemy,[]);
+  assert.equal(frame.knownState.enemyDeck[0].name,'Obergeist');
+  assert.equal(frame.observedInFrame.enemyEvent.name,'Maulwurf');
+  assert.equal(frame.observedInFrame.own[0].name,'Ritter');
+  raw.own[0].name='Changed';
+  assert.equal(frame.observedInFrame.own[0].name,'Ritter');
+  assert.equal(frame.language,'en');
+});
+test('review evidence is bounded and covers the match',()=>{
+  const captureIds=Array.from({length:150},(_,i)=>i+1);
+  const game={captureIds,resultCapture:150,reviewFrames:captureIds.map(id=>({id,phase:id<40?'deck_choice':'battle_choice'}))};
+  const ids=selectEvidenceIds(game);
+  assert.equal(ids.length,80);
+  assert.ok(ids.includes(1)&&ids.includes(150)&&ids.some(id=>id>80&&id<145));
+});
+test('archive saves more than five relevant images with review metadata',async()=>{
+  const dir=await mkdtemp(path.join(tmpdir(),'coach-evidence-'));
+  try {
+    const runtime=path.join(dir,'runtime');await mkdir(runtime);
+    const png=await readFile(new URL('./data/opponent-deck-30830.png',import.meta.url));
+    const captureIds=Array.from({length:8},(_,i)=>i+1);
+    for(const id of captureIds)await writeFile(path.join(runtime,`capture-${id}.png`),png);
+    const game={id:'review-evidence',mode:'arena',outcome:'gewonnen',started:1,ended:10,captureIds,reviewFrames:captureIds.map(id=>({id,phase:'battle_choice',observedInFrame:{enemy:[],own:[]}}))};
+    await writeFile(path.join(runtime,'partien.jsonl'),JSON.stringify(game)+'\n');
+    await writeFile(path.join(runtime,'antippen.jsonl'),'');
+    const file=path.join(dir,'archive.sqlite3');const archive=createArchive(file,runtime);
+    await archive.initializeReview();const result=await archive.archiveGames();
+    assert.equal(result.images,8);
+    const db=new DatabaseSync(file,{readOnly:true});
+    try{const row=db.prepare('SELECT details_json FROM partie_protokoll WHERE partie_id=?').get(game.id);assert.equal(JSON.parse(row.details_json).reviewFrames.length,8);}finally{db.close();}
+    const reviewed=await archive.review.match(game.id);assert.equal(reviewed.frames.length,8);
+    assert.deepEqual(await archive.review.image(reviewed,3),png);
+  } finally {await rm(dir,{recursive:true,force:true});}
 });

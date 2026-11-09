@@ -29,7 +29,7 @@ Die folgenden Referenzaufnahmen wurden mit der lokalen Erkennung und der origina
 | **Bedienung** | Tipps vorlesen, Klicks akustisch melden, das Gerät im Screenshot antippen und auf Wunsch geprüfte Tipps automatisch antippen. |
 | **Vorbereitung** | Überlappende Aufnahmen der Einheiten- und Zaubersammlung zusammenführen und aktive Aufstellungen erfassen. Wiederholt sicher gelesene höhere Kartenwerte können Stufe und Sterne in der Sammlung aktualisieren. |
 | **Taktik** | Regeln suchen, anlegen, gewichten, testen, ändern und löschen. Die Schnellauskunft beantwortet Fragen zu Kontern und Synergien aus dem lokalen Lexikon. Eine Websuche lässt sich separat öffnen. |
-| **Archiv** | Partieergebnisse erfassen. Am Host-PC abgeschlossene Partien mit bis zu fünf vorhandenen Belegbildern je Partie ins SQLite-Archiv übernehmen und eine Sicherung herunterladen. |
+| **Archiv** | Partieergebnisse erfassen. Am Host-PC abgeschlossene Partien mit bis zu 80 ausgewählten vorhandenen Belegbildern je Partie ins SQLite-Archiv übernehmen und eine Sicherung herunterladen. |
 
 ## In wenigen Schritten starten
 

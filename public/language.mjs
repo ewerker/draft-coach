@@ -185,7 +185,7 @@ Im Automodus bleibt normalerweise das letzte erkannte Wahlfenster im Bild. Mit �
 Wo finde ich Taktikwissen und Partien?|Where can I find tactics and matches?
 „Schnellauskunft“ beantwortet Fragen aus dem lokalen Lexikon. Unter „Taktikregeln“ bearbeitest du die Regeln. „Admin · Archiv“ steht am Host-PC zur Verfügung. Dort übernimmst du gespeicherte Partieergebnisse ins Archiv und lädst eine SQLite-Sicherung herunter.|“Quick Advice” answers from the local knowledge base. “Tactical rules” lets you edit the rules. “Admin · Archive” is available on the host PC for archiving match results and downloading a SQLite backup.
 Admin · Archiv|Admin · Archive
-Das SQLite-Archiv sammelt abgeschlossene Partien, Klickprotokolle und ausgewählte Belegbilder. Pro neuer Partie übernimmt der Coach bis zu fünf noch vorhandene Bilder.|The SQLite archive holds completed matches, tap logs and selected evidence images. Up to five available images are saved per new match.
+Das SQLite-Archiv sammelt abgeschlossene Partien, Klickprotokolle und ausgewählte Belegbilder. Pro Partie sichert der Coach bis zu 80 ausgewählte, noch vorhandene Bilder für die spätere Prüfung.|The SQLite archive holds completed matches, tap logs and selected evidence images. Up to 80 selected available images are saved per match for later review.
 Neue Partien übernehmen|Archive new matches
 Stand aktualisieren|Refresh archive status
 SQLite-Sicherung herunterladen|Download SQLite backup

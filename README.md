@@ -29,7 +29,7 @@ These reference captures were analysed locally and rendered with the Coach's own
 | Interaction | Optional spoken recommendations, browser audio feedback, manual screen taps, and optional automatic taps when the current choice passes verification. |
 | Preparation | Import overlapping unit and spell collection screenshots and record active lineups. Repeated high-confidence readings can update the stored level and stars of owned units. |
 | Tactics | Search, create, edit, weight, test, and delete rules. Quick Advice searches the local knowledge base for counters, combinations, and follow-up questions. An optional button opens a web search. |
-| Archive | Record match outcomes. On the host PC, import completed matches into SQLite, retain up to five available evidence images per match, and download a database backup. |
+| Archive | Record match outcomes. On the host PC, import completed matches into SQLite, retain up to 80 selected available evidence images per match, and download a database backup. |
 
 ## Start on Windows
 

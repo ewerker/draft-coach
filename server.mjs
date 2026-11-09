@@ -14,7 +14,7 @@ import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
-import {followVariantChoice,observeVariantEvidence,reviewReplay} from './review.mjs';
+import {makeReviewFrame,selectEvidenceIds,followVariantChoice,observeVariantEvidence,reviewReplay} from './review.mjs';
 import {answerTactics,proposeReview,translateTactic} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
@@ -507,6 +507,7 @@ function record(job,result) {
     observeVariantEvidence(match,job,result,choiceSignature(result));
     for(const name of ambiguousReinforcementNames(result.offers))match.ownVariantUncertain.add(name);
   }
+  const rawRecognition=result;
   result=withObservedEnemies(result,job);
   const ageMs=Date.now()-job.started;
   const expired=job.source!=='reference' && ageMs>6000;
@@ -543,10 +544,8 @@ function record(job,result) {
   }
   const cardChoice=choiceSignature(item,true);
   if(job.source!=='reference'&&state.mode!=='auto'&&job.matchId&&job.matchId===match?.id&&
-     (cardChoice||item.phase==='spell_choice')){
-    const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
-    match.reviewFrames.push({id:item.id,language:job.gameLanguage,phase,offers,enemy,own,ownDeckPicks,
-      ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice});
+     (['deck_choice','battle_choice','spell_choice'].includes(item.phase)||rawRecognition.enemyEvent)){
+    match.reviewFrames.push(makeReviewFrame(job,rawRecognition,item,match));
   }
   if(job.source!=='reference'&&(cardChoice||item.phase==='spell_choice'))latestRelevant=item;
   if(job.source!=='reference'&&cardChoice){
@@ -835,7 +834,9 @@ async function trimRuntime(){
     .map(file=>({file,match:capturePattern.exec(file)}))
     .filter(entry=>entry.match)
     .sort((a,b)=>Number(b.match[1])-Number(a.match[1]));
-  for(const {file} of captures.slice(captureLimit))await unlink(path.join(RUNTIME,file)).catch(()=>{});
+  // Preserve the chosen review images of an unfinished match until it can be archived.
+  const protectedIds=new Set([...(activeMatch?selectEvidenceIds(activeMatch):[]),...(stoppedMatch?selectEvidenceIds(stoppedMatch):[])]);
+  for(const {file,match} of captures.slice(captureLimit))if(!protectedIds.has(Number(match[1])))await unlink(path.join(RUNTIME,file)).catch(()=>{});
 }
 async function capture({probe = false, scheduled = false, interruptible = scheduled} = {}) {
   if(state.capturing||manualTapPending)throw Error('Eine Aufnahme oder Kartenauswahl läuft bereits.');
@@ -1121,7 +1122,7 @@ async function saveMatchOutcome({matchId,outcome}){
       addMatchStats(game);
     }
     if(stoppedMatch===match)stoppedMatch=null;
-    if(resultCapture||variantEvidence.length)void archive.archiveGames(id).catch(error=>console.error('Partiebelege:',error.message));
+    void archive.archiveGames(id).catch(error=>console.error('Partiebelege:',error.message));
     return {ok:true};
   } finally {match.saving=false;}
 }

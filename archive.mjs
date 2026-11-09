@@ -1,4 +1,4 @@
-import {reviewQueries,reviewSchema} from './review.mjs';
+import {reviewQueries,reviewSchema,selectEvidenceIds} from './review.mjs';
 import {DatabaseSync,backup} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {createReadStream,existsSync} from 'node:fs';
@@ -127,11 +127,7 @@ export function createArchive(file,runtime){
 }
 
 async function pickEvidence(runtime,game,ids){
-  const captures=[...ids];
-  const hearts=(game.heartTimeline??[]).map(entry=>entry.captureId).filter(id=>ids.has(id));
-  const variants=(game.variantEvidence??[]).flatMap(({before,after})=>[before,after]).filter(id=>ids.has(id));
-  const result=ids.has(game.resultCapture)?game.resultCapture:undefined;
-  const candidates=new Set([result,...variants,captures.at(-1),captures[0],...hearts.reverse(),...captures.slice(-12).reverse()]);
+  const candidates=selectEvidenceIds(game);
   const evidence=[];
   for(const id of candidates){
     if(id===undefined)continue;
@@ -142,7 +138,7 @@ async function pickEvidence(runtime,game,ids){
     });
     if(!png||png.length<24||png.readUInt32BE(0)!==0x89504e47)continue;
     evidence.push({id,name,png});
-    if(evidence.length===5)break;
+    if(evidence.length===80)break;
   }
   return evidence;
 }

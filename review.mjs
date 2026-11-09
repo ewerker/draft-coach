@@ -41,6 +41,37 @@ export function observeVariantEvidence(match,job,result,choice){
   match.pendingVariantEvidence=null;
 }
 
+// Keep a bounded, representative set of evidence, including deck and enemy events.
+export function selectEvidenceIds(game, limit=80){
+  const ids=new Set((game.captureIds??[]).filter(Number.isSafeInteger));
+  const frames=(game.reviewFrames??[]).filter(frame=>ids.has(frame.id));
+  const selected=new Set();
+  const add=id=>{if(ids.has(id)&&selected.size<limit)selected.add(id);};
+  add(game.resultCapture); add(game.captureIds?.[0]); add(game.captureIds?.at(-1));
+  for(const v of game.variantEvidence??[]){add(v.before);add(v.after);}
+  let priority=0;
+  for(const frame of frames)if((frame.phase==='deck_choice'||frame.observedInFrame?.enemyEvent)&&priority<20){add(frame.id);priority++;}
+  // Sample across the whole match when there are more relevant frames than space.
+  const remaining=frames.filter(frame=>!selected.has(frame.id));
+  const slots=Math.max(0,limit-selected.size);
+  if(remaining.length<=slots)for(const frame of remaining)add(frame.id);
+  else if(slots===1)add(remaining[Math.floor((remaining.length-1)/2)].id);
+  else for(let i=0;i<slots;i++)add(remaining[Math.round(i*(remaining.length-1)/(slots-1))].id);
+  for(const heart of [...(game.heartTimeline??[])].reverse())add(heart.captureId);
+  for(const id of [...(game.captureIds??[])].reverse())add(id);
+  return [...selected];
+}
+
+export function makeReviewFrame(job,raw,item,match){
+  const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
+  return structuredClone({id:item.id,capturedAt:job.started,language:job.gameLanguage,mode:job.mode,phase,offers,enemy,own,ownDeckPicks,
+    ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice,
+    observedInFrame:{enemy:raw.enemy??[],own:raw.own??[],enemyEvent:raw.enemyEvent??null},
+    knownState:{enemyDeck:[...match.enemyDeck.values()],enemyEvents:[...match.enemyEvents.values()],
+      ownDeckPicks:[...match.ownDeckPicks],enemyAdditions:Object.fromEntries(match.enemyAdditions),ownReinforcements:Object.fromEntries(match.ownReinforcements)},
+    timings:{captureMs:job.captureMs??null,visionMs:raw.visionMs??null,ageMs:item.ageMs},expired:item.expired});
+}
+
 export function reviewReplay(frame, mode, collection, db, rules, proposed){
   const score=list=>{
     const result=recommend(frame,mode,collection,db,false,list);
