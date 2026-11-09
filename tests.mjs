@@ -571,7 +571,10 @@ test('standalone build identity is stamped, version-specific and never guessed',
   assert.equal(await resolveBuild(dir,'0.7.0-beta'),null);
   await mkdir(path.join(dir,'runtime'));
   await writeFile(path.join(dir,'runtime','build-info.json'),JSON.stringify({version:'0.7.0-beta',number:112,commit:'abcdef123456'}));
-  assert.deepEqual(await resolveBuild(dir,'0.7.0-beta'),{number:112,commit:'abcdef123456',dirty:false,source:'stamp'});
+  assert.deepEqual(await resolveBuild(dir,'0.7.0-beta'),{number:112,commit:'abcdef123456',dirty:false,source:'stamp',differences:[]});
   assert.equal(await resolveBuild(dir,'0.8.0-beta'),null);
+  await writeFile(path.join(dir,'runtime','build-info.json'),JSON.stringify({version:'0.7.0-beta',number:112,commit:'abcdef123456',dirty:true,differences:['vision.py']}));
+  assert.deepEqual((await resolveBuild(dir,'0.7.0-beta')).differences,['vision.py']);
+  assert.equal((await resolveBuild(dir,'0.7.0-beta')).dirty,true);
  }finally{await rm(dir,{recursive:true,force:true});}
 });

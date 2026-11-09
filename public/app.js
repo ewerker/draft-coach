@@ -354,7 +354,8 @@ $('suggest-lineup').onclick=async()=>{
 };
 function showSavedCollection(collection) {
   const commit=config.buildInfo?.commit?' · '+config.buildInfo.commit:'';
-  const dirty=config.buildInfo?.dirty?(language==='en'?' · uncommitted changes':' · ungesicherte Änderungen'):'';
+  const dirty=config.buildInfo?.dirty?(config.buildInfo.source==='stamp'?(language==='en'?' · local differences':' · lokale Abweichungen'):(language==='en'?' · uncommitted changes':' · nicht committe Änderungen')):'';
+  $('collection-footer').title=config.buildInfo?.differences?.join(', ')??'';
   $('collection-footer').textContent='Draft Coach · '+(config.version??(language==='en'?'Version unknown':'Version unbekannt'))+' · Build '+(config.build??(language==='en'?'unknown':'unbekannt'))+commit+dirty+' · '+collection.units.units.length+' '+(language==='en'?'units':'Einheiten')+' · '+collection.spells.spells.length+' '+(language==='en'?'spells':'Zauber');
   $('saved-collection').textContent =
     'Aktiver Stand · '+collection.units.units.length+' Einheiten und '+collection.spells.spells.length+' Zauber. '+

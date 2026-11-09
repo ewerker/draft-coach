@@ -19,7 +19,7 @@ export async function resolveBuild(root,version){
   try{
     const info=JSON.parse(await readFile(path.join(root,'runtime','build-info.json'),'utf8'));
     if(info.version===version&&Number.isSafeInteger(info.number)&&info.number>0&&/^[a-f0-9]{7,12}$/i.test(info.commit))
-      return {number:info.number,commit:info.commit,dirty:false,source:'stamp'};
+      return {number:info.number,commit:info.commit,dirty:info.dirty===true,source:'stamp',differences:Array.isArray(info.differences)?info.differences.filter(item=>typeof item==='string').slice(0,100):[]};
   }catch{}
   return null;
 }

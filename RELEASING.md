@@ -12,4 +12,4 @@ Commit ongoing work to `main` and push it to GitHub. Assign a version only when 
 
 ## Build identity for a local installation
 
-A Git checkout reports its commit count and short commit ID when the server starts. After committing and synchronizing a separate installation, run `node stamp-build.mjs <installation-directory>` from this checkout before restarting that installation. The stamp records the committed identity in its ignored `runtime/build-info.json`; it must only be stamped after the installation files have been synchronized. An unstamped copy reports an unknown build rather than guessing.
+A Git checkout reports its commit count and short commit ID when the server starts. After committing and synchronizing a separate installation, run `node stamp-build.mjs <installation-directory>` from this checkout before restarting that installation. The stamp records the committed identity in its ignored `runtime/build-info.json`; it must only be stamped after the installation files have been synchronized. The stamp checks installed program files and explicitly marks local differences. An unstamped copy reports an unknown build rather than guessing.
