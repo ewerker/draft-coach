@@ -1,6 +1,7 @@
 import {followVariantChoice,observeVariantEvidence,makeReviewFrame,selectEvidenceIds} from './review.mjs';
 import {createArchive} from './archive.mjs';
 import {DatabaseSync} from 'node:sqlite';
+import {resolveBuild} from './build-info.mjs';
 import {answerTactics,proposeReview,extractResearchFacts} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -562,4 +563,15 @@ test('Splime enters draft pool only after two distinct normal caption windows',(
    const f=frame(names);f.offers.find(x=>x.name==='Splime').captionMargin=.071;observeDraftLineup(weak,f,owned);
  }
  assert.equal(weak.seen.has('Splime'),false);
+});
+
+test('standalone build identity is stamped, version-specific and never guessed',async()=>{
+ const dir=await mkdtemp(path.join(tmpdir(),'coach-build-'));
+ try{
+  assert.equal(await resolveBuild(dir,'0.7.0-beta'),null);
+  await mkdir(path.join(dir,'runtime'));
+  await writeFile(path.join(dir,'runtime','build-info.json'),JSON.stringify({version:'0.7.0-beta',number:112,commit:'abcdef123456'}));
+  assert.deepEqual(await resolveBuild(dir,'0.7.0-beta'),{number:112,commit:'abcdef123456',dirty:false,source:'stamp'});
+  assert.equal(await resolveBuild(dir,'0.8.0-beta'),null);
+ }finally{await rm(dir,{recursive:true,force:true});}
 });

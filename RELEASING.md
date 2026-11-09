@@ -9,3 +9,7 @@ Die erste freigegebene Version heißt **0.5**, der Git-Tag **`v0.5`**. Jede weit
 ## Release workflow in English
 
 Commit ongoing work to `main` and push it to GitHub. Assign a version only when the project owner explicitly designates a commit for release. Start with version **0.5** and tag **`v0.5`**, then increment by 0.1 for each approved release. Review public screenshots for private information. Gameplay and active lineups may be shown.
+
+## Build identity for a local installation
+
+A Git checkout reports its commit count and short commit ID when the server starts. After committing and synchronizing a separate installation, run `node stamp-build.mjs <installation-directory>` from this checkout before restarting that installation. The stamp records the committed identity in its ignored `runtime/build-info.json`; it must only be stamped after the installation files have been synchronized. An unstamped copy reports an unknown build rather than guessing.

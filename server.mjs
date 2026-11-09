@@ -9,6 +9,7 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
+import {resolveBuild} from './build-info.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -18,7 +19,9 @@ import {makeReviewFrame,selectEvidenceIds,followVariantChoice,observeVariantEvid
 import {answerTactics,proposeReview,translateTactic,extractResearchFacts} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
 const archiveFile=path.join(RUNTIME,'Draft-Coach.sqlite3');
-const {version,build}=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8'));
+const {version}=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8'));
+const buildInfo=await resolveBuild(ROOT,version);
+const build=buildInfo?.number??null;
 const archive=createArchive(archiveFile,RUNTIME);
 const PREPARATION=path.join(RUNTIME,'vorbereitung');
 const preparationKinds=['units','spells','deck-units','deck-spells'];
@@ -1580,7 +1583,7 @@ async function handleRequest(req,res){
       return;
     }
     if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
-    if(url.pathname==='/api/config')return json(res,200,{token,collection,version,build,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
+    if(url.pathname==='/api/config')return json(res,200,{token,collection,version,build,buildInfo,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
     if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
