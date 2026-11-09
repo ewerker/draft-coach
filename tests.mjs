@@ -541,3 +541,25 @@ test('Astra note needs a developed enemy and no observed allied support',()=>{
   assert.equal(score({...base,ownReinforcements:{Astra:4,'Agent B':2}}),0);
   assert.equal(score({...base,ownReinforcements:{}}),0);
 });
+
+test('Splime enters draft pool only after two distinct normal caption windows',()=>{
+ const tracker={seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
+ const owned=new Set(['Astra','Schnecke','Agent B','Splime']);
+ const card=(name,position)=>({name,position,nameSource:'Kartenbeschriftung',similarity:name==='Splime'?.859:.9,captionMargin:name==='Splime'?.081:.2,action:'add',quantity:name==='Splime'?4:2});
+ const frame=names=>({phase:'battle_choice',deckEvidence:true,offers:names.map(card)});
+ observeDraftLineup(tracker,frame(['Astra','Schnecke','Agent B']),owned);
+ const one=frame(['Agent B','Schnecke','Splime']);
+ observeDraftLineup(tracker,one,owned);observeDraftLineup(tracker,one,owned);
+ assert.equal(tracker.seen.has('Splime'),false);
+ observeDraftLineup(tracker,{...one,deckEvidence:false,offers:['Agent B','Splime','Schnecke'].map(card)},owned);
+ assert.equal(tracker.seen.has('Splime'),false);
+ observeDraftLineup(tracker,frame(['Agent B','Splime','Schnecke']),owned);
+ assert.equal(tracker.seen.has('Splime'),true);
+ const lineup=observeDraftLineup(tracker,frame(['Astra','Agent B','Schnecke']),owned);
+ assert.deepEqual(new Set(lineup),owned);
+ const weak={seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
+ for(const names of [['Agent B','Schnecke','Splime'],['Agent B','Splime','Schnecke']]){
+   const f=frame(names);f.offers.find(x=>x.name==='Splime').captionMargin=.071;observeDraftLineup(weak,f,owned);
+ }
+ assert.equal(weak.seen.has('Splime'),false);
+});

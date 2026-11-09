@@ -19,15 +19,22 @@ export function observeDraftLineup(tracker,result,owned){
   if(tracker.confirmed||result.phase!=='battle_choice'||!result.deckEvidence)return null;
   const reliable=card=>owned.has(card.name)&&card.nameSource==='Kartenbeschriftung'&&!card.poolHint&&
     card.similarity>=.75&&card.captionMargin>=.10&&card.action!=='unknown';
+  // Splime captions can have a smaller margin; accept them only after two
+  // different normal offer windows, never on a single ambiguous frame.
+  const repeatableSplime=card=>card.name==='Splime'&&owned.has(card.name)&&
+    card.nameSource==='Kartenbeschriftung'&&!card.poolHint&&card.similarity>=.84&&
+    card.captionMargin>=.07&&card.action!=='unknown';
   for(const card of result.offers)if(reliable(card))tracker.seen.add(card.name);
-  if(result.offers.length===3&&result.offers.every(reliable)){
+  if(result.offers.length===3&&result.offers.every(card=>reliable(card)||repeatableSplime(card))){
     const signature=JSON.stringify(result.offers.map(({position,name,action,quantity})=>[position,name,action,quantity]));
     if(!tracker.windows.has(signature)){
+      if(result.offers.some(card=>repeatableSplime(card)&&card.captionMargin>=.08))tracker.splimeStrongCaption=true;
       tracker.windows.add(signature);
       for(const name of new Set(result.offers.map(card=>card.name))){
         tracker.counts.set(name,(tracker.counts.get(name)??0)+1);
       }
     }
+    if(result.offers.some(repeatableSplime)&&tracker.splimeStrongCaption&&(tracker.counts.get('Splime')??0)>=2)tracker.seen.add('Splime');
   }
   const names=[...tracker.seen];
   return names.length===4&&names.every(name=>tracker.counts.get(name)>=2)?names:null;
