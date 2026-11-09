@@ -224,6 +224,11 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=18;
       why+=' Viele Assassinen sind bereits beobachtet; Sniper ergänzt Fernkampf gegen Boomlinge.';
     }
+    if(result.phase==='battle_choice'&&snail&&offer.name==='Agent B'&&
+       offer.action==='add'&&(offer.quantity??0)>=2&&(tracked['Agent B']??0)<4){
+      score+=26;
+      why+=' Gegen eine erkannte Schnecke Agent B für den Hinterlandzugriff aufbauen; eigene Anzahl nur soweit beobachtet.';
+    }
     if(result.phase==='battle_choice'&&snail){
       if(deckRanged.has(offer.name)){
         score+=12;

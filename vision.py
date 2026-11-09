@@ -286,9 +286,9 @@ def enemy_lineup_side_dx(img,layout,dy):
     if red_fraction(40)>.90 and red_fraction(115)<.55:return 0
     return -82 if layout=='centered' else -90
 
-def read_enemy_deck_caption(img,x,dy,language='de'):
-    # The visible enemy lineup has smaller labels than the choice cards.
-    region=lettering(cut(img,[x+5,490+dy,x+220,560+dy]))
+def read_small_deck_caption(img,x,top,bottom,language='de'):
+    region=lettering(cut(img,[x+5,top,x+220,bottom]))
+    if np.count_nonzero(region)<20:return {}
     matches={}
     patterns=enemy_deck_names_en if language=='en' else enemy_deck_names_de
     for name,pattern in patterns:
@@ -303,6 +303,9 @@ def read_enemy_deck_caption(img,x,dy,language='de'):
         return {'name':name,'candidate':name,'similarity':round(score,3),'margin':round(margin,3),
                 'poolHint':False,'nameSource':'opponent-deck-caption'}
     return {}
+
+def read_enemy_deck_caption(img,x,dy,language='de'):
+    return read_small_deck_caption(img,x,490+dy,560+dy,language)
 
 def read_hearts(img, layout='full'):
     # The scoreboard keeps four slots per side. Filled slots face outwards.
@@ -530,6 +533,9 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                     caption=read_enemy_deck_caption(img,x,dy,language)
                     if caption: card.update(caption)
                     elif card['similarity']<.70 or card.get('margin',0)<.08: card['name']=None
+                else:
+                    caption=read_small_deck_caption(img,x,1810+dy,1920+dy,language)
+                    if caption: card.update(caption)
                 if card['similarity']>.56 and card['name']:
                     card['box']=[x+30,y1+dy-(40 if side=='enemy' else 55),x+230,y2+dy+110]
                     if side=='enemy':
@@ -970,6 +976,8 @@ english_battle_names=[
     for scale in (.85,.90,.95,1,1.05,1.10,1.15,1.20,1.25)
 ]
 enemy_deck_names_de=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for name,mask in collection_names['units']+calibrated_names for scale in (.40,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1.0,1.05,1.10,1.15,1.20)]
+own_captain_mask=(cv2.imdecode(np.fromfile(str(ROOT/'data'/'own-captain-caption.png'),dtype=np.uint8),cv2.IMREAD_GRAYSCALE)>0).astype(np.uint8)
+enemy_deck_names_de.extend(('Kapitän',cv2.resize(own_captain_mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for scale in (.9,.95,1,1.05,1.1))
 enemy_deck_names_en=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for name,mask in vision_english.collection_names['units']+vision_english.battle_names+[('Splime',splime_caption_mask)] for scale in (.40,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1.0,1.05,1.10,1.15,1.20)]
 action_digits=[(value,template) for value,template in numbers if 1<=value<=9]
 for value,rows in json.loads((ROOT/'data'/'choice-digits.json').read_text(encoding='utf-8')).items():

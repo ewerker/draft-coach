@@ -578,3 +578,11 @@ test('standalone build identity is stamped, version-specific and never guessed',
   assert.equal((await resolveBuild(dir,'0.7.0-beta')).dirty,true);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
+
+test('build Agent B early against an observed enemy Snail without overprioritizing after four',()=>{
+ const frame={phase:'battle_choice',enemy:[{name:'Schnecke'},{name:'Ritter'},{name:'Splime'}],ownReinforcements:{Kupid:3,Merlinor:1},offers:[{name:'Agent B',action:'add',quantity:2},{name:'Kupid',action:'add',quantity:3},{name:'Merlinor',action:'add',quantity:1}]};
+ const early=recommend(frame,'arena',collection,db);assert.equal(early.best.name,'Agent B');
+ const later=recommend({...frame,ownReinforcements:{...frame.ownReinforcements,'Agent B':4}},'arena',collection,db);
+ assert.ok(early.evaluated[0].score>later.evaluated[0].score);
+ const noSnail=recommend({...frame,enemy:[{name:'Ritter'}]},'arena',collection,db);assert.ok(early.evaluated[0].score>noSnail.evaluated[0].score);
+});

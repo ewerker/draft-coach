@@ -54,4 +54,16 @@ class OpponentRowGeometry(unittest.TestCase):
         self.assertEqual(vision.read_enemy_deck_caption(shifted,325,0)['name'],'Gans')
         self.assertEqual(vision.read_enemy_deck_caption(shifted,550,0)['name'],'Spartheus')
 
+class OwnDeckCaptions(unittest.TestCase):
+    def image(self,name):
+        image=np.zeros((2340,1080,3),dtype=np.uint8)
+        image[1600:2000,:910]=vision.decode(Path('data')/name)
+        return image
+    def test_totem_and_captain_are_read_from_own_cards(self):
+        totem=self.image('own-deck-kupid-totem.png')
+        self.assertEqual(vision.read_small_deck_caption(totem,100,1810,1970)['name'],'Kupid')
+        self.assertEqual(vision.read_small_deck_caption(totem,325,1810,1970)['name'],'Totem')
+        captain=self.image('own-deck-captain.png')
+        self.assertEqual(vision.read_small_deck_caption(captain,325,1810,1970)['name'],'Kapitän')
+
 if __name__=='__main__': unittest.main()
