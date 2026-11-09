@@ -269,6 +269,24 @@ def read_deck_caption(img,x,dy,language='de'):
                 'captionMargin':round(margin,3),'poolHint':False,'nameSource':'Kartenbeschriftung'}
     return {}
 
+def read_enemy_deck_caption(img,x,dy,language='de'):
+    # The visible enemy lineup has smaller labels than the choice cards.
+    region=lettering(cut(img,[x+5,490+dy,x+220,560+dy]))
+    matches={}
+    patterns=enemy_deck_names_en if language=='en' else enemy_deck_names_de
+    for name,pattern in patterns:
+        if pattern.shape[0]>region.shape[0] or pattern.shape[1]>region.shape[1]:
+            continue
+        score=cv2.minMaxLoc(cv2.matchTemplate(region,pattern,cv2.TM_CCOEFF_NORMED))[1]
+        matches[name]=max(matches.get(name,0),score)
+    ranked=sorted(matches.items(),key=lambda item:-item[1])
+    if len(ranked)<2: return {}
+    name,score=ranked[0]; margin=score-ranked[1][1]
+    if score>=.80 and margin>=.09:
+        return {'name':name,'candidate':name,'similarity':round(score,3),'margin':round(margin,3),
+                'poolHint':False,'nameSource':'opponent-deck-caption'}
+    return {}
+
 def read_hearts(img, layout='full'):
     # The scoreboard keeps four slots per side. Filled slots face outwards.
     def slots(centers, top, hue_start, hue_end):
@@ -484,9 +502,18 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
                     snail_score=similarity(feature(cut(img,[x+23,y1+dy,x+177,y2+dy])),enemy_snail_feature)
                     if snail_score>=.82 and snail_score-card['similarity']>=.10:
                         card.update(name='Schnecke',candidate='Schnecke',similarity=round(snail_score,3),margin=round(snail_score-card['similarity'],3),poolHint=False)
+                if side=='enemy':
+                    caption=read_enemy_deck_caption(img,x,dy,language)
+                    if caption: card.update(caption)
+                    elif card['similarity']<.70 or card.get('margin',0)<.08: card['name']=None
                 if card['similarity']>.56 and card['name']:
                     card['box']=[x+30,y1+dy-(40 if side=='enemy' else 55),x+230,y2+dy+110]
-                    card.update(position=c,side=side,orange=number(img,[x+7,oy+dy-23,x+48,oy+dy+23]),blue=number(img,[x+170,by+dy-19,x+205,by+dy+19]))
+                    if side=='enemy':
+                        orange=number(img,[x+20,560+dy,x+86,625+dy])
+                        blue=number(img,[x+190,300+dy,x+245,360+dy])
+                    else:
+                        orange=number(img,[x+7,oy+dy-23,x+48,oy+dy+23]); blue=number(img,[x+170,by+dy-19,x+205,by+dy+19])
+                    card.update(position=c,side=side,orange=orange,blue=blue)
                     target.append(card)
     elif active_collection_tab(img,'units') and max(collection_tab_scores(img,'units'))>.90:
         phase='collection'
@@ -849,7 +876,6 @@ def read_collection(path, kind):
 
 def build_calibration(file):
     prepare()
-enemy_snail_feature=feature(decode(ROOT/'data'/'enemy-snail-reference.png'))
     names=collection_templates()
     add_digit(load(IMAGES/'kampf-auswahl-1.png'),12,[613,414,663,469])
     reference=load(IMAGES/'kampf-spielstaerke-1.png')
@@ -870,6 +896,7 @@ enemy_snail_feature=feature(decode(ROOT/'data'/'enemy-snail-reference.png'))
         arrays[f'legacy_{index}']=cv2.cvtColor(cut(reference,[left+22,1385,left+300,1475]),cv2.COLOR_BGR2GRAY)
     np.savez_compressed(file,**arrays)
 
+enemy_snail_feature=feature(decode(ROOT/'data'/'enemy-snail-reference.png'))
 calibration_file=ROOT/'data'/'calibration.npz'
 if __name__=='__main__' and '--build-calibration' in sys.argv:
     build_calibration(calibration_file)
@@ -917,6 +944,8 @@ english_battle_names=[
     for name,mask in vision_english.collection_names['units']+vision_english.battle_names+[('Splime',splime_caption_mask)]
     for scale in (.85,.90,.95,1,1.05,1.10,1.15,1.20,1.25)
 ]
+enemy_deck_names_de=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for name,mask in collection_names['units']+calibrated_names for scale in (.40,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1.0,1.05,1.10,1.15,1.20)]
+enemy_deck_names_en=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for name,mask in vision_english.collection_names['units']+vision_english.battle_names+[('Splime',splime_caption_mask)] for scale in (.40,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1.0,1.05,1.10,1.15,1.20)]
 action_digits=[(value,template) for value,template in numbers if 1<=value<=9]
 for value,rows in json.loads((ROOT/'data'/'choice-digits.json').read_text(encoding='utf-8')).items():
     action_digits.append((int(value),np.array([[int(pixel) for pixel in row] for row in rows],dtype=np.float32)))

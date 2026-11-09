@@ -270,6 +270,7 @@ Schlacht erkannt.|Battle detected.
 Draft erkannt.|Draft detected.
 Warte auf Spielmodus|Waiting for game mode
 Gegnerisches Deck|Opponent deck
+Gegnerisches Deck · bisher erkannt|Opponent lineup · detected so far
 Eigenes Deck|Your deck
 Continuum gestoppt. Der nächste Bildschirm wurde nicht eindeutig erkannt.|Continuum stopped. The next screen could not be verified.
 Tipp vorlesen|Read recommendation aloud

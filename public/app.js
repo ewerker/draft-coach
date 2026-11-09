@@ -1342,7 +1342,7 @@ function renderOffers(result){
     renderOfferRows(result);
   }
   $('board').replaceChildren();
-  for(const [key,label] of [['enemy','Gegnerisches Deck'],['own','Eigenes Deck']]){
+  for(const [key,label] of [['enemy','Gegnerisches Deck · bisher erkannt'],['own','Eigenes Deck']]){
     const cards=(result[key]??[]).filter(card=>card.name&&Number.isInteger(card.position));
     if(cards.length)$('board').append(textEl('p',translate(label,language)+' · '+cards.map(card=>
       displayCardNames(card.name)+(card.orange?.value!=null?` (${card.orange.value})`:'')).join(', ')));

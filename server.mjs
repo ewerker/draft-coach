@@ -8,7 +8,7 @@ import path from 'node:path';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
-import {LatestQueue,autoCaptureBusy,nextLossStreak} from './pipeline.mjs';
+import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -300,8 +300,8 @@ function withObservedEnemies(result,job){
   for(const card of result.enemy||[]){
     if(card.name&&activeMatch.enemyDeck.get(card.position)?.name===card.name)enemy.set(card.name,card);
   }
-  for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,event);
-  if(result.enemyEvent)enemy.set(result.enemyEvent.name,result.enemyEvent);
+  for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,mergeEnemyEvent(enemy.get(name),event));
+  if(result.enemyEvent)enemy.set(result.enemyEvent.name,mergeEnemyEvent(enemy.get(result.enemyEvent.name),result.enemyEvent));
   const observedDraftUnits=activeMatch.draftObservation?[...activeMatch.draftObservation.seen]:[];
   return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],ownVariantUncertain:[...activeMatch.ownVariantUncertain],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
 }
@@ -786,7 +786,7 @@ const queue=new LatestQueue(async job=>{
       }
       for(const card of result.enemy||[]){
         const previous=activeMatch.enemyDeck.get(card.position);
-        if(card.name&&card.similarity>(previous?.similarity??0))activeMatch.enemyDeck.set(card.position,card);
+        if(preferEnemyDeckCard(previous,card))activeMatch.enemyDeck.set(card.position,card);
       }
       if(result.enemyEvent){
         const {name,action,quantity}=result.enemyEvent;

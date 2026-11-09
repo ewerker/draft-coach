@@ -24,3 +24,15 @@ export function nextLossStreak(count,outcome) {
   if(outcome==='gewonnen')return 0;
   return count;
 }
+
+// An event adds evidence without erasing a previously observed lineup slot.
+export function mergeEnemyEvent(card,event) {
+  const {box,position,...facts}=event;
+  return {...(card||{}),...facts};
+}
+export function preferEnemyDeckCard(previous,candidate) {
+  if(!candidate?.name)return false;
+  if(!previous?.name)return true;
+  const rank=card=>card.nameSource==='opponent-deck-caption'?1:0;
+  return rank(candidate)>rank(previous)||(rank(candidate)===rank(previous)&&(candidate.similarity??0)>(previous.similarity??0));
+}

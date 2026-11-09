@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import {readFile,writeFile,rename,unlink,mkdtemp,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {tmpdir} from 'node:os';
-import {LatestQueue,autoCaptureBusy,nextLossStreak} from './pipeline.mjs';
+import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
 import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -445,4 +445,12 @@ test('loss-stop setting is saved atomically for the next server start',async()=>
     await ctx.saveLossGuard(true);
     assert.deepEqual(JSON.parse(await readFile(ctx.lossGuardFile,'utf8')),{enabled:true});
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test('opponent moves preserve the known lineup and caption evidence wins over uncertain icons',()=>{
+  const card={name:'Maulwurf',position:0,orange:{value:12}};
+  assert.deepEqual(mergeEnemyEvent(card,{name:'Maulwurf',action:'add',quantity:3,box:[1,2,3,4]}),{...card,action:'add',quantity:3});
+  assert.deepEqual(mergeEnemyEvent(null,{name:'Maulwurf',action:'add',box:[1,2,3,4]}),{name:'Maulwurf',action:'add'});
+  assert.equal(preferEnemyDeckCard({name:'Splime',similarity:.9},{name:'Obergeist',similarity:.84,nameSource:'opponent-deck-caption'}),true);
+  assert.equal(preferEnemyDeckCard({name:'Obergeist',similarity:.84,nameSource:'opponent-deck-caption'},{name:'Splime',similarity:.95}),false);
 });
