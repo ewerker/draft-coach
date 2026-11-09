@@ -24,6 +24,7 @@
 .pie-base{stroke:var(--line)}.pie-win{stroke:#73c991}.pie-loss{stroke:#f0878e}
 .match-stat-info{display:grid;gap:4px;font-size:.8rem}.match-won{color:#8fe1aa}.match-lost{color:#ffadb1}
 .match-hour-chart{padding:10px;border:1px solid var(--line);border-radius:9px;font-size:.8rem}
+.match-hour-chart > strong + span{margin-inline-start:.6em}
 .match-hour-chart svg{display:block;width:100%;height:64px;margin-top:5px}.match-hour-chart line{stroke:var(--line);stroke-width:1}
 .hour-won{fill:#73c991}.hour-lost{fill:#f0878e}.hour-axis{display:flex;justify-content:space-between}
 [data-theme=light] .match-won{color:#276a42}[data-theme=light] .match-lost{color:#9b303a}
