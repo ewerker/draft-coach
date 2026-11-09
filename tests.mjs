@@ -496,3 +496,21 @@ test('archive saves more than five relevant images with review metadata',async()
     assert.deepEqual(await archive.review.image(reviewed,3),png);
   } finally {await rm(dir,{recursive:true,force:true});}
 });
+
+test('general Astra questions include saved observations in both languages',()=>{
+  const rules=[{offer:'Astra',enemy:'',weight:0,status:'notiz',title:'Astra braucht Masse',reason:'Viele Astra brauchen Schutz.',texts:{de:{title:'Astra braucht Masse',reason:'Viele Astra brauchen Schutz.'},en:{title:'Astra needs numbers',reason:'Many Astra need protection.'}}},{offer:'Schildling',enemy:'Astra',weight:0,status:'notiz',title:'Schildling gegen Astra',reason:'Nur im Nahkampf.'}];
+  for(const lang of ['de','en']){
+    const result=quickAdvice('Astra?', ['Astra','Schildling'],rules,[],[],lang);
+    assert.equal(result.entries.length,2);assert.equal(result.entries[0].status,'notiz');
+    assert.match(result.summary,lang==='de'?/Hinweise/:/information/);
+  }
+  const counter=quickAdvice('Was hilft gegen Astra?', ['Astra','Schildling'],rules,[],[],'de');
+  assert.equal(counter.entries[0].status,'notiz');assert.match(counter.entries[0].detail,/Nahkampf/);
+});
+test('optional AI web search returns validated source citations',async()=>{
+  const answer=await answerTactics({key:'test',model:'test',language:'de',question:'Astra?',knowledge:{},webSearch:true},async(url,options)=>{
+    const body=JSON.parse(options.body);assert.equal(body.tools[0].type,'web_search');
+    return {ok:true,json:async()=>({status:'completed',output:[{type:'message',content:[{type:'output_text',text:'Eine Beobachtung.',annotations:[{type:'url_citation',url:'https://example.org/astra',title:'Quelle',end_index:18},{type:'url_citation',url:'javascript:alert(1)',end_index:18}]}]}]})};
+  });
+  assert.equal(answer.summary,'Eine Beobachtung.');assert.equal(answer.citations.length,1);assert.equal(answer.citations[0].url,'https://example.org/astra');
+});

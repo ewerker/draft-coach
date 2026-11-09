@@ -334,6 +334,13 @@ Log zurücksetzen|Reset log
 Zurücksetzen leert Logansicht und Statistik. Archivierte Partien bleiben erhalten.|Reset clears the log view and statistics. Archived matches are retained.
 Spiele pro Stunde · letzte 24 Stunden|Matches per hour · last 24 hours
 Spiele pro Stunde|Matches per hour
+Wie funktioniert die Internetrecherche in der Schnellauskunft?|How does web research work in Quick Advice?
+Wähle Standalone-KI und aktiviere die Internetrecherche. Die Frage und passende lokale Hinweise werden an den KI-Dienst gesendet; dabei können zusätzliche Kosten entstehen. Gefundene Aussagen mit Quellen werden als unbestätigte Notiz in den Taktikregeln gespeichert und beeinflussen die Spieltipps nicht automatisch. Ohne Quellen wird nichts gespeichert.|Select Standalone AI and enable web search. The question and relevant local notes are sent to the AI service; additional charges may apply. Findings with sources are saved as unconfirmed tactical notes and do not automatically change gameplay recommendations. Nothing is saved without sources.
+Internetrecherche mit KI und Quellen (kann zusätzliche Kosten verursachen)|AI web search with sources (may incur additional costs)
+Recherche als unbestätigte Notiz gespeichert.|Research saved as an unconfirmed note.
+Recherche bereits als Notiz vorhanden.|Research is already saved as a note.
+Keine Quellen gefunden; nichts gespeichert.|No sources found; nothing saved.
+Recherche konnte nicht gespeichert werden.|Could not save the research.
 Skala|Scale
 Gewinnanteil pro Stunde|Win share per hour
 Statistik nicht verfügbar.|Statistics unavailable.

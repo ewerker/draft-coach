@@ -916,9 +916,11 @@ quickMic.onclick=()=>{
 const quickForm=$('quick-form');
 const quickSource=$('quick-source');
 let previousAiTurn='';
+quickSource.addEventListener('change',()=>{$('quick-web-search').disabled=quickSource.value!=='ai';});
 function updateQuickAi(enabled){
   quickSource.value=enabled?'ai':'local';
   quickSource.querySelector('[value="ai"]').disabled=!enabled;
+  $('quick-web-search').disabled=quickSource.value!=='ai';
   $('quick-ai-hint').hidden=enabled;
   $('quick-key-settings').hidden=enabled||!config.localAdmin;
 }
@@ -987,7 +989,16 @@ function rememberQuestion(question,subjects){
   try{localStorage.setItem(quickRecentKey,JSON.stringify(recentQuestions));}catch{}
   renderRecentQuestions();
 }
-function renderQuickAiAnswer(reply,text){
+function appendCitations(element,items,all){
+  for(const cite of items){
+    try{
+      const url=new URL(cite.url);if(!['http:','https:'].includes(url.protocol))continue;
+      const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';
+      link.textContent=' ['+(all.indexOf(cite)+1)+']';link.title=cite.title||url.hostname;element.append(link);
+    }catch{}
+  }
+}
+function renderQuickAiAnswer(reply,text,citations=[]){
   const content=document.createElement('div');
   content.className='quick-ai-answer';
   content.dataset.reviewOriginal='';
@@ -1001,7 +1012,10 @@ function renderQuickAiAnswer(reply,text){
       }else element.append(part);
     }
   };
+  let offset=0;
   for(const raw of text.split(/\r?\n/)){
+    const lineStart=offset;offset+=raw.length+1;
+    const lineCitations=citations.filter(c=>c.end>lineStart&&c.end<=offset);
     const line=raw.trim();
     if(!line){list=null;continue;}
     const bullet=/^(?:[-*•]|\d+[.)])\s+(.+)$/.exec(line);
@@ -1013,12 +1027,14 @@ function renderQuickAiAnswer(reply,text){
       }
       const item=document.createElement('li');
       append(item,bullet[1]);
+      appendCitations(item,lineCitations,citations);
       list.append(item);
     }else{
       list=null;
       const heading=/^#{1,6}\s+(.+)$/.exec(line);
       const block=document.createElement(heading?'h3':'p');
       append(block,heading?.[1]??line);
+      appendCitations(block,lineCitations,citations);
       content.append(block);
     }
   }
@@ -1039,11 +1055,15 @@ async function askQuick(question,context=quickSubjects){
   $('quick-web').hidden=false;
   try{
     const source=quickSource.value;
-    const result=await post('/api/schnellauskunft',{question,context,language,source,previous:source==='ai'?previousAiTurn:undefined});
+    const result=await post('/api/schnellauskunft',{question,context,language,source,webSearch:source==='ai'&&$('quick-web-search').checked,previous:source==='ai'?previousAiTurn:undefined});
     if(result.source==='ai')previousAiTurn=(question+'\n'+result.summary).slice(0,1200);
     if(result.subjects.length)quickSubjects=result.subjects;
     if(result.entries.length||result.source==='ai')rememberQuestion(question,result.subjects);
-    if(result.source==='ai')renderQuickAiAnswer(reply,result.summary);
+    if(result.source==='ai'){
+      renderQuickAiAnswer(reply,result.summary,result.citations??[]);
+      const messages={saved:'Recherche als unbestätigte Notiz gespeichert.',existing:'Recherche bereits als Notiz vorhanden.',no_sources:'Keine Quellen gefunden; nichts gespeichert.',failed:'Recherche konnte nicht gespeichert werden.'};
+      if(messages[result.webSaved])reply.append(textEl('p',translate(messages[result.webSaved],language),'muted'));
+    }
     else reply.append(textEl('p',result.summary));
     for(const entry of result.entries){
       const block=textEl('div','','quick-entry');

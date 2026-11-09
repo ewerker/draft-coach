@@ -46,6 +46,7 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
   const names=named.length?named:/^(und|dann|and|then)|\b(dagegen|damit|ihn|ihr|sie|ihm|it|them|that)\b/.test(text)
     ?context.filter(card=>known.has(card)):[];
   const swarm=/schwarm|schwarme|swarm|massen/.test(text);
+  const overview=!synergy&&!outgoing&&!/\b(gegen|counter|counters|against|beat|defeat|kill|stop|abwehr|konter)\b/.test(text);
   if(!names.length){
     if(swarm)return {summary:language==='en'?'Against swarms, use area damage and check whether the units are on the ground or airborne.':'Gegen Schwärme zählt Flächenschaden und die Unterscheidung zwischen Boden und Luft.',entries:language==='en'?swarmAdviceEn:swarmAdvice,subjects:[]};
     return {summary:language==='en'?'Which unit or spell do you mean? You can also ask about swarms.':'Welche Figur oder welchen Zauber meinst du? Du kannst auch nach einem Schwarm fragen.',entries:[],subjects:[]};
@@ -54,6 +55,13 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
   for(const name of names.slice(0,3)){
     const selected=(other)=>names.length===1||names.includes(other);
     const matches=matchups.filter(row=>row.reaction_item===name);
+    if(overview){
+      const relevant=rules.filter(rule=>['aktiv','test','notiz'].includes(rule.status)&&
+        (rule.offer===name||rule.enemy===name||contains(normalize((rule.title??'')+' '+(rule.reason??'')),normalize(name))));
+      relevant.sort((a,b)=>Number(b.offer===name||b.enemy===name)-Number(a.offer===name||a.enemy===name)||rank(b)-rank(a));
+      for(const rule of relevant)entries.push(fromRule(rule,null,language));
+      continue;
+    }
     if(synergy){
       for(const [a,b,detail,detailEn,source] of combinations){
         if(a===name&&selected(b)||b===name&&selected(a))
@@ -68,8 +76,8 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
     }
     const seen=new Set();
     for(const rule of rules.filter(rule=>
-      outgoing?rule.offer===name&&rule.enemy&&rule.weight>0&&selected(rule.enemy):
-        (rule.enemy===name&&rule.weight>0&&selected(rule.offer)||rule.offer===name&&rule.weight<0&&selected(rule.enemy))
+      outgoing?rule.offer===name&&rule.enemy&&(rule.weight>0||rule.status==='notiz')&&selected(rule.enemy):
+        (rule.enemy===name&&(rule.weight>0||rule.status==='notiz')&&selected(rule.offer)||rule.offer===name&&rule.weight<0&&selected(rule.enemy))
     ).sort((a,b)=>rank(b)-rank(a)||Math.abs(b.weight)-Math.abs(a.weight))){
       const other=outgoing?rule.enemy:rule.enemy===name?rule.offer:rule.enemy;
       if(!other||seen.has(other))continue;
@@ -88,16 +96,16 @@ export function quickAdvice(question,cards,rules,matchups,context=[],language='d
       entries.push({title:other+' · '+name,detail:language==='en'?row.reason_en:row.reason,status:'lexikon'});
     }
   }
-  const unique=[...new Map(entries.map(entry=>[entry.title+' '+entry.detail,entry])).values()].slice(0,6);
+  const unique=[...new Map(entries.map(entry=>[entry.title+' '+entry.detail,entry])).values()].slice(0,overview?10:6);
   const label=names.join(', ');
   if(language==='en'){
     const display=displayNames(label,'en');
     return {subjects:names,summary:unique.length
-      ?(synergy?'Combinations with ':outgoing?'Good targets for ':'Counters to ')+display+'. Quantity, upgrades and formation can change the recommendation.'
+      ?(overview?'Saved information about ':synergy?'Combinations with ':outgoing?'Good targets for ':'Counters to ')+display+'. Notes are unconfirmed; quantity, upgrades and formation can change the recommendation.'
       :'The local knowledge base has no specific entry for '+display+' for this question.',entries:unique};
   }
   return {subjects:names,summary:unique.length
-    ?(synergy?'Kombinationen mit ':outgoing?'Günstige Ziele für ':'Antworten gegen ')+label+'. Menge, Ausbaustufe und Aufstellung können den Tipp ändern.'
+    ?(overview?'Gespeicherte Hinweise zu ':synergy?'Kombinationen mit ':outgoing?'Günstige Ziele für ':'Antworten gegen ')+label+'. Notizen sind unbestätigt; Menge, Ausbaustufe und Aufstellung können den Tipp ändern.'
     :'Für '+label+' finde ich zu dieser Frage keinen konkreten Eintrag im lokalen Lexikon.',entries:unique};
 }
 

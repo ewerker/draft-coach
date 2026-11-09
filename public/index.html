@@ -45,6 +45,7 @@
   <details><summary>Wo hinterlege ich den OpenAI-API-Key?</summary><p>Öffne die Schnellauskunft am Host-PC und klicke auf API-Key einrichten. Alternativ findest du das Feld unter Admin · Archiv. Nach dem Speichern ist Standalone-KI sofort auswählbar. Der Coach speichert den Schlüssel als lokale Datei auf dem Host. Die SQLite-Sicherung enthält ihn nicht. Unter Admin · Archiv kannst du den gespeicherten Schlüssel auch entfernen.</p></details>
   <details><summary>Wie bearbeite ich zweisprachige Taktikregeln?</summary><p>Der Sprachschalter bestimmt im Regeleditor die Sprache von Titel und Begründung. Karten, Bedingungen, Gewicht und Status gelten gemeinsam. Mit einem API-Key ergänzt der Coach beim Speichern fehlende Sprachfassungen und aktualisiert veraltete maschinelle Übersetzungen. Handbearbeitete Fassungen bleiben erhalten und werden bei Bedarf zur Prüfung markiert. Falls die Übersetzung fehlschlägt, bleibt der Originaltext gespeichert.</p></details>
   <details><summary>Wie lernt der Coach aus einer Partie?</summary><p>Speichere nach Stopp das Ergebnis. Öffne am Host-PC Partie auswerten, lade ein Wahlfenster und vergleiche Tipp und gesendeten Klick. Speichere deine bevorzugte Wahl oder eine Beobachtung als Prüffall. Neue Regeln kannst du im Replay prüfen, als Testregel übernehmen, aktivieren und zurücknehmen. Eine korrigierte rote Gegneranzeige wird als Vorlage für ihre Spielsprache gespeichert. Der optionale GPT-Entwurf verwendet die ausgewählten Textdaten und überträgt den Kartenausschnitt nur, wenn du ihn ausdrücklich auswählst.</p></details>
+  <details><summary>Wie funktioniert die Internetrecherche in der Schnellauskunft?</summary><p>Wähle Standalone-KI und aktiviere die Internetrecherche. Die Frage und passende lokale Hinweise werden an den KI-Dienst gesendet; dabei können zusätzliche Kosten entstehen. Gefundene Aussagen mit Quellen werden als unbestätigte Notiz in den Taktikregeln gespeichert und beeinflussen die Spieltipps nicht automatisch. Ohne Quellen wird nichts gespeichert.</p></details>
   <details><summary>Was enthält die Sicherung?</summary><p>Unter Admin · Archiv übernimmst du abgeschlossene Partien und lädst die SQLite-Sicherung herunter. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek wird separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
 </section>
 <section id="review-panel" class="panel" hidden>
@@ -149,6 +150,7 @@
       <div id="quick-recent-list" class="quick-examples" aria-label="Letzte beantwortete Fragen"></div>
     </details>
   </div>
+  <label><input id="quick-web-search" type="checkbox" disabled> Internetrecherche mit KI und Quellen (kann zusätzliche Kosten verursachen)</label>
   <div id="quick-history" class="quick-history" role="log" aria-label="Fragen und Antworten"></div>
   <form id="quick-form" class="quick-composer">
     <label for="quick-question">Deine Taktikfrage</label>

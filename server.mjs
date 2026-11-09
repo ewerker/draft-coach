@@ -1320,16 +1320,32 @@ async function handleRequest(req,res){
         quickAiBusy=true;
         try{
           const relevant=tactics.filter(rule=>local.subjects.length?
-            local.subjects.includes(rule.offer)||local.subjects.includes(rule.enemy):rule.status==='aktiv');
+            local.subjects.some(name=>rule.offer===name||rule.enemy===name||
+              (rule.title+' '+rule.reason).toLocaleLowerCase('de').includes(name.toLocaleLowerCase('de'))):rule.status==='aktiv');
           const rules=relevant.slice(0,55).map(rule=>({
             offer:rule.offer,enemy:rule.enemy,action:rule.action,weight:rule.weight,status:rule.status,
             reason:tacticText(rule,language)?.reason?.replace(/https?:\/\/[^\s]+/g,'').trim()
           }));
-          const summary=await answerTactics({key:openAiKey(),
-            model:quickModel(),language,question:data.question,
+          const webSearch=data.webSearch===true;
+          const answer=await answerTactics({key:openAiKey(),
+            model:quickModel(),language,question:data.question,webSearch,
             previous:typeof data.previous==='string'?data.previous.slice(0,1200):undefined,
             knowledge:{cards:cards.map(name=>[name,EN_CARD_NAMES[name]??name]),entries:local.entries,rules}});
-          return json(res,200,{summary,entries:[],subjects:local.subjects,source:'ai'});
+          if(!webSearch)return json(res,200,{summary:answer,entries:[],subjects:local.subjects,source:'ai'});
+          const urls=[...new Set(answer.citations.map(c=>c.url).filter(url=>url.length<=350))].slice(0,3);
+          let saved='no_sources';
+          if(urls.length){
+            const title=('Recherche: '+data.question.trim()).slice(0,100);
+            const existing=tactics.find(rule=>rule.status==='notiz'&&rule.title===title);
+            if(existing)saved='existing';
+            else try{
+              const sources=urls.join(' ');
+              const reason=answer.summary.slice(0,Math.max(0,1480-sources.length)).trim()+' '+sources;
+              await saveTactic({title,reason,mode:'beide',phase:'alle',offer:local.subjects[0]??'',enemy:'',weight:0,status:'notiz',textLanguage:language});
+              saved='saved';
+            }catch(error){console.error('Recherche speichern:',error.message);saved='failed';}
+          }
+          return json(res,200,{summary:answer.summary,citations:answer.citations,webSaved:saved,entries:[],subjects:local.subjects,source:'ai'});
         }finally{quickAiBusy=false;}
       }
       if(url.pathname==='/api/browser/audio'){
