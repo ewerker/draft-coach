@@ -399,7 +399,10 @@ def game_navigation(small,outcome):
                     label_y+=250
                     coin_x+=32
                     coin_y+=250
-                    if (label_score>=.88 and coin_score>=.88 and
+                    coin_region=small[coin_y:coin_y+coin.shape[0],coin_x:coin_x+coin.shape[1]]
+                    hsv=cv2.cvtColor(coin_region,cv2.COLOR_BGR2HSV)
+                    gold_fraction=np.mean((hsv[:,:,0]>=12)&(hsv[:,:,0]<=40)&(hsv[:,:,1]>=100)&(hsv[:,:,2]>=150))
+                    if (label_score>=.88 and (coin_score>=.88 or coin_score>=.76 and gold_fraction>=.55) and
                         abs(coin_x-(label_x+label.shape[1]/2+4))<=12 and
                         1<=coin_y-(label_y+label.shape[0])<=14):
                         return {'step':'home','mode':'arena',
