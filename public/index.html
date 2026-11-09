@@ -213,11 +213,13 @@
     <label class="auto" id="intermediate-control" title="Wirkt auf Aufnahmen aus dem Automodus."><input type="checkbox" id="show-intermediates"> Zwischenbilder anzeigen</label>
     <label class="auto" id="auto-tap-control" hidden><input type="checkbox" id="auto-tap"> Tipp automatisch antippen</label>
     <label class="auto" id="continuum-control" hidden><input type="checkbox" id="continuum"> Continuum-Modus</label>
+    <label class="auto" id="loss-stop-control" hidden><input type="checkbox" id="stop-after-losses"> Nach drei Niederlagen stoppen</label>
     <label class="auto" id="read-tip-control" hidden><input type="checkbox" id="read-tip"> Tipp vorlesen</label>
     <button id="test-audio" type="button" class="small">Ton testen</button>
   </div>
   <div class="capture-status">
     <span id="activity" role="status">Bereit</span>
+    <span id="loss-stop-status" role="status" hidden></span>
     <span id="match-identity" class="muted" role="status" hidden></span>
     <span id="own-card-update" class="muted" role="status" hidden></span>
     <span id="auto-tap-status" class="muted" role="status"></span>

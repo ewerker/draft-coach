@@ -96,6 +96,8 @@ $('language').onchange=()=>{
 };
 $('read-tip').checked=preferences.readTip===true;
 $('show-intermediates').checked=preferences.showIntermediates===true;
+$('stop-after-losses').checked=preferences.stopAfterLosses!==false;
+let handledLossStop=null;
 let tapAudio=null,lastTapSoundId=0,pendingTapSound=null;
 async function armTapAudio(){
   const Audio=window.AudioContext||window.webkitAudioContext;
@@ -432,6 +434,10 @@ $('auto').onclick=()=>{
   armTapAudio();
   return action(()=>post('/api/settings',{auto:true,gameLanguage:language,autoTap:preferences.autoTap??$('auto-tap').checked,
     readTip:!!speech&&$('read-tip').checked,continuum:gameMode!=='prep'&&(preferences.continuum??$('continuum').checked)}));
+};
+$('stop-after-losses').onchange=()=>{
+  const enabled=$('stop-after-losses').checked;
+  return action(async()=>{await post('/api/settings',{stopAfterLosses:enabled});rememberPreferences({stopAfterLosses:enabled});});
 };
 $('continuum').onchange=()=>{
   const enabled=$('continuum').checked;
@@ -1578,6 +1584,16 @@ async function refresh(){
   const displayed=filterImages?state.latestRelevant:state.current;
   $('auto-tap-control').hidden=prep;
   $('continuum-control').hidden=prep;
+  $('loss-stop-control').hidden=prep;
+  $('stop-after-losses').checked=state.stopAfterLosses!==false;
+  const lossNotice=$('loss-stop-status');
+  lossNotice.hidden=!state.lossStopEvent;
+  lossNotice.textContent=state.lossStopEvent?translate('Nach drei Niederlagen in Folge gestoppt.',language):'';
+  if(state.lossStopEvent&&handledLossStop!==state.lossStopEvent.matchId){
+    handledLossStop=state.lossStopEvent.matchId;
+    stopMic();speech?.cancel();$('read-tip').checked=false;
+    rememberPreferences({autoTap:false,continuum:false,readTip:false});
+  }
   $('continuum').checked=!!state.continuum;
   $('read-tip-control').hidden=prep;
   readTip(state);

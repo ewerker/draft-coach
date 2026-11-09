@@ -2,8 +2,11 @@ import {followVariantChoice,observeVariantEvidence} from './review.mjs';
 import {answerTactics,proposeReview} from './review-gpt.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {LatestQueue,autoCaptureBusy} from './pipeline.mjs';
+import vm from 'node:vm';
+import {readFile,writeFile,rename,unlink,mkdtemp,rm} from 'node:fs/promises';
+import path from 'node:path';
+import {tmpdir} from 'node:os';
+import {LatestQueue,autoCaptureBusy,nextLossStreak} from './pipeline.mjs';
 import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -389,4 +392,57 @@ test('do not open a spell before observed first units or merely because a tip is
   assert.equal(shouldTrySpell(item,match,true,3,'later'),false);
   item.hearts={own:3,enemy:4};
   assert.equal(shouldTrySpell(item,match,true,3,'later'),true);
+});
+
+
+test('loss streak increments across modes, ignores abandoned games and resets after a win',()=>{
+  let streak=0;
+  for(const outcome of ['verloren','abgebrochen','verloren'])streak=nextLossStreak(streak,outcome);
+  assert.equal(streak,2);
+  streak=nextLossStreak(streak,'verloren');assert.equal(streak,3);
+  streak=nextLossStreak(streak,'gewonnen');assert.equal(streak,0);
+  assert.equal(nextLossStreak(streak,'abgebrochen'),0);
+});
+
+
+test('third saved loss stops capture, auto taps and continuum before advancing',async()=>{
+  const source=await readFile(new URL('./server.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('async function saveMatchOutcome('),end=source.indexOf('let quickAiBusy=',start);
+  assert.ok(start>=0&&end>start);
+  const ctx={Date,JSON,Number,Map,Promise,Error,path:{join:(...parts)=>parts.join('/')},RUNTIME:'runtime',
+    appendFile:async()=>{},logResetAt:0,recentMatchResults:[],matchLogEntry:x=>x,addMatchStats:()=>{},
+    nextLossStreak,stopAfterLosses:true,lossStreak:0,lossStopEvent:null,continuum:true,continuation:{step:'saving'},
+    autoTap:true,readTipEnabled:true,pendingSpeech:null,interruptibleCapture:null,tapMessage:'',
+    state:{auto:true,gameLanguage:'de'},archive:{archiveGames:async()=>{}},
+    setAuto(value){ctx.state.auto=value;if(!value)ctx.continuation=null;},setAutoTap(value){ctx.autoTap=value;}};
+  vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
+  for(const [index,outcome] of ['verloren','abgebrochen','verloren','verloren'].entries()){
+    ctx.stoppedMatch={id:'match-'+index,mode:'draft',started:1,ended:index+2,captureDone:Promise.resolve(),captureIds:[],heartTimeline:[],variantEvidence:[],reviewFrames:[]};
+    await ctx.saveMatchOutcome({matchId:ctx.stoppedMatch.id,outcome});
+    if(index<3)assert.equal(ctx.state.auto,true);
+  }
+  assert.equal(ctx.lossStreak,3);assert.equal(ctx.state.auto,false);assert.equal(ctx.autoTap,false);
+  assert.equal(ctx.continuum,false);assert.equal(ctx.continuation,null);assert.equal(ctx.readTipEnabled,false);
+  assert.equal(ctx.lossStopEvent.matchId,'match-3');
+  ctx.stopAfterLosses=false;ctx.lossStreak=2;ctx.lossStopEvent=null;ctx.state.auto=true;ctx.continuum=true;ctx.autoTap=true;
+  ctx.stoppedMatch={id:'disabled',mode:'arena',started:1,ended:10,captureDone:Promise.resolve(),captureIds:[],heartTimeline:[],variantEvidence:[],reviewFrames:[]};
+  await ctx.saveMatchOutcome({matchId:'disabled',outcome:'verloren'});
+  assert.equal(ctx.lossStreak,3);assert.equal(ctx.state.auto,true);assert.equal(ctx.autoTap,true);assert.equal(ctx.continuum,true);assert.equal(ctx.lossStopEvent,null);
+});
+
+
+test('loss-stop setting is saved atomically for the next server start',async()=>{
+  const source=await readFile(new URL('./server.mjs',import.meta.url),'utf8');
+  const start=source.indexOf('async function saveLossGuard('),end=source.indexOf('let autoMode=',start);
+  assert.ok(start>=0&&end>start);
+  const dir=await mkdtemp(path.join(tmpdir(),'coach-loss-'));
+  try{
+    const ctx={JSON,Error,writeFile,rename,unlink,stopAfterLosses:true,lossGuardSaving:false,lossGuardFile:path.join(dir,'loss-guard.json')};
+    vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
+    await ctx.saveLossGuard(false);
+    assert.equal(ctx.stopAfterLosses,false);
+    assert.deepEqual(JSON.parse(await readFile(ctx.lossGuardFile,'utf8')),{enabled:false});
+    await ctx.saveLossGuard(true);
+    assert.deepEqual(JSON.parse(await readFile(ctx.lossGuardFile,'utf8')),{enabled:true});
+  }finally{await rm(dir,{recursive:true,force:true});}
 });

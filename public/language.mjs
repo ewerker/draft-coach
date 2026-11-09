@@ -322,6 +322,8 @@ Verhältnis Siege : Niederlagen|Wins : losses
 Siege|wins
 Vorrat aktualisiert|Collection updated
 Sternwert|Star value
+Nach drei Niederlagen stoppen|Stop after three losses
+Nach drei Niederlagen in Folge gestoppt.|Stopped after three consecutive losses.
 Partiekennung kopieren|Copy match ID
 Kopieren|Copy
 Kopiert|Copied

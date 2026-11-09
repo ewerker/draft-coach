@@ -18,3 +18,9 @@ export class LatestQueue {
 export function autoCaptureBusy({autoBusy,capturing,manualTapPending,recognizing,queueRunning}) {
   return !!(autoBusy||capturing||manualTapPending||recognizing||queueRunning);
 }
+
+export function nextLossStreak(count,outcome) {
+  if(outcome==='verloren')return count+1;
+  if(outcome==='gewonnen')return 0;
+  return count;
+}
