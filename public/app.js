@@ -1266,10 +1266,46 @@ function renderReferences(references){
       hiddenReferences=next;
       renderReferences(references);
     });
-    card.append(run,remove);
+    const copy=textEl('button',language==='en'?'Add to review images':'Als Prüfbild übernehmen','small');
+    copy.type='button';copy.onclick=()=>action(()=>post('/api/reference/save',{file:ref.file}));
+    card.append(run,copy,remove);
     gallery.append(card);
   }
   if(!gallery.childElementCount)gallery.append(textEl('p','Keine Referenzbilder in der Galerie.','muted'));
+}
+$('reference-capture').onclick=()=>action(()=>post('/api/reference/capture'));
+let savedReferenceKey='';
+function renderSavedReferences(references){
+  const gallery=$('saved-references');gallery.replaceChildren();
+  for(const ref of references){
+    const card=textEl('div','','reference prep-card');
+    const run=textEl('button','','reference-run');run.type='button';
+    const image=new Image();image.src='/saved-reference/'+ref.id;image.loading='lazy';image.alt=language==='en'?'Reference image':'Referenzbild';
+    const title=(ref.source==='automatic'?(language==='en'?'Unrecognized offer':'Nicht erkannt'):(language==='en'?'Manual capture':'Eigene Aufnahme'))+' · '+new Date(ref.at).toLocaleString(language);
+    run.append(image,textEl('span',title));run.onclick=()=>action(()=>post('/api/reference',{file:ref.id}));
+    const count=(ref.corrections||[]).length;
+    if(count)card.append(textEl('span',(language==='en'?'Corrections: ':'Korrekturen: ')+count,'muted'));
+    const remove=textEl('button',language==='en'?'Delete':'Löschen','small');remove.type='button';
+    remove.onclick=()=>action(()=>post('/api/reference/remove',{id:ref.id}));
+    card.prepend(run);card.append(remove);gallery.append(card);
+  }
+  if(!references.length)gallery.append(textEl('p',language==='en'?'No saved reference images yet.':'Noch keine Prüfbilder gespeichert.','muted'));
+}
+function renderReferenceCorrection(item){
+  const panel=$('reference-correction');panel.replaceChildren();
+  panel.hidden=!(item?.source==='reference'&&item.referenceId&&['battle_choice','deck_choice'].includes(item.phase)&&item.offers?.length);
+  if(panel.hidden)return;
+  panel.append(textEl('h3',language==='en'?'Correct a unit':'Einheit korrigieren'));
+  panel.append(textEl('p',language==='en'?'Choose the card position and the correct unit. Similar unit images can use this correction; actions and spells are not learned yet.':'Wähle Position und richtige Einheit. Sehr ähnliche Figurenbilder können diese Korrektur nutzen; Aktionen und Zauber werden noch nicht gelernt.','muted'));
+  const position=document.createElement('select');position.setAttribute('aria-label',language==='en'?'Card position':'Kartenposition');
+  for(const offer of item.offers){const labels=language==='en'?['Left','Middle','Right']:['Links','Mitte','Rechts'];position.append(new Option(labels[offer.position]??String(offer.position+1),String(offer.position)));}
+  const name=document.createElement('select');name.setAttribute('aria-label',language==='en'?'Correct unit':'Richtige Einheit');
+  name.append(new Option(language==='en'?'Select unit':'Einheit wählen',''));
+  for(const unit of config.collection.units.units)name.append(new Option(displayNames(unit.name,language),unit.name));
+  const save=textEl('button',language==='en'?'Save correction':'Korrektur speichern','small');save.type='button';
+  const status=textEl('p','','muted');status.setAttribute('role','status');
+  save.onclick=()=>action(async()=>{if(!name.value)throw Error(language==='en'?'Select a unit first.':'Bitte zuerst eine Einheit wählen.');await post('/api/reference/correct',{id:item.referenceId,position:Number(position.value),name:name.value});status.textContent=language==='en'?'Correction saved.':'Korrektur gespeichert.';});
+  panel.append(position,name,save,status);
 }
 let choosingOffer=false,canTapImage=false;
 const screenshot=$('screenshot');
@@ -1761,6 +1797,7 @@ async function refresh(){
   if(state.error&&state.error!==lastServerError)error(Error(state.error));
   lastServerError=state.error;
   if(prep&&!refsShown){renderReferences(state.references);refsShown=true;}
+  if(prep){const key=JSON.stringify([language,state.savedReferences]);if(key!==savedReferenceKey){savedReferenceKey=key;renderSavedReferences(state.savedReferences||[]);}}
   const c=displayed;
   if(!c){
     current=null;
@@ -1776,6 +1813,7 @@ async function refresh(){
     $('advice').classList.add('wait');
     renderOffers({offers:[]});
   }
+  if(c&&c.id!==lastId)renderReferenceCorrection(c);
   if(c){current=c;const pending=state.latestId>c.id;const a=JSON.stringify([c.phase,c.advice,c.sentChoice,c.expired,pending,filterImages]);if(c.id!==lastId){lastId=c.id;$('image-empty').hidden=true;document.querySelector('.image-wrap').hidden=false;$('screenshot').src=c.image;$('phase').textContent=phaseNames[c.phase]||c.phase;$('image-caption').textContent=c.source==='reference'?c.title+' · Gespeichertes Testbild':c.title;$('capture-time').textContent=(c.captureMs/1000).toFixed(2)+' s';$('vision-time').textContent=Math.round(c.visionMs)+' ms';$('total-time').textContent=(c.ageMs/1000).toFixed(2)+' s';renderOffers(c);}else if(a!==lastAdvice&&c.sentChoice)renderOffers(c);draw(c,state.lastCardTap);
     if(a!==lastAdvice){
       lastAdvice=a;

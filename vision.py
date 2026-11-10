@@ -168,6 +168,24 @@ def classify(img,box,preferred=None):
                 accepted=pool_hint=True
     return {'name':name if accepted else None,'candidate':name,'similarity':round(score,3),'margin':round(margin,3),'box':box,'poolHint':pool_hint,'alternatives':[{'name':n,'similarity':round(s,3)} for n,s in ranked[:3]]}
 
+reference_feature_cache={}
+def apply_learned_references(img,phase,offers,examples):
+    # Near-identical verified icons only; never infer an action or quantity.
+    for card in offers:
+        box=card.get('box')
+        if not box: continue
+        current=feature(cut(img,box)); scores={}
+        for entry in examples:
+            if entry.get('phase')!=phase or not entry.get('name') or len(entry.get('box',[]))!=4: continue
+            key=(entry.get('path'),tuple(entry['box']))
+            try:
+                if key not in reference_feature_cache: reference_feature_cache[key]=feature(cut(load(key[0]),entry['box']))
+                score=similarity(current,reference_feature_cache[key]);scores[entry['name']]=max(score,scores.get(entry['name'],0))
+            except (OSError,ValueError,cv2.error): continue
+        ranked=sorted(scores.items(),key=lambda x:-x[1])
+        if ranked and ranked[0][1]>=.99 and (len(ranked)==1 or ranked[0][1]-ranked[1][1]>=.04):
+            card.update(name=ranked[0][0],candidate=ranked[0][0],learnedReference=True)
+
 def number(img,box):
     f=digit_feature(cut(img,box)); scores={}
     for value,t in numbers: scores[value]=max(scores.get(value,0),similarity(f,t))
@@ -473,7 +491,7 @@ def normal_draft_deck_evidence(phase,is_showdown,offers,comeback):
                     ((card.get('quantity') or 0)>4 and not (card.get('name')=='Gans' and card.get('action')=='add' and card.get('quantity')==5))
                     for card in offers))
 
-def recognize(path,preferred=None,language='de',learned_banners=()):
+def recognize(path,preferred=None,language='de',learned_banners=(),learned_references=()):
     start=time.perf_counter()
     caption_ms=0.0
     raw=decode(path)
@@ -580,6 +598,8 @@ def recognize(path,preferred=None,language='de',learned_banners=()):
             else:
                 offers=[]
     else: notes.append('Bildschirmtyp noch nicht sicher erkannt.')
+    if phase in ('battle_choice','deck_choice'):
+        apply_learned_references(img,phase,offers,learned_references)
     if phase=='battle_choice':
         mark_reinforcement_variants(img,offers)
     if phase!='battle_choice' or not all(card['name'] for card in offers):
@@ -1036,7 +1056,7 @@ elif __name__ == '__main__':
             elif req.get('geometryOnly'):
                 result={'geometry':screen_geometry(decode(req['path']))}
             else:
-                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'),req.get('learnedBanners') or ())
+                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'),req.get('learnedBanners') or (),req.get('learnedReferences') or ())
             result['id']=req['id']
         except Exception as exc:
             result={'id':req.get('id') if 'req' in locals() else None,'error':str(exc)}

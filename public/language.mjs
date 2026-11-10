@@ -294,6 +294,11 @@ Zeige die ausgewählten Einheiten oder Zauber oben im jeweiligen Spielbildschirm
 Sammlung und Aufstellung zusammenführen|Combine collection and lineup
 Aufnahmen auswerten|Analyse captures
 Geprüfte Sammlung übernehmen|Save reviewed collection
+Referenzbilder und Korrekturen|Reference images and corrections
+Unerkannte Wahlangebote werden automatisch gesammelt. Für eine gezielte Aufnahme öffne das gewünschte Bild auf dem Handy.|Unrecognized offers are collected automatically. Open the desired screen on your phone to capture a reference image.
+Referenzbild aufnehmen|Capture reference image
+Gesammelte Prüfbilder|Collected review images
+Frühere Testbilder|Previous test images
 Referenzbilder testen|Test reference images
 Lokale Bilderkennung|Local image recognition
 Letzte Aufnahme|Latest capture

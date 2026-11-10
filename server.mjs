@@ -11,6 +11,7 @@ import readline from 'node:readline';
 import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
 import {resolveBuild} from './build-info.mjs';
 import {collectionLineup} from './collection-lineup.mjs';
+import {createReferenceStore} from './reference-store.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -181,6 +182,11 @@ function claimBrowser(client){
   lastClientSeen=Date.now();
 }
 await mkdir(PREPARATION,{recursive:true});
+const referenceStore=await createReferenceStore(path.join(RUNTIME,'referenzen'));
+let savedReferences=await referenceStore.list();
+let referenceSaving=false;
+function referenceExamples(){return savedReferences.flatMap(ref=>(ref.corrections||[]).map(c=>({...c,path:referenceStore.image(ref.id)})));}
+
 if(!existsSync(archiveFile)){
   const schema=await readFile(path.join(ROOT,'data','archive-schema.sql'),'utf8');
   const database=new DatabaseSync(archiveFile);
@@ -221,7 +227,7 @@ function recognize(job) {
     const timer=setTimeout(()=>{waiting.delete(job.id);reject(Error('Erkennung nach 15 Sekunden abgebrochen'));worker.kill();},15000);
     const preferred=extendedPool||state.mode==='auto'?[]:[...allowedNames(collection,state.mode)];
     waiting.set(job.id,{resolve,reject,timer});
-    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,bannerTemplate:job.bannerTemplate,reviewCrop:job.reviewCrop,language:job.gameLanguage,preferred,learnedBanners})+'\n');
+    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,bannerTemplate:job.bannerTemplate,reviewCrop:job.reviewCrop,language:job.gameLanguage,preferred,learnedBanners,learnedReferences:referenceExamples()})+'\n');
   });
 }
 function preparationVersion() {
@@ -488,6 +494,10 @@ function recordRecognitionIssues(job,result,advice,at){
   recognitionIssueSeen.set(key,at);
   for(const [seenKey,time] of recognitionIssueSeen)if(at-time>=10000)recognitionIssueSeen.delete(seenKey);
   recognitionIssues.unshift({at,phase:result.phase,issues,captureId:job.id});
+  if(!referenceSaving && savedReferences.filter(ref=>ref.source==='automatic').length<200){
+    referenceSaving=true;
+    void readFile(job.path).then(png=>referenceStore.add(png,{source:'automatic',phase:result.phase,language:job.gameLanguage,issues})).then(ref=>{savedReferences.unshift(ref);}).catch(error=>console.error('Referenzbild:',error.message)).finally(()=>{referenceSaving=false;});
+  }
   if(recognitionIssues.length>100)recognitionIssues.length=100;
 }
 function record(job,result) {
@@ -1444,9 +1454,33 @@ async function handleRequest(req,res){
         state.preparation=state.preparation.filter(shot=>shot.file!==file);
         return json(res,200,{ok:true});
       }
+      if(url.pathname==='/api/reference/save') {
+        const ref=refs.find(item=>item.file===data.file);if(!ref)throw Error('Referenzbild nicht gefunden.');
+        const saved=await referenceStore.add(await readFile(path.join(IMAGES,ref.file)),{source:'manual',language:state.gameLanguage});savedReferences.unshift(saved);return json(res,200,{ok:true});
+      }
+      if(url.pathname==='/api/reference/capture') {
+        if(state.capturing||state.auto||manualTapPending)throw Error('Bitte zuerst die laufende Aufnahme stoppen.');
+        state.capturing=true;
+        try {const png=await execAdb(['-s',device,'exec-out','screencap','-p'],12000);if(png.length<24||!png.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))throw Error('Kein gültiges Bild erhalten.');
+          const ref=await referenceStore.add(png,{source:'manual',language:state.gameLanguage});savedReferences.unshift(ref);return json(res,200,{ok:true});
+        } finally {state.capturing=false;}
+      }
+      if(url.pathname==='/api/reference/correct') {
+        const ref=savedReferences.find(item=>item.id===data.id);
+        const item=state.current;
+        const offer=item?.offers?.find(card=>card.position===data.position);
+        if(!ref||item?.source!=='reference'||item.referenceId!==ref.id||!['battle_choice','deck_choice'].includes(item.phase)||!offer||!Array.isArray(offer.box)||offer.box.length!==4||!collection.units.units.some(card=>card.name===data.name))throw Error('Bitte ein Referenzbild mit erkannten Wahlfeldern öffnen und eine gültige Einheit wählen.');
+        const correction={phase:item.phase,position:data.position,name:data.name,box:offer.box};
+        const updated=await referenceStore.correct(ref.id,correction);savedReferences=savedReferences.map(old=>old.id===ref.id?updated:old);return json(res,200,{ok:true});
+      }
+      if(url.pathname==='/api/reference/remove') {
+        const ref=savedReferences.find(item=>item.id===data.id);if(!ref)throw Error('Referenzbild nicht gefunden.');
+        await referenceStore.remove(ref.id);savedReferences=savedReferences.filter(item=>item.id!==ref.id);return json(res,200,{ok:true});
+      }
       if(url.pathname==='/api/reference') {
-        const ref=refs.find(r=>r.file===data.file);if(!ref)return json(res,404,{error:'Referenz fehlt'});
-        const id=++serial;state.latestId=id;queue.push({id,started:Date.now(),source:'reference',title:ref.title,path:path.join(IMAGES,ref.file),image:'/reference/'+ref.file,captureMs:0});return json(res,202,{id});
+        const saved=savedReferences.find(r=>r.id===data.file);
+        const ref=refs.find(r=>r.file===data.file);if(!ref&&!saved)return json(res,404,{error:'Referenz fehlt'});
+        const id=++serial;state.latestId=id;queue.push({id,started:Date.now(),source:'reference',referenceId:saved?.id,title:saved?'Referenzaufnahme':ref.title,path:saved?referenceStore.image(saved.id):path.join(IMAGES,ref.file),image:saved?'/saved-reference/'+saved.id:'/reference/'+ref.file,gameLanguage:saved?.language??state.gameLanguage,captureMs:0});return json(res,202,{id});
       }
       if(url.pathname==='/api/settings') {
         if(data.restoreBrowser&&(lossStopEvent||state.auto||state.capturing||state.recognizing||audioClient&&client!==audioClient))
@@ -1553,7 +1587,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,stopAfterLosses,lossStreak,lossStopEvent,activeMatchId:activeMatch?.id??null,ownCardValueChanges:activeMatch?.cardValueChanges.slice(-3)??[],recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,savedReferences,stopAfterLosses,lossStreak,lossStopEvent,activeMatchId:activeMatch?.id??null,ownCardValueChanges:activeMatch?.cardValueChanges.slice(-3)??[],recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
@@ -1586,7 +1620,8 @@ async function handleRequest(req,res){
     if(url.pathname==='/api/config')return json(res,200,{token,collection,version,build,buildInfo,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
-    if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
+    if(url.pathname.startsWith('/saved-reference/')){const id=url.pathname.slice(17);if(referenceStore.valid(id)&&savedReferences.some(ref=>ref.id===id))file=referenceStore.image(id);}
+    else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
     else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs'})[url.pathname]);
