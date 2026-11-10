@@ -933,7 +933,7 @@ const knowledgePanel=createKnowledgePanel({root:$('knowledge-panel'),getLanguage
       const response=await fetchState(),state=await response.json();
       if(state.auto||state.capturing||state.recognizing||state.activeMatchId)throw Error(language==='en'?'Stop capture after the match before editing images.':'Bitte nach der Partie die Aufnahme stoppen, bevor du Bilder bearbeitest.');
       await post('/api/settings',{mode:'prep'});gameMode='prep';showCoachView('game');
-      await post('/api/reference',{file:source.id});await refresh();return;
+      await openReferenceForCorrection(source.id);await refresh();return;
     }
     if(source.type==='case'){
       const item=reviewCases.find(item=>item.id===source.id);if(!item)return;
@@ -1416,6 +1416,27 @@ try{
   const saved=JSON.parse(localStorage.getItem(hiddenReferenceKey)||'[]');
   if(Array.isArray(saved))hiddenReferences=new Set(saved);
 }catch{}
+let pendingReferenceScrollId=null;
+async function openReferenceForCorrection(file){
+  const result=await post('/api/reference',{file});
+  pendingReferenceScrollId=result.id;
+}
+function scrollToReferenceCorrection(item){
+  if(pendingReferenceScrollId===null||!item||item.id<pendingReferenceScrollId)return;
+  const requested=item.id===pendingReferenceScrollId;
+  pendingReferenceScrollId=null;
+  if(!requested||item.source!=='reference'||gameMode!=='prep'||coachView!=='game')return;
+  $('reference-panel').open=true;
+  requestAnimationFrame(()=>{
+    if(current?.id!==item.id||gameMode!=='prep'||coachView!=='game')return;
+    const target=['reference-correction','enemy-reference-correction','own-reference-correction']
+      .map($).find(panel=>!panel.hidden)??document.querySelector('.workspace');
+    const control=document.querySelector('.control');
+    const offset=control?.getClientRects().length?control.getBoundingClientRect().height:0;
+    target.style.scrollMarginTop=(offset+16)+'px';
+    target.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+  });
+}
 function renderReferences(references){
   const gallery=$('references');
   gallery.replaceChildren();
@@ -1429,7 +1450,7 @@ function renderReferences(references){
     preview.alt=ref.title;
     preview.loading='lazy';
     run.append(preview,textEl('span',ref.title));
-    run.onclick=()=>action(()=>post('/api/reference',{file:ref.file}));
+    run.onclick=()=>action(()=>openReferenceForCorrection(ref.file));
     const remove=textEl('button','Aus Galerie entfernen','small');
     remove.type='button';
     remove.setAttribute('aria-label',ref.title+' aus Galerie entfernen');
@@ -1455,7 +1476,7 @@ function renderSavedReferences(references){
     const run=textEl('button','','reference-run');run.type='button';
     const image=new Image();image.src='/saved-reference/'+ref.id;image.loading='lazy';image.alt=language==='en'?'Reference image':'Referenzbild';
     const title=(ref.source==='automatic'?(language==='en'?'Unrecognized offer':'Nicht erkannt'):ref.source==='match'?(language==='en'?'Match image':'Partieaufnahme'):(language==='en'?'Manual capture':'Eigene Aufnahme'))+' · '+new Date(ref.at).toLocaleString(language);
-    run.append(image,textEl('span',title));run.onclick=()=>action(()=>post('/api/reference',{file:ref.id}));
+    run.append(image,textEl('span',title));run.onclick=()=>action(()=>openReferenceForCorrection(ref.id));
     const count=(ref.corrections||[]).length;
     if(count)card.append(textEl('span',(language==='en'?'Corrections: ':'Korrekturen: ')+count,'muted'));
     const remove=textEl('button',language==='en'?'Delete':'Löschen','small');remove.type='button';
@@ -2182,6 +2203,7 @@ async function refresh(){
   loggedRecognitionIssues=state.recognitionIssues??[];
   renderActivityLog();
   renderTimingCharts(state.timingTrend??[]);
+  scrollToReferenceCorrection(c);
 }
 $('show-intermediates').onchange=()=>{
   rememberPreferences({showIntermediates:$('show-intermediates').checked});
