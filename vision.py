@@ -427,12 +427,15 @@ with np.load(ROOT/'data'/'new-result-de.npz',allow_pickle=False) as data:
     new_continue_en=data['continue_en'].copy()
     new_replay_en=data['replay_en'].copy()
     new_home_en=data['home_en'].copy()
+    new_loss_en=data['loss_en'].copy()
+    new_mastery_en=data['mastery_en'].copy()
+    new_mastery_claim=data['claim_mastery_en'].copy()
 
 def new_result_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     heading=gray[25:67,16:152]
     button=gray[300:355,25:143]
-    variants=[(new_win_de,new_continue_de),(new_win_en,new_continue_en)] if outcome=='gewonnen' else [(new_loss_de,new_continue_de)]
+    variants=[(new_win_de,new_continue_de),(new_win_en,new_continue_en)] if outcome=='gewonnen' else [(new_loss_de,new_continue_de),(new_loss_en,new_continue_en)]
     for pattern,button_pattern in variants:
         if cv2.minMaxLoc(cv2.matchTemplate(heading,pattern,cv2.TM_CCOEFF_NORMED))[1]<.94:continue
         _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button,button_pattern,cv2.TM_CCOEFF_NORMED))
@@ -465,12 +468,14 @@ def game_navigation(small,outcome):
         return navigation_button(gray,'result',area,'result') or navigation_button(gray,'result_de',area,'result')
     # German mastery rewards can appear between the result and replay screens.
     title_area=gray[102:155,18:150];button_area=gray[268:323,30:138]
-    if cv2.minMaxLoc(cv2.matchTemplate(title_area,new_mastery_de,cv2.TM_CCOEFF_NORMED))[1]>=.90:
-        _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button_area,new_mastery_holen,cv2.TM_CCOEFF_NORMED))
-        hsv=cv2.cvtColor(small[280:314,41:127],cv2.COLOR_BGR2HSV)
-        gold=np.mean((hsv[:,:,0]>15)&(hsv[:,:,0]<40)&(hsv[:,:,1]>80))
-        if score>=.70 and gold>=.30:
-            return {'step':'reward','mode':None,'point':[.5,297/364]}
+    for title_pattern,button_pattern in ((new_mastery_de,new_mastery_holen),(new_mastery_en,new_mastery_claim)):
+        title_score=cv2.minMaxLoc(cv2.matchTemplate(title_area,title_pattern,cv2.TM_CCOEFF_NORMED))[1]
+        if title_score>=.90:
+            _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button_area,button_pattern,cv2.TM_CCOEFF_NORMED))
+            hsv=cv2.cvtColor(small[280:314,41:127],cv2.COLOR_BGR2HSV)
+            gold=np.mean((hsv[:,:,0]>15)&(hsv[:,:,0]<40)&(hsv[:,:,1]>80))
+            if (score>=.70 and gold>=.30) or (title_score>=.95 and score>=.65 and gold>=.35):
+                return {'step':'reward','mode':None,'point':[.5,297/364]}
     # The new Draft end screen offers a direct replay and a home button.
     left=gray[291:340,5:85];right=gray[291:340,83:163]
     for replay_pattern,home_pattern in ((new_replay_de,new_home_de),(new_replay_en,new_home_en)):

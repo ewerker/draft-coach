@@ -47,6 +47,18 @@ class NewGermanResultTests(unittest.TestCase):
         replay[291:340,83:163]=0
         self.assertIsNone(vision.game_navigation(replay,None))
 
+    def test_english_defeat_and_mastery_claim(self):
+        loss=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-loss-en.png')
+        self.assertEqual(vision.match_outcome_small(loss),'verloren')
+        self.assertEqual(vision.game_navigation(loss,'verloren')['step'],'result')
+        self.assertIsNone(vision.new_result_navigation(loss,'gewonnen'))
+        claim=vision.decode(Path(__file__).resolve().parent/'data'/'test-mastery-claim-en.png')
+        self.assertEqual(vision.game_navigation(claim,None)['step'],'reward')
+        animated=vision.decode(Path(__file__).resolve().parent/'data'/'test-mastery-claim-en-animated.png')
+        self.assertEqual(vision.game_navigation(animated,None)['step'],'reward')
+        claim[268:323,30:138]=0
+        self.assertIsNone(vision.game_navigation(claim,None))
+
     def test_replay_requires_both_buttons(self):
         image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-replay-de.png')
         nav=vision.game_navigation(image,None)
