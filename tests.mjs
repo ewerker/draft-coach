@@ -273,12 +273,14 @@ test('deck choice favors a ranged unit when Sixshoot and Captain are already sel
 test('optional GPT review requests structured output and only attaches a selected crop',async()=>{
   const result={observation:'Snail is visible.',uncertainty:'Outcome unknown.',rule:null};
   for(const image of [undefined,'test-image']){
-    const draft=await proposeReview({key:'test-key',model:'test-model',language:'en',evidence:{capture:12},image},
+    const draft=await proposeReview({key:'test-key',model:'test-model',language:'en',evidence:{capture:12,playerObservation:'Agent B earlier',validCards:['Agent B']},image},
       async (url,options)=>{
         assert.equal(url,'https://api.openai.com/v1/responses');
         const payload=JSON.parse(options.body);
         assert.equal(payload.store,false);
         assert.equal(payload.text.format.strict,true);
+        assert.match(payload.input[0].content[0].text,/Agent B earlier/);
+        assert.match(payload.instructions,/essential conditions/);
         assert.equal(payload.input[0].content.some(part=>part.type==='input_image'),Boolean(image));
         return {ok:true,json:async()=>({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(result)}]}]})};
       });

@@ -50,11 +50,18 @@
   <details><summary>Wie verwende ich Prüfbilder und Regelbelege?</summary><p>In der Partieauswertung kannst du ein verfügbares Bild als Prüfbild übernehmen. Unter Vorbereitung siehst du es vollständig und kannst eigene sowie gegnerische Figuren getrennt markieren. Anzahl und Ausbau lassen sich als eigene Beobachtung ergänzen. Bei Taktikregeln zeigen zugeordnete, gesendete Entscheidungen ihre Partieergebnisse; Siege und Niederlagen beweisen keine Regelwirkung. Regeln bleiben bis zur eigenen Änderung in ihrem bisherigen Status.</p></details>
   <details><summary>Wie sicher sind Bildtreffer und Truppenzahlen?</summary><p>Vorläufige Bildtreffer suchen ähnliche markierte Ausschnitte. Überlappungen, andere Posen oder fehlende Vorlagen können zu fehlenden oder falschen Treffern führen. Die angezeigten Trefferzahlen sind keine sichere Zählung oder Ausbaustufe und verändern die Tipps noch nicht.</p></details>
   <details><summary>Wie lernt die Spielfelderkennung?</summary><p>Unter Vorbereitung zeigt Lernfortschritt die verfügbaren Prüfbilder und die unabhängige Auswertung. Nach dem Spiel kannst du bis zu drei Bilder aus verschiedenen Partien vorschlagen lassen. Öffne ein Prüfbild, markiere die sichtbaren Figurentypen und bestätige nur vollständige Angaben. Ganze Partien bleiben für den Test getrennt. Die Prüfung läuft außerhalb des Spiels. Ergebnisse zu Anzahl und Ausbau sind getrennt; die Bildtreffer beeinflussen Tipps noch nicht.</p></details>
+  <details><summary>Wie bespreche ich eine Partie mit der KI?</summary><p>Unter Partie auswerten wählst du eine Aufnahme. Diktiere oder schreibe deine Beobachtung und erstelle mit einem hinterlegten OpenAI-API-Key einen Vorschlag. Die Angaben zur Aufnahme und deine Beobachtung werden dabei an OpenAI gesendet; ein Kartenausschnitt nur auf Wunsch. Prüfe das Ergebnis und speichere es als Prüffall. Es wird nicht automatisch zu einer aktiven Taktikregel. Ohne API-Key kannst du deine Beobachtung als Prüffall speichern.</p></details>
   <details><summary>Was enthält die Sicherung?</summary><p>Abgeschlossene Partien werden automatisch archiviert. Unter Admin · Archiv kannst du die SQLite-Sicherung herunterladen. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek und die Prüfbilder aus der Vorbereitung werden separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
 </section>
 <section id="review-panel" class="panel" hidden>
   <div class="panel-head"><h2>Partie auswerten</h2><button id="close-review" type="button" class="small">Zurück zum Spiel</button></div>
   <p>Wähle eine Partie und Aufnahme. Vergleiche Erkennung, Tipp und gesendeten Klick; übernimm wichtige Aufnahmen als Prüfbild oder prüfe einen Regelvorschlag.</p>
+  <details id="review-queue" open><summary>Prüffälle</summary>
+    <p>Hier stehen alle gespeicherten Prüffälle zusammen. Öffne einen Fall und markiere ihn nach der Bearbeitung als erledigt.</p>
+    <p id="review-queue-count" role="status"></p>
+    <label>Anzeige <select id="review-queue-filter"><option value="open">Offen</option><option value="all">Alle</option><option value="done">Erledigt</option></select></label>
+    <div id="review-cases"></div>
+  </details>
   <div class="tactics-actions">
     <label>Partie <select id="review-match"></select></label>
     <label>Wahlfenster <select id="review-capture"></select></label>
@@ -72,10 +79,23 @@
   </div>
   <div id="review-facts"></div>
   <form id="review-form" hidden>
-    <h3>Beobachtung und Taktikregel</h3>
+    <h3>Was ist dir aufgefallen?</h3>
+    <p>Erzähle oder schreibe, was du anders gemacht hättest. Die KI kann daraus einen Vorschlag zur Prüfung machen.</p>
+    <label>Deine Beobachtung <textarea name="observation" maxlength="1500" rows="3" placeholder="Zum Beispiel: Gegen die Schnecke hätte ich Agent B früher aufgebaut."></textarea></label>
+    <div class="tactics-actions"><button id="review-mic" type="button" aria-pressed="false">Beobachtung diktieren</button></div>
+    <p id="review-mic-status" class="muted" role="status"></p>
+    <div id="review-gpt">
+      <p class="muted">Für den KI-Vorschlag werden deine Beobachtung und die erfassten Angaben zur gewählten Aufnahme an OpenAI gesendet. Die Browser-Spracherkennung kann einen externen Dienst nutzen.</p>
+      <label><input id="review-gpt-image" type="checkbox"> Kartenausschnitt zusätzlich an OpenAI senden</label>
+      <button id="review-gpt-run" type="button">KI-Vorschlag erstellen</button>
+      <p id="review-gpt-status" class="muted" role="status"></p>
+    </div>
+    <div id="review-ai-result" aria-live="polite"></div>
+    <button type="submit">Als Prüffall speichern</button>
+    <p class="muted">Gespeicherte Vorschläge wirken nicht automatisch auf die Spieltipps.</p>
+    <details id="review-advanced"><summary>Details und Regel manuell bearbeiten</summary>
     <div class="tactics-fields">
       <label class="tactics-wide">Meine bevorzugte Wahl <select name="preferredOffer"></select></label>
-      <label class="tactics-wide">Beobachtung <textarea name="observation" maxlength="1500" rows="3"></textarea></label>
       <label class="tactics-wide">Regeltitel <input name="title" maxlength="100"></label>
       <label>Diese Angebotskarte <select name="offer"></select></label>
       <label>Wenn diese Gegnerfigur bekannt ist <select name="enemy"></select></label>
@@ -84,24 +104,18 @@
       <label>Gewicht in Punkten <input name="weight" type="number" min="-20" max="20" step="1" value="8"></label>
       <label>Modus <select name="mode"><option value="beide">Draft und Schlacht</option><option value="draft">Draft</option><option value="arena">Schlacht</option></select></label>
     </div>
-    <div class="tactics-actions"><button id="review-preview" type="button">Regel im Replay prüfen</button><button type="submit">Prüffall speichern</button></div>
+    <div class="tactics-actions"><button id="review-preview" type="button">Regel im Replay prüfen</button></div>
+    <div id="review-comparison"></div>
+    </details>
   </form>
-  <fieldset id="review-banner" hidden>
-    <legend>Rote Gegneranzeige korrigieren</legend>
+  <details id="review-banner" hidden><summary>Rote Gegneranzeige korrigieren</summary>
     <div class="tactics-actions">
       <label>Gegnerfigur <select id="review-banner-name"></select></label>
       <label>Angebotsaktion <select id="review-banner-action"><option value="add">Hinzufügen</option><option value="multiply">Verdopplung</option><option value="upgrade">Aufwerten</option></select></label>
       <label>Anzahl <input id="review-banner-quantity" type="number" min="1" max="30" value="1"></label>
       <button id="review-banner-save" type="button">Erkennungsvorlage speichern</button>
     </div>
-  </fieldset>
-  <div id="review-gpt" hidden>
-    <label><input id="review-gpt-image" type="checkbox"> Kartenausschnitt an OpenAI senden</label>
-    <button id="review-gpt-run" type="button">GPT-Entwurf erstellen</button>
-  </div>
-  <div id="review-comparison"></div>
-  <h3>Gespeicherte Prüffälle</h3>
-  <div id="review-cases"></div>
+  </details>
 </section>
 <section id="admin-panel" class="panel" aria-labelledby="admin-title" hidden>
   <div class="panel-head"><h2 id="admin-title">Admin · Archiv</h2><button id="close-admin" type="button" class="small">Zurück zum Spiel</button></div>
@@ -281,6 +295,7 @@
 <details class="panel preparation collapsible-section" id="reference-panel" open hidden>
   <summary><h2>Referenzbilder und Korrekturen</h2> <span class="muted">Lokale Bilderkennung</span></summary>
   <p>Unerkannte Wahlangebote werden automatisch gesammelt. Für eine gezielte Aufnahme öffne das gewünschte Bild auf dem Handy.</p>
+  <p class="muted">Nach dem Öffnen wird das vollständige Bild in der Vorschau angezeigt. „Einheit korrigieren“ betrifft die erkannten Wahlkarten und erscheint nur, wenn ein Wahlfenster erkannt wurde. Die getrennten oberen und unteren Ausschnitte darunter dienen dem Markieren gegnerischer beziehungsweise eigener Truppen auf dem Spielfeld.</p>
   <button id="reference-capture" type="button">Referenzbild aufnehmen</button>
   <h3>Gesammelte Prüfbilder</h3><div id="saved-references" class="references"></div>
   <div id="reference-correction" hidden></div>

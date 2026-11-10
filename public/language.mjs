@@ -59,6 +59,24 @@ Sprache älterer Bilder|Language of older captures
 Bild und Auswertung laden|Load image and review
 Aufnahme aus der Partie|Match capture
 Beobachtung und Taktikregel|Observation and tactical rule
+Prüffälle|Review cases
+Hier stehen alle gespeicherten Prüffälle zusammen. Öffne einen Fall und markiere ihn nach der Bearbeitung als erledigt.|All saved review cases are collected here. Open a case and mark it done after reviewing it.
+Anzeige|Show
+Offen|Open
+Erledigt|Done
+Was ist dir aufgefallen?|What did you notice?
+Erzähle oder schreibe, was du anders gemacht hättest. Die KI kann daraus einen Vorschlag zur Prüfung machen.|Describe or type what you would have done differently. AI can turn it into a suggestion for review.
+Deine Beobachtung|Your observation
+Zum Beispiel: Gegen die Schnecke hätte ich Agent B früher aufgebaut.|For example: I would have built up Agent B earlier against the Snail.
+Beobachtung diktieren|Dictate observation
+Für den KI-Vorschlag werden deine Beobachtung und die erfassten Angaben zur gewählten Aufnahme an OpenAI gesendet. Die Browser-Spracherkennung kann einen externen Dienst nutzen.|For the AI suggestion, your observation and the recorded details of the selected capture are sent to OpenAI. Browser speech recognition may use an external service.
+Kartenausschnitt zusätzlich an OpenAI senden|Also send the card crop to OpenAI
+KI-Vorschlag erstellen|Create AI suggestion
+Als Prüffall speichern|Save review case
+Gespeicherte Vorschläge wirken nicht automatisch auf die Spieltipps.|Saved suggestions do not automatically affect recommendations.
+Details und Regel manuell bearbeiten|Edit details and rule manually
+Wie bespreche ich eine Partie mit der KI?|How do I discuss a match with AI?
+Unter Partie auswerten wählst du eine Aufnahme. Diktiere oder schreibe deine Beobachtung und erstelle mit einem hinterlegten OpenAI-API-Key einen Vorschlag. Die Angaben zur Aufnahme und deine Beobachtung werden dabei an OpenAI gesendet; ein Kartenausschnitt nur auf Wunsch. Prüfe das Ergebnis und speichere es als Prüffall. Es wird nicht automatisch zu einer aktiven Taktikregel. Ohne API-Key kannst du deine Beobachtung als Prüffall speichern.|Under Review match, select an image. Dictate or type your observation and create a suggestion using a configured OpenAI API key. Your observation and capture details are sent to OpenAI; a card crop is sent only if selected. Review the result and save it as a review case. It does not automatically become an active tactical rule. You can save observations without an API key.
 Beobachtung|Observation
 Regeltitel|Rule title
 Regel im Replay prüfen|Preview rule in replay
@@ -299,6 +317,7 @@ Sammlung und Aufstellung zusammenführen|Combine collection and lineup
 Aufnahmen auswerten|Analyse captures
 Geprüfte Sammlung übernehmen|Save reviewed collection
 Referenzbilder und Korrekturen|Reference images and corrections
+Nach dem Öffnen wird das vollständige Bild in der Vorschau angezeigt. „Einheit korrigieren“ betrifft die erkannten Wahlkarten und erscheint nur, wenn ein Wahlfenster erkannt wurde. Die getrennten oberen und unteren Ausschnitte darunter dienen dem Markieren gegnerischer beziehungsweise eigener Truppen auf dem Spielfeld.|After opening an image, the full screenshot appears in the preview. “Correct a unit” applies to detected choice cards and appears only when a choice screen was recognized. The separate upper and lower crops are for marking enemy and own units on the battlefield.
 Lernfortschritt|Learning progress
 Gespeicherte Partien ansehen und SQLite-Sicherungen herunterladen.|View saved matches and download SQLite backups.
 Abgeschlossene Partien werden automatisch archiviert. Unter Admin · Archiv kannst du die SQLite-Sicherung herunterladen. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek und die Prüfbilder aus der Vorbereitung werden separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.|Completed matches are archived automatically. Under Admin · Archive you can download the SQLite backup. It contains archived matches, tap logs, evidence images and review cases with rule history. The active tactics library and setup review images are stored separately. Older images can be reviewed while they are available or saved as evidence.

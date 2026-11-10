@@ -284,6 +284,7 @@ let gameMode=$('mode').value;
 const viewHints={review:'Partie auswerten',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Gespeicherte Partien ansehen und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
 function showCoachView(view){
   if(view!=='quick')stopQuickDictation();
+  if(view!=='review')stopReviewDictation();
   coachView=view;
   $('game-view').hidden=view!=='game';
   $('quick-panel').hidden=view!=='quick';
@@ -552,6 +553,39 @@ if(config.localAdmin)$('organization-options').append(new Option('Partie auswert
 let reviewedFrame=null,reviewGptEnabled=false,reviewData=null,reviewCases=[],reviewGames=[],reviewGame=null;
 const reviewForm=$('review-form');
 const reviewRoot='/api/admin/review/';
+let reviewRecognition=null,reviewAiObservation='',reviewHasAiRule=false;
+function stopReviewDictation(){
+  const active=reviewRecognition;reviewRecognition=null;active?.abort();
+  const button=$('review-mic');button.setAttribute('aria-pressed','false');button.classList.remove('listening');
+  button.textContent=language==='en'?'Dictate observation':'Beobachtung diktieren';
+}
+function clearReviewSuggestion(){
+  reviewAiObservation='';$('review-ai-result').replaceChildren();
+  if(reviewHasAiRule){
+    for(const field of ['title','offer','enemy','action','condition'])reviewForm.elements.namedItem(field).value='';
+    reviewForm.elements.namedItem('weight').value='8';
+  }
+  reviewHasAiRule=false;
+}
+reviewForm.elements.namedItem('observation').addEventListener('input',clearReviewSuggestion);
+$('review-mic').onclick=()=>{
+  if(reviewRecognition){stopReviewDictation();return;}
+  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!Recognition){$('review-mic-status').textContent=language==='en'?'Voice input is unavailable in this browser. You can type instead.':'Spracheingabe ist in diesem Browser nicht verfügbar. Du kannst den Text eintippen.';return;}
+  stopMic();stopQuickDictation();
+  const recognition=new Recognition();reviewRecognition=recognition;
+  recognition.lang=language==='en'?'en-US':'de-DE';recognition.continuous=false;recognition.interimResults=false;
+  const finish=message=>{if(reviewRecognition!==recognition)return false;stopReviewDictation();$('review-mic-status').textContent=message;return true;};
+  recognition.onresult=event=>{
+    const text=event.results[event.resultIndex]?.[0]?.transcript?.trim();
+    if(!text||!finish(language==='en'?'Text inserted. Please review it.':'Text übernommen. Bitte prüfe ihn.'))return;
+    const input=reviewForm.elements.namedItem('observation');input.value=[input.value.trim(),text].filter(Boolean).join(' ').slice(0,input.maxLength);clearReviewSuggestion();input.focus();
+  };
+  recognition.onerror=event=>finish(event.error==='not-allowed'||event.error==='service-not-allowed'?(language==='en'?'Microphone access was not granted.':'Mikrofonzugriff wurde nicht freigegeben.'):(language==='en'?'Voice input failed. You can type instead.':'Spracheingabe fehlgeschlagen. Du kannst den Text eintippen.'));
+  recognition.onend=()=>finish(language==='en'?'No speech recognized. Try again.':'Nichts erkannt. Versuche es erneut.');
+  try{recognition.start();$('review-mic').setAttribute('aria-pressed','true');$('review-mic').classList.add('listening');$('review-mic').textContent=language==='en'?'Stop dictation':'Diktat beenden';$('review-mic-status').textContent=language==='en'?'Listening…':'Ich höre zu …';}
+  catch{finish(language==='en'?'Could not start voice input.':'Spracheingabe konnte nicht gestartet werden.');}
+};
 function reviewText(key){
   const span=document.createElement('span');
   span.dataset.reviewKey=key;
@@ -586,6 +620,7 @@ async function reviewAction(work){
   try{await work();}catch(error){$('review-message').textContent=error.message;}
 }
 function clearReviewFrame(){
+  stopReviewDictation();clearReviewSuggestion();
   reviewedFrame=null;
   reviewData=null;
   reviewForm.hidden=true;
@@ -680,7 +715,12 @@ async function loadReviewFrame(){
   reviewForm.reset();
   reviewForm.hidden=false;
   $('review-banner').hidden=false;
-  $('review-gpt').hidden=!reviewGptEnabled;
+  $('review-gpt').hidden=false;
+  $('review-gpt-run').disabled=!reviewGptEnabled;
+  $('review-gpt-status').textContent=reviewGptEnabled?'':(language==='en'?'Set an OpenAI API key under Admin · Archive to use AI. You can still save a note without AI.':'Für den KI-Vorschlag unter Admin · Archiv einen OpenAI-API-Key hinterlegen. Eine Beobachtung kannst du auch ohne KI speichern.');
+  $('review-mic').disabled=!(window.SpeechRecognition||window.webkitSpeechRecognition);
+  $('review-mic-status').textContent=$('review-mic').disabled?(language==='en'?'Voice input is unavailable in this browser. You can type instead.':'Spracheingabe ist in diesem Browser nicht verfügbar. Du kannst den Text eintippen.'):'';
+  $('review-advanced').open=false;
   $('review-gpt-image').checked=false;
   reviewData=frame;
   renderPreferredOffers();
@@ -740,24 +780,29 @@ $('review-banner-save').onclick=()=>reviewAction(async()=>{
 $('review-gpt-run').onclick=()=>reviewAction(async()=>{
   if(!reviewedFrame)return;
   const button=$('review-gpt-run'), selected=reviewedFrame;
+  const playerNote=reviewForm.elements.namedItem('observation').value.trim();
+  if(!playerNote)throw Error(language==='en'?'First describe your observation.':'Bitte beschreibe zuerst deine Beobachtung.');
   button.disabled=true;
   $('review-message').textContent='GPT erstellt einen Entwurf …';
   try{
     const {observation,rule}=await post(reviewRoot+'gpt',{...selected,uiLanguage:language,
-      includeImage:$('review-gpt-image').checked,observation:reviewForm.elements.namedItem('observation').value});
-    if(reviewedFrame!==selected)return;
-    reviewForm.elements.namedItem('observation').value=observation;
+      includeImage:$('review-gpt-image').checked,observation:playerNote});
+    if(reviewedFrame!==selected||reviewForm.elements.namedItem('observation').value.trim()!==playerNote)return;
+    clearReviewSuggestion();reviewAiObservation=observation;reviewHasAiRule=Boolean(rule);
     for(const field of ['title','offer','enemy','mode','action','weight']){
       if(rule)reviewForm.elements.namedItem(field).value=rule[field]??'';
     }
+    const result=$('review-ai-result');result.append(textEl('h4',language==='en'?'AI suggestion':'KI-Vorschlag'),textEl('p',observation));
+    result.append(textEl('p',rule?(language==='en'?'Proposed rule: ':'Regelvorschlag: ')+rule.title:(language==='en'?'No executable rule could be derived; the observation can still be saved.':'Keine ausführbare Regel ableitbar; die Beobachtung kann trotzdem gespeichert werden.')));
     $('review-message').textContent='Entwurf geladen. Prüfe ihn vor dem Speichern.';
-  }finally{button.disabled=false;}
+  }finally{button.disabled=!reviewGptEnabled;}
 });
 function reviewDraft(){
   if(!reviewedFrame)throw Error('Wähle zuerst ein Wahlfenster.');
-  const {observation,title,mode,offer,enemy,action,weight,preferredOffer}=Object.fromEntries(new FormData(reviewForm));
+  const {observation:raw,title,mode,offer,enemy,action,condition,weight,preferredOffer}=Object.fromEntries(new FormData(reviewForm));
+  const observation=[raw.trim(),reviewAiObservation&&((language==='en'?'AI summary: ':'KI-Zusammenfassung: ')+reviewAiObservation)].filter(Boolean).join('\n\n').slice(0,1500);
   const phase=['battle_choice','deck_choice','spell_choice'].includes(reviewedFrame.phase)?reviewedFrame.phase:'alle';
-  const rule=title||offer?{title,reason:observation,mode,phase,offer,enemy,action,weight:Number(weight),textLanguage:language}:null;
+  const rule=title||offer?{title,reason:observation,mode,phase,offer,enemy,action,condition,weight:Number(weight),textLanguage:language}:null;
   return {...reviewedFrame,observation,rule,preferredOffer:preferredOffer===''?null:Number(preferredOffer)};
 }
 function showReviewComparison(replay,comparisons){
@@ -797,13 +842,18 @@ function renderReviewCases(cases){
   reviewCases=cases;
   const panel=$('review-cases');
   panel.replaceChildren();
-  for(const item of cases){
+  const pending=cases.filter(item=>!item.reviewed).length;
+  $('review-queue-count').textContent=language==='en'?`${pending} open · ${cases.length-pending} done · ${cases.length} total`:`${pending} offen · ${cases.length-pending} erledigt · ${cases.length} insgesamt`;
+  const filter=$('review-queue-filter').value;
+  const visible=cases.filter(item=>filter==='all'||(filter==='done'?item.reviewed:!item.reviewed));
+  if(!visible.length)panel.append(textEl('p',language==='en'?'No cases in this view.':'Keine Prüffälle in dieser Ansicht.','muted'));
+  for(const item of visible){
     const article=document.createElement('article');
     const details=document.createElement('p');
     const note=document.createElement('span');
     note.dataset.reviewOriginal='';
     note.textContent=[item.rule?tacticText(item.rule,language)?.title:null,item.observation].filter(Boolean).join(' · ');
-    details.append(item.capture+' · ',note);
+    details.append(new Date(item.created).toLocaleString(language==='en'?'en-GB':'de-DE')+' · '+(language==='en'?'Match #':'Partie #')+item.matchId.slice(0,8)+' · '+(language==='en'?'Image ':'Bild ')+item.capture+' · ',note);
     if(item.preferred)details.append(' · ',reviewText('preference'),' · ',reviewCard(item.preferred));
     if(item.revision?.status)details.append(' · ',reviewText(item.revision.status));
     article.append(details);
@@ -823,11 +873,14 @@ function renderReviewCases(cases){
       if(!reviewedFrame)return;
       reviewForm.elements.namedItem('observation').value=item.observation??'';
       reviewForm.elements.namedItem('preferredOffer').value=item.preferred?String(item.preferred.index):'';
-      if(item.rule)for(const field of ['title','offer','enemy','mode','action','weight']){
+      if(item.rule)for(const field of ['title','offer','enemy','mode','action','condition','weight']){
         reviewForm.elements.namedItem(field).value=(field==='title'?tacticText(item.rule,language)?.title:item.rule[field])??'';
       }
     });
     article.append(open);
+    const mark=textEl('button',item.reviewed?(language==='en'?'Mark open':'Wieder öffnen'):(language==='en'?'Mark done':'Als erledigt markieren'),'small');mark.type='button';
+    mark.onclick=()=>reviewAction(async()=>renderReviewCases(await post(reviewRoot+'mark',{id:item.id,reviewed:!item.reviewed})));
+    article.append(mark);
     if(item.template){
       const button=textEl('button',item.template.enabled?'Vorlage deaktivieren':'Vorlage aktivieren','small');
       button.type='button';
@@ -845,6 +898,7 @@ function renderReviewCases(cases){
     panel.append(article);
   }
 }
+$('review-queue-filter').onchange=()=>renderReviewCases(reviewCases);
 let archiveBusy=false,lastArchiveData=null;
 function renderArchive(data){
   lastArchiveData=data;
@@ -917,7 +971,7 @@ function stopQuickDictation(){
 quickMic.onclick=()=>{
   if(quickRecognition){stopQuickDictation();return;}
   if(!QuickRecognition)return;
-  stopMic();
+  stopMic();stopReviewDictation();
   const recognition=new QuickRecognition();
   quickRecognition=recognition;
   recognition.lang=language==='en'?'en-US':'de-DE';
@@ -1413,6 +1467,7 @@ function renderFieldReferenceCorrection(item,references,side){
   const detections=isOwn?(item.ownVisual||[]):(item.enemyVisual||[]);
   panel.append(textEl('h3',isOwn?(language==='en'?'Your units on the field':'Eigene Einheiten auf dem Spielfeld'):(language==='en'?'Enemy units on the field':'Gegnerische Einheiten auf dem Spielfeld')));
   panel.append(textEl('p',isOwn?(language==='en'?'Choose an own unit, press Mark and mark one visible figure in the lower image.':'Wähle eine eigene Einheit, drücke Markieren und markiere eine sichtbare Figur im unteren Bild.'):(language==='en'?'For each row, select a unit and press Mark. Then drag a box around one clearly visible enemy of that type, or tap two opposite corners. Left, middle or right does not matter. Avoid overlapping figures and include the whole figure.':'Wähle in jeder Zeile eine Einheit und drücke Markieren. Ziehe dann einen Rahmen um eine gut sichtbare gegnerische Figur dieses Typs oder tippe auf zwei gegenüberliegende Ecken. Ob links, mittig oder rechts, ist egal. Möglichst die ganze Figur ohne Überlappung erfassen.'),'muted'));
+  panel.append(textEl('p',language==='en'?'Mark one individual figure per type. Count is the total visible on this side of the battlefield, not the number inside the box. Leave it blank if you cannot count reliably.':'Markiere pro Figurentyp ein einzelnes Exemplar. Bei Anzahl trägst du die Gesamtzahl dieses Typs auf dieser Spielfeldseite ein, nicht die Zahl im Rahmen. Ist sie nicht sicher zählbar, lass das Feld leer.','muted'));
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=920;canvas.className='enemy-reference-canvas';
   canvas.setAttribute('aria-label',isOwn?(language==='en'?'Mark your unit':'Eigene Figur markieren'):(language==='en'?'Mark an enemy unit':'Gegnerische Figur markieren'));
   const ctx=canvas.getContext('2d'),img=new Image();img.src=item.image;

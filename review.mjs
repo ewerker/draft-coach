@@ -128,11 +128,16 @@ export function reviewQueries(journal,withDatabase,runtime){
     return withDatabase(true,db=>db.prepare(`
       SELECT id,match_id,capture,created,data,
         (SELECT data FROM review_revisions WHERE case_id=review_cases.id ORDER BY id DESC LIMIT 1) AS revision
-      FROM review_cases ORDER BY created DESC LIMIT 100`).all().map(row=>{
-      const {observation,rule,template,preferred}=JSON.parse(row.data);
+      FROM review_cases ORDER BY created DESC`).all().map(row=>{
+      const {observation,rule,template,preferred,reviewed}=JSON.parse(row.data);
       return {id:row.id,matchId:row.match_id,capture:row.capture,created:row.created,observation,rule,preferred,
-        template:template?{name:template.name,language:template.language,enabled:template.enabled!==false}:null,revision:row.revision?JSON.parse(row.revision):null};
+        reviewed:reviewed===true,template:template?{name:template.name,language:template.language,enabled:template.enabled!==false}:null,revision:row.revision?JSON.parse(row.revision):null};
     }));
+  }
+  async function setReviewed(id,reviewed){
+    if(typeof id!=='string'||typeof reviewed!=='boolean')throw Error('Ungültiger Prüfstatus.');
+    const result=await withDatabase(false,db=>db.prepare("UPDATE review_cases SET data=json_set(data,'$.reviewed',json(?)) WHERE id=?").run(JSON.stringify(reviewed),id));
+    if(!result.changes)throw Error('Prüffall nicht gefunden.');
   }
   async function templates(){
     return withDatabase(true,db=>db.prepare("SELECT data FROM review_cases WHERE json_extract(data,'$.template') IS NOT NULL AND coalesce(json_extract(data,'$.template.enabled'),1)=1 ORDER BY created DESC LIMIT 80").all()
@@ -147,5 +152,5 @@ export function reviewQueries(journal,withDatabase,runtime){
     await withDatabase(false,db=>db.prepare("UPDATE review_cases SET data=json_set(data,'$.template.enabled',json(?)) WHERE id=? AND json_extract(data,'$.template') IS NOT NULL")
       .run(JSON.stringify(enabled),id));
   }
-  return {matches,match,image,save,list,templates,revise,toggleTemplate,clicks};
+  return {matches,match,image,save,list,setReviewed,templates,revise,toggleTemplate,clicks};
 }

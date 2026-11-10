@@ -1204,7 +1204,7 @@ async function reviewWithGpt(data){
       enemy:enemy?.map(({name,action,quantity})=>({name,action,quantity})),hearts,
       chosen:frame.clicks.find(click=>click.ergebnis==='gesendet')?.karte,
       tip:(advice?.best??advice?.fallback??advice?.provisional)?.name,
-      playerObservation:typeof data.observation==='string'?data.observation.slice(0,1500):''};
+      playerObservation:typeof data.observation==='string'?data.observation.slice(0,1500):'',validCards:tacticCards()};
     const draft=await proposeReview({key:openAiKey(),model:process.env.COACH_REVIEW_MODEL||quickModel(),
       language:data.uiLanguage,evidence,image});
     if(typeof draft.observation!=='string'||typeof draft.uncertainty!=='string')throw Error('Ungültiger Analysevorschlag.');
@@ -1384,6 +1384,7 @@ async function handleRequest(req,res){
         savedReferences.unshift(saved);return json(res,200,{id:saved.id,existing:false});
       }
       if(url.pathname==='/api/admin/review/frame')return json(res,200,await handleReview(data,'frame'));
+      if(url.pathname==='/api/admin/review/mark'){await archive.review.setReviewed(data.id,data.reviewed);return json(res,200,await archive.review.list());}
       if(url.pathname==='/api/admin/review/preview')return json(res,200,await handleReview(data,'preview'));
       if(url.pathname==='/api/admin/review/banner')return json(res,200,await saveBannerCorrection(data));
       if(url.pathname==='/api/admin/review/template'){
