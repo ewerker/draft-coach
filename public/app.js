@@ -16,6 +16,12 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
+for(const id of ['preparation','reference-panel','log-panel']){
+  const panel=$(id);
+  const saved=preferences.panelOpen?.[id];
+  if(typeof saved==='boolean')panel.open=saved;
+  panel.addEventListener('toggle',()=>rememberPreferences({panelOpen:{...preferences.panelOpen,[id]:panel.open}}));
+}
 const systemTheme=matchMedia('(prefers-color-scheme: dark)');
 const themeSelect=$('theme');
 themeSelect.value=['light','dark'].includes(preferences.theme)?preferences.theme:'system';
