@@ -49,6 +49,7 @@
   <details><summary>Wie erweitere ich die Taktikdatenbank?</summary><p>Unter Taktikregeln startet Internetrecherche starten einen einmaligen KI-Recherchelauf mit Quellen. Pro Lauf werden bis zu acht neue Hinweise als Notizen in Deutsch und Englisch gespeichert. Eine passend zugeordnete Notiz mit Gewicht kann die Tipps schwach beeinflussen; eine aktive Regel hat Vorrang. Bearbeite eine Notiz und ändere ihren Status auf Testvorschau oder Aktiv, um sie zu prüfen oder stärker zu verwenden. Die Recherche benötigt einen API-Key und kann zusätzliche Kosten verursachen.</p></details>
   <details><summary>Wie verwende ich Prüfbilder und Regelbelege?</summary><p>In der Partieauswertung kannst du ein verfügbares Bild als Prüfbild übernehmen. Unter Vorbereitung siehst du es vollständig und kannst eigene sowie gegnerische Figuren getrennt markieren. Anzahl und Ausbau lassen sich als eigene Beobachtung ergänzen. Bei Taktikregeln zeigen zugeordnete, gesendete Entscheidungen ihre Partieergebnisse; Siege und Niederlagen beweisen keine Regelwirkung. Regeln bleiben bis zur eigenen Änderung in ihrem bisherigen Status.</p></details>
   <details><summary>Wie sicher sind Bildtreffer und Truppenzahlen?</summary><p>Vorläufige Bildtreffer suchen ähnliche markierte Ausschnitte. Überlappungen, andere Posen oder fehlende Vorlagen können zu fehlenden oder falschen Treffern führen. Die angezeigten Trefferzahlen sind keine sichere Zählung oder Ausbaustufe und verändern die Tipps noch nicht.</p></details>
+  <details><summary>Wie lernt die Spielfelderkennung?</summary><p>Unter Vorbereitung zeigt Lernfortschritt die verfügbaren Prüfbilder und die unabhängige Auswertung. Nach dem Spiel kannst du bis zu drei Bilder aus verschiedenen Partien vorschlagen lassen. Öffne ein Prüfbild, markiere die sichtbaren Figurentypen und bestätige nur vollständige Angaben. Ganze Partien bleiben für den Test getrennt. Die Prüfung läuft außerhalb des Spiels. Ergebnisse zu Anzahl und Ausbau sind getrennt; die Bildtreffer beeinflussen Tipps noch nicht.</p></details>
   <details><summary>Was enthält die Sicherung?</summary><p>Unter Admin · Archiv übernimmst du abgeschlossene Partien und lädst die SQLite-Sicherung herunter. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek wird separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
 </section>
 <section id="review-panel" class="panel" hidden>
@@ -269,6 +270,13 @@
   <p id="import-status" role="status"></p>
   <div id="import-review" hidden></div>
   <button id="apply-collection" type="button" class="primary" hidden>Geprüfte Sammlung übernehmen</button>
+</details>
+<details class="panel preparation collapsible-section" id="learning-panel" open hidden>
+  <summary><h2>Lernfortschritt</h2></summary>
+  <div id="field-learning-status" role="status"></div>
+  <button id="field-learning-check" type="button">Prüfung anstoßen</button>
+  <button id="field-learning-suggest" type="button">Bilder aus Partien vorschlagen</button>
+  <p id="field-learning-suggest-status" role="status"></p>
 </details>
 <details class="panel preparation collapsible-section" id="reference-panel" open hidden>
   <summary><h2>Referenzbilder und Korrekturen</h2> <span class="muted">Lokale Bilderkennung</span></summary>

@@ -299,6 +299,11 @@ Sammlung und Aufstellung zusammenführen|Combine collection and lineup
 Aufnahmen auswerten|Analyse captures
 Geprüfte Sammlung übernehmen|Save reviewed collection
 Referenzbilder und Korrekturen|Reference images and corrections
+Lernfortschritt|Learning progress
+Prüfung anstoßen|Run evaluation
+Bilder aus Partien vorschlagen|Suggest match images
+Wie lernt die Spielfelderkennung?|How does field recognition learn?
+Unter Vorbereitung zeigt Lernfortschritt die verfügbaren Prüfbilder und die unabhängige Auswertung. Nach dem Spiel kannst du bis zu drei Bilder aus verschiedenen Partien vorschlagen lassen. Öffne ein Prüfbild, markiere die sichtbaren Figurentypen und bestätige nur vollständige Angaben. Ganze Partien bleiben für den Test getrennt. Die Prüfung läuft außerhalb des Spiels. Ergebnisse zu Anzahl und Ausbau sind getrennt; die Bildtreffer beeinflussen Tipps noch nicht.|Under Setup, Learning progress shows available review images and independent evaluation. After play you can request up to three images from different matches. Open a review image, mark the visible unit types and confirm only complete annotations. Entire matches are held out for testing. Evaluation runs outside play. Counts and upgrades are evaluated separately; visual matches do not yet affect recommendations.
 Unerkannte Wahlangebote werden automatisch gesammelt. Für eine gezielte Aufnahme öffne das gewünschte Bild auf dem Handy.|Unrecognized offers are collected automatically. Open the desired screen on your phone to capture a reference image.
 Referenzbild aufnehmen|Capture reference image
 Gesammelte Prüfbilder|Collected review images

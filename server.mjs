@@ -5,7 +5,7 @@ import {existsSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {randomBytes,timingSafeEqual,createHash} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
@@ -13,6 +13,7 @@ import {resolveBuild} from './build-info.mjs';
 import {collectionLineup} from './collection-lineup.mjs';
 import {ruleEvidence} from './learning.mjs';
 import {createReferenceStore} from './reference-store.mjs';
+import {buildFieldEvaluation,fieldReadiness} from './field-learning.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -187,6 +188,40 @@ const referenceStore=await createReferenceStore(path.join(RUNTIME,'referenzen'))
 let savedReferences=await referenceStore.list();
 let referenceSaving=false;
 function referenceExamples(){return savedReferences.flatMap(ref=>(ref.corrections||[]).map(c=>({...c,path:referenceStore.image(ref.id)})));}
+const fieldLearningFile=path.join(RUNTIME,'feld-lernstand.json');
+const fieldLearningRevision=createHash('sha256').update(await readFile(path.join(ROOT,'vision.py'))).update(await readFile(path.join(ROOT,'field-learning.py'))).digest('hex');
+let fieldLearning=await readFile(fieldLearningFile,'utf8').then(JSON.parse).catch(()=>null);
+let fieldLearningRunning=false,fieldLearningError=null;
+function fieldLearningStatus(){
+  const plan=buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision);
+  const fresh=fieldLearning?.fingerprint===plan.fingerprint;
+  const metrics=fresh?fieldLearning.metrics:null;
+  return {inventory:plan.inventory,pending:!fresh,running:fieldLearningRunning,error:fieldLearningError,
+    evaluatedAt:fresh?fieldLearning.at:null,metrics,
+    readiness:{own:fieldReadiness(metrics?.own),enemy:fieldReadiness(metrics?.enemy)},eligibleCases:plan.cases.length};
+}
+async function evaluateFieldLearning(){
+  if(fieldLearningRunning||state.auto||state.capturing||state.recognizing||activeMatch||queue.running)return;
+  const plan=buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision);
+  if(fieldLearning?.fingerprint===plan.fingerprint||!plan.cases.length||!plan.examples.length)return;
+  fieldLearningRunning=true;fieldLearningError=null;
+  try{
+    const metrics=await new Promise((resolve,reject)=>{
+      const worker=spawn(PYTHON,[path.join(ROOT,'field-learning.py')],{cwd:ROOT,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8'}});
+      let out='',err='',interrupted=false;const timeout=setTimeout(()=>worker.kill(),120000);
+      const guard=setInterval(()=>{if(state.auto||state.capturing||activeMatch){interrupted=true;worker.kill();}},300);
+      worker.stdout.on('data',chunk=>out+=chunk);worker.stderr.on('data',chunk=>err+=chunk);
+      worker.on('error',reject);worker.on('close',code=>{clearTimeout(timeout);clearInterval(guard);if(code!==0)return reject(Error(interrupted?'PLAY_STARTED':err.slice(-500)||'Prüfung abgebrochen'));try{resolve(JSON.parse(out));}catch{reject(Error('Ungültiges Prüfergebnis'));}});
+      worker.stdin.on('error',()=>{});worker.stdin.end(JSON.stringify({examples:plan.examples,cases:plan.cases}));
+    });
+    if(plan.fingerprint===buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision).fingerprint){
+      fieldLearning={fingerprint:plan.fingerprint,at:Date.now(),metrics};
+      await writeFile(fieldLearningFile,JSON.stringify(fieldLearning));
+    }
+  }catch(error){if(error.message!=='PLAY_STARTED'){fieldLearningError=error.message;console.error('Lernprüfung:',error.message);}}
+  finally{fieldLearningRunning=false;}
+}
+setInterval(()=>{if(!fieldLearningError)void evaluateFieldLearning();},15000).unref();
 
 if(!existsSync(archiveFile)){
   const schema=await readFile(path.join(ROOT,'data','archive-schema.sql'),'utf8');
@@ -497,7 +532,7 @@ function recordRecognitionIssues(job,result,advice,at){
   recognitionIssues.unshift({at,phase:result.phase,issues,captureId:job.id});
   if(!referenceSaving && savedReferences.filter(ref=>ref.source==='automatic').length<200){
     referenceSaving=true;
-    void readFile(job.path).then(png=>referenceStore.add(png,{source:'automatic',phase:result.phase,language:job.gameLanguage,issues})).then(ref=>{savedReferences.unshift(ref);}).catch(error=>console.error('Referenzbild:',error.message)).finally(()=>{referenceSaving=false;});
+    void readFile(job.path).then(png=>referenceStore.add(png,{source:'automatic',phase:result.phase,language:job.gameLanguage,issues,matchId:job.matchId??null,captureId:job.id})).then(ref=>{savedReferences.unshift(ref);}).catch(error=>console.error('Referenzbild:',error.message)).finally(()=>{referenceSaving=false;});
   }
   if(recognitionIssues.length>100)recognitionIssues.length=100;
 }
@@ -1296,6 +1331,34 @@ async function handleRequest(req,res){
     if(req.method==='POST') {
       if(req.headers['x-coach-token']!==token)return json(res,403,{error:'Anfrage nicht freigegeben'});
       const data=await body(req);
+      if(url.pathname==='/api/learning/check') {fieldLearningError=null;void evaluateFieldLearning();return json(res,202,fieldLearningStatus());}
+      if(url.pathname==='/api/learning/suggest') {
+        if(state.auto||state.capturing||state.recognizing||activeMatch||queue.running)throw Error('Bitte zuerst den Automodus nach der Partie stoppen.');
+        let added=0;
+        for(const game of (await archive.review.matches()).slice(0,40)){
+          if(savedReferences.some(ref=>ref.matchId===game.id))continue;
+          const frames=(game.reviewFrames||[]).filter(frame=>['battle_choice','battle'].includes(frame.phase));
+          for(const frame of frames.slice().reverse()){
+            const png=await archive.review.image(game,frame.id);if(!png)continue;
+            const ref=await referenceStore.add(png,{source:'match',matchId:game.id,captureId:frame.id,phase:frame.phase,language:frame.language??game.language??'de'});
+            savedReferences.unshift(ref);added++;break;
+          }
+          if(added>=3)break;
+        }
+        return json(res,200,{added});
+      }
+      if(url.pathname==='/api/reference/complete') {
+        const ref=savedReferences.find(item=>item.id===data.id);
+        if(!ref||state.current?.source!=='reference'||state.current.referenceId!==ref.id)throw Error('Bitte zuerst dieses Prüfbild öffnen.');
+        const updated=await referenceStore.setComplete(ref.id,data.side,data.complete);
+        savedReferences=savedReferences.map(old=>old.id===ref.id?updated:old);fieldLearningError=null;return json(res,200,{ok:true});
+      }
+      if(url.pathname==='/api/reference/field/keep') {
+        const ref=savedReferences.find(item=>item.id===data.id);
+        if(!ref||state.current?.source!=='reference'||state.current.referenceId!==ref.id)throw Error('Bitte zuerst dieses Prüfbild öffnen.');
+        const updated=await referenceStore.keepFieldPositions(ref.id,data.side,data.positions);
+        savedReferences=savedReferences.map(old=>old.id===ref.id?updated:old);fieldLearningError=null;return json(res,200,{ok:true});
+      }
       if(url.pathname==='/api/desktop/stop'&&req.socket.localAddress==='127.0.0.1'){
         setAuto(false);
         setAutoTap(false);
@@ -1490,7 +1553,7 @@ async function handleRequest(req,res){
         const count=data.count??null,stage=data.stage??null;
         if(count!==null&&(!Number.isInteger(count)||count<1||count>500)||stage!==null&&(!Number.isInteger(stage)||stage<0||stage>10))throw Error('Ungültige Anzahl oder Entwicklungsstufe.');
         const correction={phase:side+'_field',position:data.position,name:data.name,box,count,stage};
-        const updated=await referenceStore.correct(ref.id,correction);savedReferences=savedReferences.map(old=>old.id===ref.id?updated:old);return json(res,200,{ok:true});
+        const updated=await referenceStore.correct(ref.id,correction);savedReferences=savedReferences.map(old=>old.id===ref.id?updated:old);fieldLearningError=null;return json(res,200,{ok:true});
       }
       if(url.pathname==='/api/reference/correct') {
         const ref=savedReferences.find(item=>item.id===data.id);
@@ -1595,6 +1658,7 @@ async function handleRequest(req,res){
       return json(res,404,{error:'Nicht gefunden'});
     }
     if(req.method!=='GET')return json(res,405,{error:'Nicht unterstützt'});
+    if(url.pathname==='/api/learning/status')return json(res,200,fieldLearningStatus());
     if(url.pathname==='/api/state'){
       if(!audioClient||client===audioClient)lastClientSeen=Date.now();
       if(Date.now()-lastDeviceScan>3000)void scanDevices().catch(()=>{});

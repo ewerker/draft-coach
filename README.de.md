@@ -31,6 +31,8 @@ Die folgenden Referenzaufnahmen wurden mit der lokalen Erkennung und der origina
 | **Taktik** | Regeln suchen, anlegen, gewichten, testen, ändern und löschen. Die Schnellauskunft beantwortet Fragen zu Kontern und Synergien aus dem lokalen Lexikon. Eine Websuche lässt sich separat öffnen. |
 | **Archiv** | Partieergebnisse erfassen. Am Host-PC abgeschlossene Partien mit bis zu 80 ausgewählten vorhandenen Belegbildern je Partie ins SQLite-Archiv übernehmen und eine Sicherung herunterladen. |
 
+**Lernfortschritt:** In der Vorbereitung lassen sich nach dem Spiel Prüfbilder aus mehreren Partien vorschlagen und Figuren auf beiden Seiten markieren. Nur ausdrücklich als vollständig bestätigte Seiten dienen als unabhängige Testdaten; Partien ohne nachweisbare Zuordnung werden dafür ausgeschlossen. Die Auswertung hält ganze Partien zurück, zeigt Treffer und Fehler je Figur sowie gesonderte Angaben zu Anzahl und Ausbau und läuft außerhalb aktiver Spiele. Die Schwellenwerte sind vorläufig. Die experimentelle Spielfelderkennung beeinflusst Empfehlungen oder automatische Klicks nicht.
+
 ## In wenigen Schritten starten
 
 1. **Node.js ab 22.16**, **Python 3.12** und die **Android SDK Platform Tools** installieren. `node` und `adb` müssen auffindbar sein. Alternativ lässt sich der ADB-Pfad in `.env` angeben.

@@ -16,7 +16,7 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
-for(const id of ['preparation','reference-panel','log-panel']){
+for(const id of ['preparation','reference-panel','learning-panel','log-panel']){
   const panel=$(id);
   const saved=preferences.panelOpen?.[id];
   if(typeof saved==='boolean')panel.open=saved;
@@ -98,6 +98,7 @@ $('language').onchange=()=>{
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
   }
   if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);}
+  void refreshFieldLearning(true);
   void action(()=>post('/api/settings',{gameLanguage:language}));
 };
 $('read-tip').checked=preferences.readTip===true;
@@ -1447,15 +1448,48 @@ function renderFieldReferenceCorrection(item,references,side){
   canvas.onpointerup=event=>{if(!start||active===null)return;const end=point(event);if(Math.abs(end[0]-start[0])>=20||Math.abs(end[1]-start[1])>=20)finish(end);else status.textContent=language==='en'?'Tap the opposite corner.':'Jetzt die gegenüberliegende Ecke antippen.';};
   canvas.onpointercancel=()=>{start=null;status.textContent=language==='en'?'Marking cancelled. Try again.':'Markierung abgebrochen. Bitte erneut versuchen.';};
   const save=textEl('button',isOwn?(language==='en'?'Save own examples':'Eigene Beispiele speichern'):(language==='en'?'Save enemy examples':'Gegnerbeispiele speichern'),'small');save.type='button';
+  const completeLabel=textEl('label','','field-complete');
+  const complete=document.createElement('input');complete.type='checkbox';complete.checked=reference?.complete?.[side]===true;
+  completeLabel.append(complete,document.createTextNode(language==='en'?' I have marked every visible unit type on this side.':' Ich habe alle sichtbaren Figurentypen auf dieser Seite markiert.'));
+  const completeHelp=textEl('p',language==='en'?'Only confirm when the list is complete and correct. One example per type is enough. To confirm an empty field, leave every row blank and check the box. Count and upgrade are optional.':'Nur bestätigen, wenn die Liste vollständig und richtig ist. Ein Beispiel pro Typ reicht. Ist die Seite leer, alle Zeilen leer lassen und das Häkchen setzen. Anzahl und Ausbaustufe sind freiwillig.','muted');
   const check=textEl('button',language==='en'?'Check image again':'Bild erneut prüfen','small');check.type='button';
-  save.onclick=()=>action(async()=>{const selected=fields.map((field,position)=>({...field,position})).filter(field=>field.name.value&&field.box);if(!selected.length)throw Error(language==='en'?'Select and mark at least one unit.':'Bitte mindestens eine Einheit auswählen und markieren.');save.disabled=true;try{
+  save.onclick=()=>action(async()=>{const selected=fields.map((field,position)=>({...field,position})).filter(field=>field.name.value&&field.box);if(!selected.length&&!complete.checked)throw Error(language==='en'?'Select a unit or confirm that the field is empty.':'Bitte eine Einheit wählen oder die leere Seite bestätigen.');if(fields.some(field=>field.name.value&&!field.box))throw Error(language==='en'?'Mark an area for each selected unit.':'Bitte für jede ausgewählte Einheit einen Bereich markieren.');save.disabled=true;try{
     for(const field of selected)await post('/api/reference/field',{id:item.referenceId,side,position:field.position,name:field.name.value,box:field.box,count:field.count.value===''?null:Number(field.count.value),stage:field.stage.value===''?null:Number(field.stage.value)});
+    await post('/api/reference/field/keep',{id:item.referenceId,side,positions:selected.map(field=>field.position)});
+    await post('/api/reference/complete',{id:item.referenceId,side,complete:complete.checked});
     status.textContent=language==='en'?'Saved. Checking image…':'Gespeichert. Bild wird erneut ausgewertet …';await post('/api/reference',{file:item.referenceId});
   }finally{save.disabled=false;}});
   check.onclick=()=>action(()=>post('/api/reference',{file:item.referenceId}));
-  panel.append(rows,status,canvas,save,check);
+  panel.append(rows,status,canvas,completeLabel,completeHelp,save,check);
   panel.append(textEl('p',language==='en'?'Visual matches are experimental and do not yet change tactical recommendations or count units.':'Die Bilderkennung ist experimentell und verändert noch keine taktischen Empfehlungen oder Truppenzahlen.','muted'));
 }
+let learningStatusAt=0,learningStatusLoading=false;
+async function refreshFieldLearning(force=false){
+  if(learningStatusLoading||(!force&&Date.now()-learningStatusAt<10000))return;
+  learningStatusLoading=true;learningStatusAt=Date.now();
+  try{
+    const response=await fetch('/api/learning/status');if(!response.ok)throw Error('Status unavailable');
+    const data=await response.json(),box=$('field-learning-status'),en=language==='en',i=data.inventory;box.replaceChildren();
+    box.append(textEl('p',en?`${i.images} review images · ${i.linkedImages} linked to ${i.matches} matches · ${i.unlinkedImages} without match assignment`:`${i.images} Prüfbilder · ${i.linkedImages} ${i.linkedImages===1?'einer Partie zugeordnet':'Partien zugeordnet'} (${i.matches} Partien) · ${i.unlinkedImages} ohne Partienzuordnung`));
+    box.append(textEl('p',en?`Marked: yours ${i.ownMarked}, enemy ${i.enemyMarked}. Explicitly complete: yours ${i.ownComplete}, enemy ${i.enemyComplete}.`:`Markiert: eigene Seite ${i.ownMarked}, Gegnerseite ${i.enemyMarked}. Als vollständig bestätigt: eigene Seite ${i.ownComplete}, Gegnerseite ${i.enemyComplete}.`,'muted'));
+    for(const side of ['own','enemy']){
+      const m=data.metrics?.[side],ready=data.readiness[side].ready;
+      const label=side==='own'?(en?'Your units':'Eigene Truppen'):(en?'Enemy units':'Gegnerische Truppen');
+      const pct=n=>n==null?'—':`${Math.round(n*100)} %`;
+      const types=m?Object.values(m.types||{}).filter(t=>t.tp+t.fn>0).length:0;
+      const details=m?(en?`${m.images}/30 test images from ${m.matches}/5 matches · ${types}/3 unit types · precision ${pct(m.precision)} · recall ${pct(m.recall)} · errors ${m.errors}`:`${m.images}/30 Testbilder aus ${m.matches}/5 Partien · ${types}/3 Figurentypen · Präzision ${pct(m.precision)} · Trefferquote ${pct(m.recall)} · Fehler ${m.errors}`):(en?'No independent evaluation yet.':'Noch keine unabhängige Prüfung.');
+      box.append(textEl('p',`${label}: ${ready?(en?'ready for observation':'bereit zur Beobachtung'):(en?'collecting':'Daten sammeln')} · ${details}`));
+      if(m)box.append(textEl('p',en?`Count: ${m.countExact}/${m.countEligible} exact. Upgrade: ${m.stageEligible} labelled examples, recognition not evaluated yet. Slowest image: ${m.maxTimeMs==null?'—':m.maxTimeMs+' ms'}.`:`Anzahl: ${m.countExact}/${m.countEligible} exakt. Ausbau: ${m.stageEligible} beschriftete Beispiele, Erkennung noch nicht geprüft. Langsamstes Bild: ${m.maxTimeMs==null?'—':m.maxTimeMs+' ms'}.`,'muted'));
+      if(m&&Object.keys(m.types||{}).length){const breakdown=document.createElement('details');breakdown.append(textEl('summary',en?'Results by unit type':'Ergebnisse je Figur'));for(const [name,t] of Object.entries(m.types).sort(([a],[b])=>a.localeCompare(b)))breakdown.append(textEl('p',`${displayNames(name,language)}: ${en?'recognized':'erkannt'} ${t.tp}, ${en?'missed':'übersehen'} ${t.fn}, ${en?'false detections':'falsch erkannt'} ${t.fp}`,'muted'));box.append(breakdown);}
+    }
+    box.append(textEl('p',en?'Test matches are separate from training matches. Provisional target for each side: 30 complete images from 5 test matches, 3 unit types, 95% precision and 90% recall. Unassigned images cannot validate independence.':'Testpartien sind von den Lernpartien getrennt. Vorläufiges Ziel je Seite: 30 vollständige Bilder aus 5 Testpartien, 3 Figurentypen, 95 % Präzision und 90 % Trefferquote. Bilder ohne Partienzuordnung zählen nicht für den unabhängigen Test.','muted'));
+    box.append(textEl('p',data.error?(en?'Evaluation error: ':'Fehler bei der Prüfung: ')+data.error:data.running?(en?'Evaluation is running.':'Prüfung läuft.'):data.pending?(en?'Evaluation is pending; it runs after play stops when sufficient data is available.':'Prüfung ausstehend; sie läuft nach dem Spiel, sobald ausreichend Daten vorliegen.'):(en?'Evaluation is up to date.':'Prüfung ist aktuell.'),'muted'));
+    box.append(textEl('p',en?'Recognition is observational only; it does not change recommendations or automatic taps. Count and upgrade require separate validation.':'Die Erkennung dient der Beobachtung und verändert weder Tipps noch automatische Klicks. Anzahl und Ausbau benötigen eine eigene Prüfung.','muted'));
+  }catch{ $('field-learning-status').textContent=language==='en'?'Learning status unavailable.':'Lernstand derzeit nicht verfügbar.'; }
+  finally{learningStatusLoading=false;}
+}
+$('field-learning-check').onclick=()=>action(async()=>{await post('/api/learning/check');await refreshFieldLearning(true);});
+$('field-learning-suggest').onclick=()=>action(async()=>{const result=await post('/api/learning/suggest');$('field-learning-suggest-status').textContent=language==='en'?`${result.added} images added to saved review images. Open and verify them below.`:`${result.added} Bilder zu den Prüfbildern hinzugefügt. Bitte unten öffnen und überprüfen.`;await refreshFieldLearning(true);});
 let choosingOffer=false,canTapImage=false;
 const screenshot=$('screenshot');
 screenshot.onclick=async event=>{
@@ -1881,6 +1915,8 @@ async function refresh(){
   $('screen-heading').textContent=prep?'Getestetes Referenzbild':filterImages?'Letzte relevante Aufnahme':'Letzte Aufnahme';
   $('intermediate-control').hidden=prep;
   $('reference-panel').hidden=!prep;
+  $('learning-panel').hidden=!prep;
+  if(prep)void refreshFieldLearning();
   $('auto').hidden=prep;
   const draftLineup=state.activeLineup??config.collection.units.active_lineup;
   const draftExtra=state.observedDraftUnits??[];

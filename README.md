@@ -31,6 +31,8 @@ These reference captures were analysed locally and rendered with the Coach's own
 | Tactics | Search, create, edit, weight, test, and delete rules. Quick Advice searches the local knowledge base for counters, combinations, and follow-up questions. An optional button opens a web search. |
 | Archive | Record match outcomes. On the host PC, import completed matches into SQLite, retain up to 80 selected available evidence images per match, and download a database backup. |
 
+**Learning progress:** After play, Setup can suggest review images from separate matches for marking both sides of the field. Only explicitly confirmed complete annotations serve as independent test data; images without a verifiable match assignment are excluded. Evaluation holds out entire matches, reports hits and errors by unit along with separate count and upgrade information, and runs outside active play. Thresholds are provisional. Experimental field recognition does not affect recommendations or automatic taps.
+
 ## Start on Windows
 
 1. Install **Node.js 22.16+**, **Python 3.12**, and **Android SDK Platform Tools**. Make sure `node` and `adb` are on PATH, or set `ADB_PATH` in `.env`.

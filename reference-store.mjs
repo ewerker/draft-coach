@@ -25,11 +25,27 @@ export async function createReferenceStore(root){
     const item=JSON.parse(await readFile(meta(id),'utf8'));
     item.corrections=(item.corrections||[]).filter(c=>c.position!==correction.position||c.phase!==correction.phase);
     item.corrections.push(correction);
+    if(correction.phase.endsWith('_field')&&item.complete) item.complete[correction.phase.slice(0,-6)]=false;
     const temporary=meta(id)+'.tmp';
     await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));
     return item;
   }
+  async function setComplete(id,side,complete){
+    if(!valid(id)||!['own','enemy'].includes(side)||typeof complete!=='boolean')throw Error('Ungültige Prüfangabe.');
+    const item=JSON.parse(await readFile(meta(id),'utf8'));
+    item.complete={...item.complete,[side]:complete};
+    const temporary=meta(id)+'.tmp';await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));
+    return item;
+  }
+  async function keepFieldPositions(id,side,positions){
+    if(!valid(id)||!['own','enemy'].includes(side)||!Array.isArray(positions)||positions.some(p=>!Number.isInteger(p)||p<0||p>3))throw Error('Ungültige Prüfangabe.');
+    const item=JSON.parse(await readFile(meta(id),'utf8'));
+    item.corrections=(item.corrections||[]).filter(c=>c.phase!==side+'_field'||positions.includes(c.position));
+    item.complete={...item.complete,[side]:false};
+    const temporary=meta(id)+'.tmp';await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));
+    return item;
+  }
   async function renameSafe(from,to){const {rename}=await import('node:fs/promises');await rename(from,to);}
   async function remove(id){if(!valid(id))throw Error('Ungültige Referenz.');await unlink(meta(id));await unlink(image(id)).catch(()=>{});}
-  return {list,add,correct,remove,image,valid};
+  return {list,add,correct,setComplete,keepFieldPositions,remove,image,valid};
 }
