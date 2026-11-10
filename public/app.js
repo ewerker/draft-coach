@@ -1343,15 +1343,16 @@ function renderEnemyReferenceCorrection(item,references){
   const saved=(reference?.corrections||[]).filter(c=>c.phase==='enemy_field');
   const detections=item.enemyVisual||[];
   panel.append(textEl('h3',language==='en'?'Enemy units on the field':'Gegnerische Einheiten auf dem Spielfeld'));
-  panel.append(textEl('p',language==='en'?'Select a unit, press Mark and drag a tight rectangle around one opposing figure. Up to four examples can be saved.':'Wähle eine Einheit, drücke Markieren und ziehe einen engen Rahmen um eine gegnerische Figur. Bis zu vier Beispiele sind möglich.','muted'));
-  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=2340;canvas.className='enemy-reference-canvas';
+  panel.append(textEl('p',language==='en'?'For each row, select a unit and press Mark. Then drag a box around one clearly visible enemy of that type, or tap two opposite corners. Left, middle or right does not matter. Avoid overlapping figures and include the whole figure.':'Wähle in jeder Zeile eine Einheit und drücke Markieren. Ziehe dann einen Rahmen um eine gut sichtbare gegnerische Figur dieses Typs oder tippe auf zwei gegenüberliegende Ecken. Ob links, mittig oder rechts, ist egal. Möglichst die ganze Figur ohne Überlappung erfassen.','muted'));
+  const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=920;canvas.className='enemy-reference-canvas';
   canvas.setAttribute('aria-label',language==='en'?'Mark an enemy unit on the screenshot':'Gegnerische Figur im Bild markieren');
   const ctx=canvas.getContext('2d'),img=new Image();img.src=item.image;
-  const fields=[],rows=textEl('div','','enemy-reference-rows');let active=0,start=null;
+  const fields=[],rows=textEl('div','','enemy-reference-rows');let active=null,start=null;
+  const status=textEl('p',language==='en'?'Choose Mark in the desired row first.':'Zuerst in der gewünschten Zeile auf Markieren drücken.','enemy-mark-status');status.setAttribute('role','status');
   function paint(){
     if(!img.complete||!img.naturalWidth)return;
-    const [x,y,w,h]=item.geometry.content;ctx.drawImage(img,x,y,w,h,0,0,1080,2340);
-    fields.forEach((field,index)=>{if(!field.box)return;const [x1,y1,x2,y2]=field.box;ctx.strokeStyle=index===active?'#ffff00':'#55ff91';ctx.lineWidth=9;ctx.strokeRect(x1,y1,x2-x1,y2-y1);});
+    const [x,y,w,h]=item.geometry.content;ctx.drawImage(img,x,y+h*250/2340,w,h*920/2340,0,0,1080,920);
+    fields.forEach((field,index)=>{if(!field.box)return;const [x1,y1,x2,y2]=field.box;const color=['#ffff00','#00ffff','#ff80e8','#ffad4a'][index];ctx.strokeStyle='#000';ctx.lineWidth=15;ctx.strokeRect(x1,y1-250,x2-x1,y2-y1);ctx.strokeStyle=color;ctx.lineWidth=8;ctx.strokeRect(x1,y1-250,x2-x1,y2-y1);ctx.fillStyle='#000';ctx.fillRect(x1,y1-250,46,46);ctx.fillStyle=color;ctx.font='bold 36px sans-serif';ctx.fillText(String(index+1),x1+12,y1-216);});
   }
   img.onload=paint;
   const names=config.unitNames||config.collection.units.units.map(unit=>unit.name);
@@ -1366,15 +1367,25 @@ function renderEnemyReferenceCorrection(item,references){
     const mark=textEl('button',language==='en'?'Mark':'Markieren','small');mark.type='button';
     const info=textEl('span',previous?(language==='en'?'Saved':'Gespeichert'):(detected?(language==='en'?'Detected · verify':'Erkannt · bitte prüfen'):''),'muted');
     const field={name:select,box:previous?.box||detected?.box||null,info};fields.push(field);
-    mark.onclick=()=>{active=i;status.textContent=language==='en'?'Draw a rectangle around the enemy figure.':'Jetzt einen Rahmen um die gegnerische Figur ziehen.';paint();};
+    mark.onclick=()=>{active=i;start=null;fields.forEach((entry,index)=>entry.mark.setAttribute('aria-pressed',String(index===i)));status.textContent=(language==='en'?'Mark the figure for enemy ':'Figur für Gegner ')+(i+1)+(language==='en'?' in the image below.':' im Bild darunter markieren.');canvas.scrollIntoView({block:'nearest',behavior:'smooth'});paint();};field.mark=mark;mark.setAttribute('aria-pressed','false');select.onchange=()=>{info.textContent=field.box?(language==='en'?'Area assigned to '+(select.selectedOptions[0]?.text||'this row'):'Rahmen zugeordnet: '+(select.selectedOptions[0]?.text||'diese Zeile')):'';};
     row.append(select,mark,info);rows.append(row);
   }
-  function point(event){const rect=canvas.getBoundingClientRect();return [Math.round((event.clientX-rect.left)*1080/rect.width),Math.round((event.clientY-rect.top)*2340/rect.height)];}
-  canvas.onpointerdown=event=>{start=point(event);canvas.setPointerCapture(event.pointerId);event.preventDefault();};
-  canvas.onpointerup=event=>{if(!start)return;const end=point(event);const box=[Math.max(0,Math.min(start[0],end[0])),Math.max(250,Math.min(start[1],end[1])),Math.min(1080,Math.max(start[0],end[0])),Math.min(1170,Math.max(start[1],end[1]))];start=null;
-    if(box[2]-box[0]<20||box[3]-box[1]<20||box[2]-box[0]>400||box[3]-box[1]>400){status.textContent=language==='en'?'Mark a single enemy figure in the upper half.':'Bitte eine einzelne gegnerische Figur in der oberen Bildhälfte markieren.';return;}
-    fields[active].box=box;fields[active].info.textContent=language==='en'?'Area marked':'Bereich markiert';paint();};
-  const status=textEl('p','','muted');status.setAttribute('role','status');
+  function point(event){const rect=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1080,Math.round((event.clientX-rect.left)*1080/rect.width))),250+Math.max(0,Math.min(920,Math.round((event.clientY-rect.top)*920/rect.height)))];}
+  function finish(end){
+    const box=[Math.min(start[0],end[0]),Math.min(start[1],end[1]),Math.max(start[0],end[0]),Math.max(start[1],end[1])];start=null;
+    if(box[2]-box[0]<20||box[3]-box[1]<20||box[2]-box[0]>400||box[3]-box[1]>400){status.textContent=language==='en'?'The box is too small or large. Please mark a single figure.':'Der Rahmen ist zu klein oder zu groß. Bitte eine einzelne Figur markieren.';return;}
+    fields[active].box=box;const label=fields[active].name.selectedOptions[0]?.text||'';
+    fields[active].info.textContent=(language==='en'?'Area assigned: ':'Rahmen zugeordnet: ')+(fields[active].name.value?label:(language==='en'?'select unit':'Einheit wählen'));
+    status.textContent=(language==='en'?'Area saved in row ':'Rahmen für Gegner ')+(active+1)+(language==='en'?'. Confirm with Save enemy examples.':' markiert. Danach Gegnerbeispiele speichern.');paint();
+  }
+  canvas.onpointerdown=event=>{
+    if(active===null){status.textContent=language==='en'?'First press Mark in the desired row.':'Bitte zuerst in der gewünschten Zeile auf Markieren drücken.';return;}
+    const end=point(event);
+    if(start){finish(end);event.preventDefault();return;}
+    start=end;canvas.setPointerCapture(event.pointerId);event.preventDefault();
+  };
+  canvas.onpointerup=event=>{if(!start||active===null)return;const end=point(event);if(Math.abs(end[0]-start[0])>=20||Math.abs(end[1]-start[1])>=20)finish(end);else status.textContent=language==='en'?'Tap the opposite corner.':'Jetzt die gegenüberliegende Ecke antippen.';};
+  canvas.onpointercancel=()=>{start=null;status.textContent=language==='en'?'Marking cancelled. Try again.':'Markierung abgebrochen. Bitte erneut versuchen.';};
   const save=textEl('button',language==='en'?'Save enemy examples':'Gegnerbeispiele speichern','small');save.type='button';
   const check=textEl('button',language==='en'?'Check image again':'Bild erneut prüfen','small');check.type='button';
   save.onclick=()=>action(async()=>{const selected=fields.map((field,position)=>({...field,position})).filter(field=>field.name.value&&field.box);if(!selected.length)throw Error(language==='en'?'Select and mark at least one enemy.':'Bitte mindestens eine gegnerische Einheit auswählen und markieren.');save.disabled=true;try{
@@ -1382,7 +1393,7 @@ function renderEnemyReferenceCorrection(item,references){
     status.textContent=language==='en'?'Saved. Checking image…':'Gespeichert. Bild wird erneut ausgewertet …';await post('/api/reference',{file:item.referenceId});
   }finally{save.disabled=false;}});
   check.onclick=()=>action(()=>post('/api/reference',{file:item.referenceId}));
-  panel.append(rows,canvas,save,check,status);
+  panel.append(rows,status,canvas,save,check);
   panel.append(textEl('p',language==='en'?'Visual matches are experimental and do not yet change tactical recommendations or count units.':'Die Bilderkennung ist experimentell und verändert noch keine taktischen Empfehlungen oder Truppenzahlen.','muted'));
 }
 let choosingOffer=false,canTapImage=false;
