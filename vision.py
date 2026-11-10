@@ -423,17 +423,23 @@ with np.load(ROOT/'data'/'new-result-de.npz',allow_pickle=False) as data:
     new_home_de=data['home'].copy()
     new_mastery_de=data['mastery_de'].copy()
     new_mastery_holen=data['holen_mastery_de'].copy()
+    new_win_en=data['win_en'].copy()
+    new_continue_en=data['continue_en'].copy()
+    new_replay_en=data['replay_en'].copy()
+    new_home_en=data['home_en'].copy()
 
 def new_result_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     heading=gray[25:67,16:152]
     button=gray[300:355,25:143]
-    pattern=new_win_de if outcome=='gewonnen' else new_loss_de
-    if cv2.minMaxLoc(cv2.matchTemplate(heading,pattern,cv2.TM_CCOEFF_NORMED))[1]<.94:return None
-    _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button,new_continue_de,cv2.TM_CCOEFF_NORMED))
-    if score<.94:return None
-    x+=25+new_continue_de.shape[1]/2;y+=300+new_continue_de.shape[0]/2
-    return {'step':'result','mode':None,'point':[x/168,y/364]}
+    variants=[(new_win_de,new_continue_de),(new_win_en,new_continue_en)] if outcome=='gewonnen' else [(new_loss_de,new_continue_de)]
+    for pattern,button_pattern in variants:
+        if cv2.minMaxLoc(cv2.matchTemplate(heading,pattern,cv2.TM_CCOEFF_NORMED))[1]<.94:continue
+        _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button,button_pattern,cv2.TM_CCOEFF_NORMED))
+        if score<.94:continue
+        x+=25+button_pattern.shape[1]/2;y+=300+button_pattern.shape[0]/2
+        return {'step':'result','mode':None,'point':[x/168,y/364]}
+    return None
 
 with np.load(ROOT/'data'/'battle-navigation.npz',allow_pickle=False) as navigation_data:
     navigation_labels={name:navigation_data[name] for name in navigation_data.files}
@@ -467,10 +473,11 @@ def game_navigation(small,outcome):
             return {'step':'reward','mode':None,'point':[.5,297/364]}
     # The new Draft end screen offers a direct replay and a home button.
     left=gray[291:340,5:85];right=gray[291:340,83:163]
-    if (cv2.minMaxLoc(cv2.matchTemplate(left,new_replay_de,cv2.TM_CCOEFF_NORMED))[1]>=.94 and
-        cv2.minMaxLoc(cv2.matchTemplate(right,new_home_de,cv2.TM_CCOEFF_NORMED))[1]>=.94):
-        _,_,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(left,new_replay_de,cv2.TM_CCOEFF_NORMED))
-        return {'step':'replay','mode':'draft','point':[(5+x+new_replay_de.shape[1]/2)/168,(291+y+new_replay_de.shape[0]/2)/364]}
+    for replay_pattern,home_pattern in ((new_replay_de,new_home_de),(new_replay_en,new_home_en)):
+        if (cv2.minMaxLoc(cv2.matchTemplate(left,replay_pattern,cv2.TM_CCOEFF_NORMED))[1]>=.94 and
+            cv2.minMaxLoc(cv2.matchTemplate(right,home_pattern,cv2.TM_CCOEFF_NORMED))[1]>=.94):
+            _,_,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(left,replay_pattern,cv2.TM_CCOEFF_NORMED))
+            return {'step':'replay','mode':'draft','point':[(5+x+replay_pattern.shape[1]/2)/168,(291+y+replay_pattern.shape[0]/2)/364]}
     if cv2.minMaxLoc(cv2.matchTemplate(gray[78:119,16:153],
                                       navigation_labels['mastery_title'],cv2.TM_CCOEFF_NORMED))[1]>=.89:
         return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')

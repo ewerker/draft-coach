@@ -37,6 +37,16 @@ class NewGermanResultTests(unittest.TestCase):
             copy=image.copy();y1,y2,x1,x2=box;copy[y1:y2,x1:x2]=0
             self.assertIsNone(vision.game_navigation(copy,None))
 
+    def test_english_victory_and_replay(self):
+        win=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-win-en.png')
+        self.assertEqual(vision.match_outcome_small(win),'gewonnen')
+        self.assertEqual(vision.game_navigation(win,'gewonnen')['step'],'result')
+        self.assertIsNone(vision.new_result_navigation(win,'verloren'))
+        replay=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-replay-en.png')
+        self.assertEqual((vision.game_navigation(replay,None)['step'],vision.game_navigation(replay,None)['mode']),('replay','draft'))
+        replay[291:340,83:163]=0
+        self.assertIsNone(vision.game_navigation(replay,None))
+
     def test_replay_requires_both_buttons(self):
         image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-replay-de.png')
         nav=vision.game_navigation(image,None)
