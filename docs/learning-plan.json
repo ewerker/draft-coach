@@ -85,7 +85,7 @@
     {
       "id": "P4",
       "title": "Gezielte Bildbestätigung durch den Spieler",
-      "status": "implemented",
+      "status": "verified",
       "dependsOn": [
         "P1",
         "P2"
@@ -93,9 +93,16 @@
       "acceptance": "A4",
       "evidence": [
         {
+          "type": "implementation_commit",
+          "value": "cba2825"
+        },
+        {
           "type": "test_report",
-          "path": "docs/p4-bildbestaetigung.md",
-          "value": "Persistent player confirmations, independent match split and blind controls; user acceptance pending."
+          "path": "docs/p4-bildbestaetigung.md"
+        },
+        {
+          "type": "acceptance_evidence",
+          "value": "A4: 93 passing Node tests; 25 passing Python tests; isolated HTTP completion/confirmation/export/restart; DE/EN browser, exemplar marking, save/next and 390px responsive review. User acceptance and improved independent recognition quality pending."
         }
       ]
     },
