@@ -537,7 +537,7 @@ function validateTactic(data){
   if(!title||title.length>100||!reason||reason.length>1500||!['draft','arena','beide'].includes(mode)||
     !['alle','deck_choice','battle_choice','spell_choice'].includes(phase)||!['notiz','test','aktiv'].includes(status)||
     !['','add','upgrade','multiply','multiply_upgrade','spell'].includes(action)||
-    !['','enemy_developed_no_observed_support'].includes(condition)||
+    !['','enemy_reinforced','enemy_developed_no_observed_support'].includes(condition)||
     (offer!==''&&!cards.includes(offer))||(enemy!==''&&!cards.includes(enemy))||
     !Number.isInteger(weight)||Math.abs(weight)>20||(status!=='notiz'&&(!offer||weight===0)))
     throw Error('Prüfe die Angaben. Eine Testregel oder aktive Regel braucht eine Angebotskarte und ein Gewicht ungleich null.');
@@ -957,7 +957,7 @@ const queue=new LatestQueue(async job=>{
       }
       if(result.enemyEvent){
         const {name,action,quantity}=result.enemyEvent;
-        match.enemyEvents.set(name,{name,action,quantity});
+        match.enemyEvents.set(name,mergeEnemyEvent(match.enemyEvents.get(name),{name,action,quantity}));
         if((action==='add'||name==='Sniper'&&action==='multiply')&&Number.isInteger(quantity)&&quantity>0){
           const key=JSON.stringify([name,action,quantity]);
           const previous=match.enemyAdditionTimes.get(key);

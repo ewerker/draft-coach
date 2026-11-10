@@ -10,7 +10,7 @@ import {readFile,writeFile,rename,unlink,mkdtemp,rm,mkdir} from 'node:fs/promise
 import path from 'node:path';
 import {tmpdir} from 'node:os';
 import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
-import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend} from './advice.mjs';
+import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,enemyReinforced} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
@@ -630,4 +630,26 @@ test('developed enemy Agent B reduces Snail reinforcement without assuming an un
  assert.equal(basic.score-developed.score,18);
  assert.match(developed.reason,/Schnecke zurückstellen/);
  assert.equal(get({...frame,enemy:[{name:'Agent B',action:'add'}],enemyAdditions:{'Agent B':4}}).score,developed.score);
+});
+
+test('editable active rules penalize Sniper and Snail against reinforced Agent B in both modes',()=>{
+ const profile=structuredClone(collection);profile.units.active_lineup=['Spartheus','Sniper','Schnecke','Agent B'];
+ const rules=['Sniper','Schnecke'].map(offer=>({id:'agent-risk-'+offer,title:'Protect the rear',reason:'Player observation',offer,enemy:'Agent B',mode:'beide',phase:'battle_choice',action:'',condition:'enemy_reinforced',status:'aktiv',weight:-20}));
+ const base={phase:'battle_choice',enemy:[{name:'Agent B',action:'upgrade'}],ownReinforcements:{Spartheus:5,Sniper:4,Schnecke:2},offers:[{name:'Spartheus',action:'add',quantity:3},{name:'Sniper',action:'multiply',quantity:2},{name:'Schnecke',action:'upgrade'}]};
+ for(const mode of ['draft','arena']){
+  const a=recommend(base,mode,profile,db,false,rules);
+  for(const name of ['Sniper','Schnecke'])assert.equal(a.evaluated.find(c=>c.name===name).delta,-20);
+  assert.equal(a.evaluated[0].delta,0);
+  const basic=recommend({...base,enemy:[{name:'Agent B',action:'add',quantity:2}]},mode,profile,db,false,rules);
+  assert.ok(basic.evaluated.every(c=>c.delta===0));
+  const unknown=recommend({...base,enemy:[]},mode,profile,db,false,rules);assert.ok(unknown.evaluated.every(c=>c.delta===0));
+  const mass=recommend({...base,enemy:[{name:'Agent B',action:'add'}],enemyAdditions:{'Agent B':4}},mode,profile,db,false,rules);
+  assert.equal(mass.evaluated[1].delta,-20);
+ }
+ const observed=mergeEnemyEvent(null,{name:'Agent B',action:'upgrade'});
+ const later=mergeEnemyEvent(observed,{name:'Agent B',action:'add',quantity:2});
+ assert.equal(later.action,'add');assert.equal(later.reinforcedSeen,true);assert.equal(enemyReinforced({enemy:[later]},'Agent B'),true);
+ assert.equal(enemyReinforced({enemy:[{name:'Agent B',orange:{value:13},blue:{value:10}}]},'Agent B'),false);
+ assert.equal(enemyReinforced({enemyAdditions:{'Agent B':3}},'Agent B'),false);
+ assert.equal(translate('Gegner verstärkt: Aufwertung, Verdopplung oder mindestens vier hinzugefügt','en'),'Enemy reinforced: upgrade, double, or at least four added');
 });

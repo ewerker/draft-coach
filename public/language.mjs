@@ -425,6 +425,7 @@ Wähle Standalone-KI und aktiviere die Internetrecherche. Die Frage und passende
 Wie erweitere ich die Taktikdatenbank?|How do I expand the tactical knowledge base?
 Unter Taktikregeln startet Internetrecherche starten einen einmaligen KI-Recherchelauf mit Quellen. Pro Lauf werden bis zu acht neue Hinweise als Notizen in Deutsch und Englisch gespeichert. Eine passend zugeordnete Notiz mit Gewicht kann die Tipps schwach beeinflussen; eine aktive Regel hat Vorrang. Bearbeite eine Notiz und ändere ihren Status auf Testvorschau oder Aktiv, um sie zu prüfen oder stärker zu verwenden. Die Recherche benötigt einen API-Key und kann zusätzliche Kosten verursachen.|Under Tactical rules, Start web research runs a one-time AI search with sources. Up to eight new findings are saved as notes in German and English. A suitably linked weighted note may weakly influence advice; an active rule takes precedence. Edit a note and change its status to Test preview or Active to review it or give it more influence. Research requires an API key and may incur additional costs.
 Zusätzliche Bedingung|Additional condition
+Gegner verstärkt: Aufwertung, Verdopplung oder mindestens vier hinzugefügt|Enemy reinforced: upgrade, double, or at least four added
 Gegner aufgewertet oder verdoppelt; keine Unterstützung beobachtet|Enemy upgraded or doubled; no support observed
 Internetrecherche starten|Start web research
 Internetrecherche läuft …|Web research in progress …

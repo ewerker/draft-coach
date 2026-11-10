@@ -1,0 +1,22 @@
+[
+  {
+    "offer": "Sniper", "enemy": "Agent B", "mode": "beide", "phase": "battle_choice",
+    "action": "", "condition": "enemy_reinforced", "weight": -20, "status": "aktiv", "textLanguage": "de",
+    "title": "Sniper-Ausbau gegen verstärkte Agent B zurückstellen",
+    "reason": "Spielerbeobachtung: Verstärkte gegnerische Agent B gefährden die eigene Hinterreihe. Zusätzliche Sniper, Aufwertungen und Verdopplungen deutlich abwerten und eine geeignete Alternative bevorzugen. Die Bedingung verlangt eine erkannte Aufwertung/Verdopplung oder mindestens vier protokollierte Hinzufügungen; Menge ist kein Beweis einer Entwicklungsstufe. Kein pauschales Sniper-Verbot. Fehlende Erkennung beweist nicht die Abwesenheit von Agent B.",
+    "texts": {
+      "de": {"title": "Sniper-Ausbau gegen verstärkte Agent B zurückstellen", "reason": "Spielerbeobachtung: Verstärkte gegnerische Agent B gefährden die eigene Hinterreihe. Zusätzliche Sniper, Aufwertungen und Verdopplungen deutlich abwerten und eine geeignete Alternative bevorzugen. Die Bedingung verlangt eine erkannte Aufwertung/Verdopplung oder mindestens vier protokollierte Hinzufügungen; Menge ist kein Beweis einer Entwicklungsstufe. Kein pauschales Sniper-Verbot. Fehlende Erkennung beweist nicht die Abwesenheit von Agent B."},
+      "en": {"title": "Deprioritize Sniper growth against reinforced Agent B", "reason": "Player observation: reinforced enemy Agent B threaten our backline. Strongly reduce the value of adding, upgrading or doubling Snipers and prefer a suitable alternative. Requires an observed upgrade/double or at least four recorded additions; numbers do not establish an evolution form. This is not a blanket Sniper ban. Missing detection does not prove Agent B are absent."}
+    }
+  },
+  {
+    "offer": "Schnecke", "enemy": "Agent B", "mode": "beide", "phase": "battle_choice",
+    "action": "", "condition": "enemy_reinforced", "weight": -20, "status": "aktiv", "textLanguage": "de",
+    "title": "Schnecken-Ausbau gegen verstärkte Agent B zurückstellen",
+    "reason": "Spielerbeobachtung: Bei verstärktem gegnerischem Agent B ist weiterer Schneckenaufbau riskant. Hinzufügen, Aufwerten und Verdoppeln deutlich abwerten. Ohne diesen erkannten Druck darf Schnecke weiterhin als Flächenschaden gewählt werden; ein manuell beeinflusster Sieg ist als Gegenbeispiel zu einem pauschalen Verbot gespeichert, kein Wirksamkeitsbeweis. Mengen und Formen bleiben getrennt; nicht erkannte Gegner gelten nicht als sicher abwesend.",
+    "texts": {
+      "de": {"title": "Schnecken-Ausbau gegen verstärkte Agent B zurückstellen", "reason": "Spielerbeobachtung: Bei verstärktem gegnerischem Agent B ist weiterer Schneckenaufbau riskant. Hinzufügen, Aufwerten und Verdoppeln deutlich abwerten. Ohne diesen erkannten Druck darf Schnecke weiterhin als Flächenschaden gewählt werden; ein manuell beeinflusster Sieg ist als Gegenbeispiel zu einem pauschalen Verbot gespeichert, kein Wirksamkeitsbeweis. Mengen und Formen bleiben getrennt; nicht erkannte Gegner gelten nicht als sicher abwesend."},
+      "en": {"title": "Deprioritize Snail growth against reinforced Agent B", "reason": "Player observation: further Snail growth is risky against reinforced enemy Agent B. Strongly reduce the value of adding, upgrading or doubling Snails. Without this observed pressure, Snail remains eligible as an area-damage option. A player-influenced win is retained as a counterexample to a blanket ban, not proof of efficacy. Counts and forms remain separate; undetected enemies are not confirmed absent."}
+    }
+  }
+]

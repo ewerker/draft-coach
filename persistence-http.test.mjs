@@ -57,11 +57,15 @@ for line in sys.stdin:
     await mkdir(path.join(dir,'runtime','referenzen'),{recursive:true});
     await writeFile(path.join(dir,'runtime','referenzen',reference.id+'.json'),JSON.stringify(reference));
     await writeFile(path.join(dir,'army-worker.py'),`import sys,json,time\nprint(json.dumps({'ready':True}),flush=True)\nfor line in sys.stdin:\n r=json.loads(line);time.sleep(.05)\n result={'frameId':r['id'],'matchId':r['matchId'],'capturedAt':r['capturedAt'],'phase':r['phase'],'language':r['language'],'elapsedMs':50,'sides':{'own':{'groups':[{'name':'Schnecke','visibleMinimum':9}],'instances':[]},'enemy':{'groups':[],'instances':[]}}}\n print(json.dumps({'id':r['id'],'result':result}),flush=True)\n`);
-    await start();const first=await capture();const original=(await get('/api/state')).activeMatchId;assert.ok(original);
+    await start();
+    const rule={title:'Sniper risk',reason:'Observed Agent B pressure',texts:{de:{title:'Sniper risk',reason:'Observed Agent B pressure'},en:{title:'Sniper risk',reason:'Observed Agent B pressure'}},textLanguage:'de',offer:'Sniper',enemy:'Agent B',mode:'beide',phase:'battle_choice',condition:'enemy_reinforced',weight:-20,status:'aktiv'};
+    const library=await post('/api/taktikregeln',rule);const ruleId=library.rules.find(r=>r.title===rule.title).id;
+    const first=await capture();const original=(await get('/api/state')).activeMatchId;assert.ok(original);
     const army=await eventually(async()=>{const state=await get('/api/state');return state.armyObservation?.frameId===first?state.armyObservation:null;});
     assert.equal(army.use,'observation_only');assert.equal(army.sides.own.groups[0].visibleMinimum,9);
     assert.equal(army.sides.own.groups[0].visibleMaximum,null);
     await stop();await start();
+    const restoredRule=(await get('/api/taktikregeln')).rules.find(r=>r.id===ruleId);assert.equal(restoredRule.condition,'enemy_reinforced');assert.equal(restoredRule.status,'aktiv');assert.equal(restoredRule.weight,-20);assert.ok(restoredRule.texts.en);
     let state=await get('/api/state');assert.equal(state.activeMatchId,null);assert.equal(state.auto,false);assert.equal(state.recoveryMatches.length,1);assert.equal(state.recoveryMatches[0].id,original);
     await assert.rejects(post('/api/capture'),/offene Partie/);assert.equal((await get('/api/state')).capturing,false);
     await post('/api/matches/recover',{id:original,action:'resume'});assert.equal((await get('/api/state')).activeMatchId,original);
