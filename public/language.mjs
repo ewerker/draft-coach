@@ -541,6 +541,11 @@ gegen|against
 Du|You
 Tipp|Recommendation
 `.trim().split('\n').map(line=>line.split('|')));
+for(const name of ['Snail','Cupid','Sniper']){
+  fragments.set(`Direkter Angriff auf die gegnerische Hinterreihe (${name}) wird bevorzugt; vorhandene Angreifer berücksichtigt.`,`Direct backline attacks against ${name} are preferred; existing attackers are considered.`);
+  fragments.set(`Direkter Angriff auf die gegnerische Hinterreihe (${name}) wird bevorzugt.`,`Direct backline attacks against ${name} are preferred.`);
+  fragments.set(`Sniper als verfügbare Fernkampfoption gegen ${name} aufbauen; direkter Hinterlandangriff wird nicht angeboten.`,`Build Snipers as a ranged option against ${name}; no direct backline attacker is offered.`);
+}
 const fragmentPattern=new RegExp('(?<![\\p{L}\\p{N}])(?:'+[...fragments.keys()].map(escapeRegExp).join('|')+')(?![\\p{L}\\p{N}])','gu');
 const preparationLabels=new Map([
   ['Einheiten','Units'],['Zauber','Spells'],

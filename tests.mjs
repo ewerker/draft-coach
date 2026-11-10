@@ -15,6 +15,24 @@ import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from '.
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
 const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
+test('direct backline attackers are preferred against Snail, Cupid and Sniper',()=>{
+  for(const threat of ['Schnecke','Kupid','Sniper'])for(const attacker of ['Agent B','Assassine']){
+    const result={phase:'battle_choice',enemy:[{name:threat}],offers:[{name:attacker,action:'add',quantity:2},{name:'Sniper',action:'add',quantity:2},{name:'Sixshoot',action:'add',quantity:2}]};
+    const advice=recommend(result,'arena',collection,db);
+    assert.equal(advice.best?.name,attacker,`${attacker} against ${threat}`);
+    assert.match(advice.best.reason,/Direkter Angriff/);
+  }
+});
+test('builds available Sniper against an enemy Sniper when no direct attacker is offered',()=>{
+  const result={phase:'battle_choice',enemy:[{name:'Sniper'},{name:'TNT'},{name:'Splime'}],offers:[{name:'TNT',action:'add',quantity:2},{name:'Sixshoot',action:'add',quantity:2},{name:'Sniper',action:'add',quantity:2}]};
+  const advice=recommend(result,'arena',collection,db);
+  assert.equal(advice.best?.name,'Sniper');
+  assert.match(advice.best.reason,/direkter Hinterlandangriff wird nicht angeboten/);
+  const developed=recommend({...result,ownReinforcements:{Sniper:4}},'arena',collection,db);
+  assert.doesNotMatch(developed.evaluated[2].reason,/direkter Hinterlandangriff wird nicht angeboten/);
+  const noThreat=recommend({...result,enemy:[{name:'Ritter'}]},'arena',collection,db);
+  assert.doesNotMatch(noThreat.evaluated[2].reason,/direkter Hinterlandangriff wird nicht angeboten/);
+});
 test('English display names and questions preserve German card keys',()=>{
   assert.equal(translate('Auswahl','en'),'Choose a view');
   assert.equal(displayNames('Verwüster, Drakling, ¡ZAS!','en'),'Waster, Whelp, ZAP!');

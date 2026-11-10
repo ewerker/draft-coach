@@ -127,6 +127,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     for(const name of result.observedDraftUnits??[])if(owned.has(name))allowed.add(name);
   }
   const enemy=(result.enemy||[]).filter(c=>c.name).map(c=>c.name);
+  const backlineThreat=enemy.find(name=>['Schnecke','Kupid','Sniper'].includes(name));
   const strengths=new Map([...collection.units.units,...collection.spells.spells].map(c=>[c.name,c.bottom_badge]));
   const warnings=[];
   const ownDeck=new Set([...(result.ownDeckPicks??[]),...(result.own??[]).map(card=>card.name)]);
@@ -141,6 +142,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
   const tracked=result.ownReinforcements??{};
+  const directBacklineOffer=(result.offers??[]).some(card=>['Agent B','Assassine'].includes(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const snipers=result.enemyAdditions?.Sniper??0;
   const agentShortfall=result.phase==='battle_choice'&&enemy.includes('Sniper')&&snipers>=4?
     Math.max(0,Math.ceil(snipers/2)-(tracked['Agent B']??0)):0;
@@ -198,6 +200,16 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
         score+=10;
         why+=' Direkter Zugriff auf die gegnerische Hinterreihe ergänzt das Deck.';
       }
+    }
+    if(backlineThreat&&['deck_choice','battle_choice'].includes(result.phase)&&['Agent B','Assassine'].includes(offer.name)){
+      const existing=(tracked['Agent B']??0)+(tracked.Assassine??0);
+      const bonus=result.phase==='deck_choice'?24:existing>=6?8:24;
+      score+=bonus;
+      why+=` Direkter Angriff auf die gegnerische Hinterreihe (${backlineThreat}) wird bevorzugt${existing>=6?'; vorhandene Angreifer berücksichtigt':''}.`;
+    }
+    if(backlineThreat&&result.phase==='battle_choice'&&!directBacklineOffer&&offer.name==='Sniper'&&(tracked.Sniper??0)<4){
+      score+=14;
+      why+=` Sniper als verfügbare Fernkampfoption gegen ${backlineThreat} aufbauen; direkter Hinterlandangriff wird nicht angeboten.`;
     }
     if(result.phase==='deck_choice'&&enemy.includes('Kupid')&&
        !ownDeck.has('Kupid')&&!ownDeck.has('Sniper')&&['Kupid','Sniper'].includes(offer.name)){
@@ -288,7 +300,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=reinforcement.points;
       why+=' '+reinforcement.reason;
     }
-    if(result.phase==='battle_choice'&&enemy.length===1&&enemy[0]==='Schnecke'&&offer.name==='Sniper'){
+    if(result.phase==='battle_choice'&&!directBacklineOffer&&enemy.length===1&&enemy[0]==='Schnecke'&&offer.name==='Sniper'){
       score+=32;
       why+=' Sniper priorisiert, weil Schnecke die einzige erkannte Gegnerfigur ist.';
     }
