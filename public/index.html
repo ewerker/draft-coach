@@ -42,19 +42,19 @@
   <details><summary>Was bedeuten Rahmen und Zwischenbilder?</summary><p>Dünne Rahmen zeigen erkannte Karten. Ein grüner Tipp ist regulär bewertet. Gelb kennzeichnet einen vorläufigen Tipp oder einen Versuchstipp. Eine gesendete Auswahl wird zusätzlich markiert. Im Automodus bleibt das letzte relevante Wahlfenster sichtbar. Mit Zwischenbilder anzeigen kannst du auch die Aufnahmen dazwischen sehen.</p></details>
   <details><summary>Wann setzt der Coach automatisch einen Zauber ein?</summary><p>Wenn Automodus und automatisches Antippen eingeschaltet sind, kann der Coach bei Herzrückstand oder ohne sicheren Truppentipp einmal pro Partie die Zauberauswahl öffnen. Er tippt nur einen sicher erkannten Zauber aus deiner gespeicherten aktiven Auswahl an. Bei unklarer Erkennung bleibt die Wahl bei dir.</p></details>
   <details><summary>Wie funktioniert die Schnellauskunft?</summary><p>Wähle in der Schnellauskunft als Antwortquelle das lokale Taktiklexikon oder Standalone-KI. Das Lexikon funktioniert offline. Standalone-KI beantwortet frei formulierte Fragen auf Deutsch oder Englisch und erhält die Frage, passende lokale Regeln und gegebenenfalls den vorherigen KI-Dialogschritt als Text. Im Codex-Ablauf kannst du deine Frage direkt im Codex-Chat stellen.</p><p>Mit Frage diktieren kannst du die Spracheingabe des Browsers nutzen. Der Coach trägt den Text ins Eingabefeld ein. Prüfe ihn vor dem Absenden.</p></details>
-  <details><summary>Wo hinterlege ich den OpenAI-API-Key?</summary><p>Öffne die Schnellauskunft am Host-PC und klicke auf API-Key einrichten. Alternativ findest du das Feld unter Admin · Archiv. Nach dem Speichern ist Standalone-KI sofort auswählbar. Der Coach speichert den Schlüssel als lokale Datei auf dem Host. Die SQLite-Sicherung enthält ihn nicht. Unter Admin · Archiv kannst du den gespeicherten Schlüssel auch entfernen.</p></details>
+  <details><summary>Wo hinterlege ich den OpenAI-API-Key?</summary><p>Öffne die Schnellauskunft am Host-PC und klicke auf API-Key einrichten. Alternativ findest du das Feld unter Partien und Auswertung → Archivverwaltung und API-Key. Nach dem Speichern ist Standalone-KI sofort auswählbar. Der Coach speichert den Schlüssel als lokale Datei auf dem Host. Die SQLite-Sicherung enthält ihn nicht. Unter Partien und Auswertung → Archivverwaltung und API-Key kannst du den gespeicherten Schlüssel auch entfernen.</p></details>
   <details><summary>Wie bearbeite ich zweisprachige Taktikregeln?</summary><p>Der Sprachschalter bestimmt im Regeleditor die Sprache von Titel und Begründung. Karten, Bedingungen, Gewicht und Status gelten gemeinsam. Mit einem API-Key ergänzt der Coach beim Speichern fehlende Sprachfassungen und aktualisiert veraltete maschinelle Übersetzungen. Handbearbeitete Fassungen bleiben erhalten und werden bei Bedarf zur Prüfung markiert. Falls die Übersetzung fehlschlägt, bleibt der Originaltext gespeichert.</p></details>
-  <details><summary>Wie lernt der Coach aus einer Partie?</summary><p>Speichere nach Stopp das Ergebnis. Öffne am Host-PC Partie auswerten, lade ein Wahlfenster und vergleiche Tipp und gesendeten Klick. Speichere deine bevorzugte Wahl oder eine Beobachtung als Prüffall. Neue Regeln kannst du im Replay prüfen, als Testregel übernehmen, aktivieren und zurücknehmen. Eine korrigierte rote Gegneranzeige wird als Vorlage für ihre Spielsprache gespeichert. Der optionale GPT-Entwurf verwendet die ausgewählten Textdaten und überträgt den Kartenausschnitt nur, wenn du ihn ausdrücklich auswählst.</p></details>
+  <details><summary>Wie lernt der Coach aus einer Partie?</summary><p>Speichere nach Stopp das Ergebnis. Öffne am Host-PC Partien und Auswertung, lade ein Wahlfenster und vergleiche Tipp und gesendeten Klick. Speichere deine bevorzugte Wahl oder eine Beobachtung als Prüffall. Neue Regeln kannst du im Replay prüfen, als Testregel übernehmen, aktivieren und zurücknehmen. Eine korrigierte rote Gegneranzeige wird als Vorlage für ihre Spielsprache gespeichert. Der optionale GPT-Entwurf verwendet die ausgewählten Textdaten und überträgt den Kartenausschnitt nur, wenn du ihn ausdrücklich auswählst.</p></details>
   <details><summary>Wie funktioniert die Internetrecherche in der Schnellauskunft?</summary><p>Wähle Standalone-KI und aktiviere die Internetrecherche. Die Frage und passende lokale Hinweise werden an den KI-Dienst gesendet; dabei können zusätzliche Kosten entstehen. Gefundene Aussagen mit Quellen werden als unbestätigte Notiz in den Taktikregeln gespeichert und beeinflussen die Spieltipps nicht automatisch. Ohne Quellen wird nichts gespeichert.</p></details>
   <details><summary>Wie erweitere ich die Taktikdatenbank?</summary><p>Unter Taktikregeln startet Internetrecherche starten einen einmaligen KI-Recherchelauf mit Quellen. Pro Lauf werden bis zu acht neue Hinweise als Notizen in Deutsch und Englisch gespeichert. Eine passend zugeordnete Notiz mit Gewicht kann die Tipps schwach beeinflussen; eine aktive Regel hat Vorrang. Bearbeite eine Notiz und ändere ihren Status auf Testvorschau oder Aktiv, um sie zu prüfen oder stärker zu verwenden. Die Recherche benötigt einen API-Key und kann zusätzliche Kosten verursachen.</p></details>
   <details><summary>Wie verwende ich Prüfbilder und Regelbelege?</summary><p>In der Partieauswertung kannst du ein verfügbares Bild als Prüfbild übernehmen. Unter Vorbereitung siehst du es vollständig und kannst eigene sowie gegnerische Figuren getrennt markieren. Anzahl und Ausbau lassen sich als eigene Beobachtung ergänzen. Bei Taktikregeln zeigen zugeordnete, gesendete Entscheidungen ihre Partieergebnisse; Siege und Niederlagen beweisen keine Regelwirkung. Regeln bleiben bis zur eigenen Änderung in ihrem bisherigen Status.</p></details>
   <details><summary>Wie sicher sind Bildtreffer und Truppenzahlen?</summary><p>Vorläufige Bildtreffer suchen ähnliche markierte Ausschnitte. Überlappungen, andere Posen oder fehlende Vorlagen können zu fehlenden oder falschen Treffern führen. Die angezeigten Trefferzahlen sind keine sichere Zählung oder Ausbaustufe und verändern die Tipps noch nicht.</p></details>
   <details><summary>Wie lernt die Spielfelderkennung?</summary><p>Unter Vorbereitung zeigt Lernfortschritt die verfügbaren Prüfbilder und die unabhängige Auswertung. Nach dem Spiel kannst du bis zu drei Bilder aus verschiedenen Partien vorschlagen lassen. Öffne ein Prüfbild, markiere die sichtbaren Figurentypen und bestätige nur vollständige Angaben. Ganze Partien bleiben für den Test getrennt. Die Prüfung läuft außerhalb des Spiels. Ergebnisse zu Anzahl und Ausbau sind getrennt; die Bildtreffer beeinflussen Tipps noch nicht.</p></details>
-  <details><summary>Wie bespreche ich eine Partie mit der KI?</summary><p>Unter Partie auswerten wählst du eine Aufnahme. Diktiere oder schreibe deine Beobachtung und erstelle mit einem hinterlegten OpenAI-API-Key einen Vorschlag. Die Angaben zur Aufnahme und deine Beobachtung werden dabei an OpenAI gesendet; ein Kartenausschnitt nur auf Wunsch. Prüfe das Ergebnis und speichere es als Prüffall. Es wird nicht automatisch zu einer aktiven Taktikregel. Ohne API-Key kannst du deine Beobachtung als Prüffall speichern.</p></details>
-  <details><summary>Was enthält die Sicherung?</summary><p>Abgeschlossene Partien werden automatisch archiviert. Unter Admin · Archiv kannst du die SQLite-Sicherung herunterladen. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek und die Prüfbilder aus der Vorbereitung werden separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
+  <details><summary>Wie bespreche ich eine Partie mit der KI?</summary><p>Unter Partien und Auswertung wählst du eine Aufnahme. Diktiere oder schreibe deine Beobachtung und erstelle mit einem hinterlegten OpenAI-API-Key einen Vorschlag. Die Angaben zur Aufnahme und deine Beobachtung werden dabei an OpenAI gesendet; ein Kartenausschnitt nur auf Wunsch. Prüfe das Ergebnis und speichere es als Prüffall. Es wird nicht automatisch zu einer aktiven Taktikregel. Ohne API-Key kannst du deine Beobachtung als Prüffall speichern.</p></details>
+  <details><summary>Was enthält die Sicherung?</summary><p>Abgeschlossene Partien werden automatisch archiviert. Unter Partien und Auswertung → Archivverwaltung und API-Key kannst du die SQLite-Sicherung herunterladen. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek und die Prüfbilder aus der Vorbereitung werden separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
 </section>
 <section id="review-panel" class="panel" hidden>
-  <div class="panel-head"><h2>Partie auswerten</h2><button id="close-review" type="button" class="small">Zurück zum Spiel</button></div>
+  <div class="panel-head"><h2>Partien und Auswertung</h2><button id="close-review" type="button" class="small">Zurück zum Spiel</button></div>
   <p>Wähle eine Partie und Aufnahme. Vergleiche Erkennung, Tipp und gesendeten Klick; übernimm wichtige Aufnahmen als Prüfbild oder prüfe einen Regelvorschlag.</p>
   <details id="review-queue" open><summary>Prüffälle</summary>
     <p>Hier stehen alle gespeicherten Prüffälle zusammen. Öffne einen Fall und markiere ihn nach der Bearbeitung als erledigt.</p>
@@ -62,12 +62,15 @@
     <label>Anzeige <select id="review-queue-filter"><option value="open">Offen</option><option value="all">Alle</option><option value="done">Erledigt</option></select></label>
     <div id="review-cases"></div>
   </details>
+  <label>Partie suchen <input id="review-search" type="search" placeholder="Datum, Modus, Ergebnis oder Partiekennung"></label>
+  <p id="review-match-count" class="muted" role="status"></p>
   <div class="tactics-actions">
     <label>Partie <select id="review-match"></select></label>
     <label>Wahlfenster <select id="review-capture"></select></label>
     <label>Sprache älterer Bilder <select id="review-language"><option value="de">Deutsch</option><option value="en">English</option></select></label>
     <button id="review-load" type="button">Bild und Auswertung laden</button>
   </div>
+  <p id="review-availability" class="muted" role="status"></p>
   <p id="review-message" role="status"></p>
   <div class="review-images">
     <div>
@@ -116,9 +119,7 @@
       <button id="review-banner-save" type="button">Erkennungsvorlage speichern</button>
     </div>
   </details>
-</section>
-<section id="admin-panel" class="panel" aria-labelledby="admin-title" hidden>
-  <div class="panel-head"><h2 id="admin-title">Admin · Archiv</h2><button id="close-admin" type="button" class="small">Zurück zum Spiel</button></div>
+<details id="admin-panel"><summary>Archivverwaltung und API-Key</summary>
   <p>Abgeschlossene Partien werden automatisch gespeichert. Das Archiv bewahrt ihren Verlauf und ausgewählte Bilder für die spätere Auswertung auf.</p>
   <div id="archive-summary" class="archive-summary" role="status"></div>
   <div class="tactics-actions">
@@ -138,9 +139,8 @@
     </div>
     <p id="ai-key-status" role="status"></p>
   </form>
-  <h3>Zuletzt archivierte Partien</h3>
-  <ul id="archive-games"></ul>
   <details><summary id="archive-findings-label">Frühere Analysen</summary><p>Diese älteren Beobachtungen wurden mit Belegbildern aufbewahrt. Sie sind keine aktiven Taktikregeln und ändern die Empfehlungen nicht automatisch.</p><ul id="archive-findings"></ul></details>
+</details>
 </section>
 <section id="quick-panel" class="panel quick" aria-labelledby="quick-title" hidden>
   <div class="quick-header">
@@ -203,27 +203,32 @@
     <button id="new-tactic" type="button">Neue Erkenntnis</button>
     <button id="research-tactics" type="button">Internetrecherche starten</button>
   </div>
+  <p class="muted">Die Internetrecherche sucht allgemein nach Taktiken für Draft Showdown, unabhängig von Filter und ausgewählter Regel. Sie nutzt den OpenAI-API-Key und kann Kosten verursachen. Neue Hinweise werden als Notiz gespeichert und können die Bewertung begrenzt beeinflussen.</p>
+  <p id="tactics-research-status" role="status"></p>
+  <div id="tactics-research-result"></div>
   <p id="tactics-found" class="muted" role="status"></p>
   <div id="tactics-list" class="tactics-list"></div>
   </div>
   <form id="tactics-form">
     <h3 id="tactics-form-title">Neue Erkenntnis</h3>
+    <p id="tactics-edit-hint" class="muted" role="status"></p>
     <p id="tactics-text-language" class="muted"></p>
     <div class="tactics-fields">
-      <label class="tactics-wide">Titel <input name="title" maxlength="100" required></label>
+      <label class="tactics-wide">Titel <input name="title" maxlength="100" placeholder="Kurze Überschrift der Regel" required></label>
       <label class="tactics-wide">Beobachtung oder Begründung <textarea name="reason" rows="3" maxlength="1500" required></textarea></label>
       <label>Modus <select name="mode"><option value="beide">Draft und Schlacht</option><option value="draft">Draft</option><option value="arena">Schlacht</option></select></label>
       <label>Wahlfenster <select name="phase"><option value="alle">Alle</option><option value="deck_choice">Deckwahl</option><option value="battle_choice">Kampfwahl</option><option value="spell_choice">Zauberauswahl</option></select></label>
       <label>Angebotsaktion <select name="action"><option value="">Alle Aktionen</option><option value="add">Hinzufügen</option><option value="upgrade">Aufwertung (auch kombiniert)</option><option value="multiply">Verdopplung</option><option value="multiply_upgrade">Verdopplung mit Aufwertung</option><option value="spell">Zauber einsetzen</option></select></label>
       <label>Diese Angebotskarte <select name="offer"></select></label>
       <label>Wenn diese Gegnerfigur bekannt ist <select name="enemy"></select></label>
+      <label>Zusätzliche Bedingung <select name="condition"><option value="">Keine</option><option value="enemy_developed_no_observed_support">Gegner aufgewertet oder verdoppelt; keine Unterstützung beobachtet</option></select></label>
       <label>Gewicht in Punkten <input name="weight" type="number" min="-20" max="20" step="1" value="0" required></label>
       <label>Status <select name="status"><option value="notiz">Notiz</option><option value="test">Testvorschau</option><option value="aktiv">Aktiv</option></select></label>
     </div>
     <p class="muted">Plus wertet das Angebot auf, Minus wertet es ab. Mehrere passende Regeln können zusammen bis zu 25 Punkte verändern.</p>
     <div id="tactics-evidence"></div>
     <p id="tactics-message" role="status"></p>
-    <div class="tactics-actions"><button type="submit" class="primary">Speichern</button><button id="delete-tactic" type="button" class="danger" hidden>Regel löschen</button></div>
+    <div class="tactics-actions"><button type="submit" class="primary" id="tactics-save">Neue Regel speichern</button><button id="delete-tactic" type="button" class="danger" hidden>Regel löschen</button></div>
   </form>
   </div>
 </section>

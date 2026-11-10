@@ -1408,7 +1408,7 @@ async function handleRequest(req,res){
           const research=await answerTactics({key:openAiKey(),model:quickModel(),language,question,webSearch:true,
             knowledge:{cards:cards.map(name=>[name,EN_CARD_NAMES[name]??name]),known:tactics.map(rule=>rule.title).slice(0,200)}});
           const sources=[...new Set(research.citations.map(c=>c.url).filter(url=>url.length<=350))];
-          if(!sources.length)return json(res,200,{...tacticLibrary(),added:0,sources:0});
+          if(!sources.length)return json(res,200,{...tacticLibrary(),added:0,sources:0,summary:research.summary,citations:[]});
           const facts=await extractResearchFacts({key:openAiKey(),model:quickModel(),summary:research.summary,sources,cards});
           const next=[...tactics];let added=0;
           for(const fact of facts){
@@ -1423,7 +1423,7 @@ async function handleRequest(req,res){
             next.push({...rule,researchSource:fact.source,researchDate:new Date().toISOString()});added++;
           }
           if(added){if(savingTactics)throw Error('Taktikregeln werden gerade gespeichert.');await persistTactics(next,next.slice(tactics.length).some(rule=>rule.weight!==0));}
-          return json(res,200,{...tacticLibrary(),added,sources:sources.length});
+          return json(res,200,{...tacticLibrary(),added,sources:sources.length,summary:research.summary,citations:research.citations});
         }finally{quickAiBusy=false;}
       }
       if(url.pathname==='/api/taktikregeln/loeschen')return json(res,200,await deleteTactic(data.id));
@@ -1688,11 +1688,11 @@ async function handleRequest(req,res){
     if(url.pathname==='/api/admin/ai')return json(res,200,aiSettings());
     if(url.pathname==='/api/admin/review/matches'){
       const games=await archive.review.matches();
-      return json(res,200,{games:games.slice(0,50).map(({id,mode,outcome,ended})=>({id,mode,outcome,ended})),cards:tacticCards(),gpt:gptReviewEnabled()});
+      return json(res,200,{games:games.map(({id,mode,outcome,ended,archived,evidenceCount,hasDetails})=>({id,mode,outcome,ended,archived,evidenceCount,hasDetails})),cards:tacticCards(),gpt:gptReviewEnabled()});
     }
     if(url.pathname==='/api/admin/review/match'){
-      const {id,mode,outcome,captureIds,frames}=await archive.review.match(url.searchParams.get('id'));
-      return json(res,200,{id,mode,outcome,captureIds,frames:frames.map(({id,phase,language,advice,clicks})=>({id,phase,language,
+      const {id,mode,outcome,captureIds,availableCaptureIds,hasDetails,frames}=await archive.review.match(url.searchParams.get('id'));
+      return json(res,200,{id,mode,outcome,captureIds,availableCaptureIds,hasDetails,frames:frames.map(({id,phase,language,advice,clicks})=>({id,phase,language,
         tip:(advice?.best??advice?.fallback??advice?.provisional)?.name,clicked:clicks.find(click=>click.ergebnis==='gesendet')?.karte}))});
     }
     if(url.pathname==='/api/admin/review/cases')return json(res,200,await archive.review.list());

@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {existsSync} from 'node:fs';
 import path from 'node:path';
 import {recommend} from './advice.mjs';
 
@@ -85,12 +86,18 @@ export function reviewQueries(journal,withDatabase,runtime){
   async function matches(){
     const games=await journal('partien.jsonl');
     const merged=new Map(games.map(game=>[game.id,game]));
-    const stored=await withDatabase(true,db=>db.prepare('SELECT details_json FROM partie_protokoll ORDER BY rowid DESC LIMIT 200').all());
+    const stored=await withDatabase(true,db=>db.prepare(`SELECT p.id,p.modus,p.ergebnis,p.beginn_ms,p.ende_ms,p.aufnahme_ids_json,d.details_json,
+      (SELECT COUNT(*) FROM belege b WHERE b.partie_id=p.id) AS images
+      FROM partien p LEFT JOIN partie_protokoll d ON d.partie_id=p.id ORDER BY p.ende_ms DESC`).all());
     for(const row of stored){
-      const game=JSON.parse(row.details_json);
-      if(!merged.has(game.id))merged.set(game.id,game);
+      let details=null,ids=[];
+      try{if(row.details_json)details=JSON.parse(row.details_json);}catch{}
+      try{ids=JSON.parse(row.aufnahme_ids_json||'[]');if(!Array.isArray(ids))ids=[];}catch{}
+      const fallback={id:row.id,mode:row.modus,outcome:row.ergebnis,started:row.beginn_ms,ended:row.ende_ms,captureIds:ids,reviewFrames:[]};
+      const game=merged.get(row.id)??details??fallback;
+      merged.set(row.id,{...game,archived:true,evidenceCount:row.images,hasDetails:Boolean(details||merged.has(row.id))});
     }
-    return [...merged.values()].sort((a,b)=>b.ended-a.ended);
+    return [...merged.values()].map(game=>({archived:false,evidenceCount:0,hasDetails:true,...game})).sort((a,b)=>b.ended-a.ended);
   }
   async function clicks(){
     const live=await journal('antippen.jsonl');
@@ -105,8 +112,11 @@ export function reviewQueries(journal,withDatabase,runtime){
     const archived=await withDatabase(true,db=>db.prepare('SELECT details_json FROM klickprotokoll WHERE partie_id=?').all(id).map(row=>JSON.parse(row.details_json)));
     const allClicks=[...new Map([...archived,...clicks].map(click=>[JSON.stringify([click.aufnahme,click.zeit,click.art]),click])).values()];
     const frames=new Map((game.reviewFrames??[]).map(frame=>[frame.id,frame]));
+    const savedImages=await withDatabase(true,db=>db.prepare('SELECT aufnahme AS id FROM belege WHERE partie_id=? UNION SELECT capture AS id FROM review_cases WHERE match_id=? AND image IS NOT NULL').all(id,id).map(row=>row.id));
+    const captureIds=[...new Set([...(game.captureIds??[]),...savedImages].filter(Number.isSafeInteger))];
+    const availableCaptureIds=captureIds.filter(capture=>savedImages.includes(capture)||existsSync(path.join(runtime,'capture-'+capture+'.png')));
     for(const click of allClicks)if(!frames.has(click.aufnahme))frames.set(click.aufnahme,{id:click.aufnahme});
-    return {...game,frames:[...frames.values()].sort((a,b)=>a.id-b.id).map(frame=>({...frame,clicks:allClicks.filter(click=>click.aufnahme===frame.id)}))};
+    return {...game,captureIds,availableCaptureIds,frames:[...frames.values()].sort((a,b)=>a.id-b.id).map(frame=>({...frame,clicks:allClicks.filter(click=>click.aufnahme===frame.id)}))};
   }
   async function image(game,capture){
     if(!Number.isSafeInteger(capture)||!game.captureIds.includes(capture))return null;

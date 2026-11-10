@@ -281,7 +281,7 @@ $('capture').onclick=async()=>{
 };
 let coachView='game';
 let gameMode=$('mode').value;
-const viewHints={review:'Partie auswerten',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Gespeicherte Partien ansehen und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
+const viewHints={review:'Partien suchen, auswerten und Prüffälle bearbeiten.',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',help:'Anleitung und Antworten auf häufige Fragen.'};
 function showCoachView(view){
   if(view!=='quick')stopQuickDictation();
   if(view!=='review')stopReviewDictation();
@@ -290,7 +290,6 @@ function showCoachView(view){
   $('quick-panel').hidden=view!=='quick';
   $('tactics-panel').hidden=view!=='tactics';
   $('review-panel').hidden=view!=='review';
-  $('admin-panel').hidden=view!=='admin';
   $('help-panel').hidden=view!=='help';
   $('mode').value=view==='game'?gameMode:view;
   if(viewHints[view])$('mode-hint').textContent=viewHints[view];
@@ -303,8 +302,7 @@ $('mode').onchange=()=>{
   const mode=$('mode').value;
   if(Object.hasOwn(viewHints,mode)){
     showCoachView(mode);
-    if(mode==='review')void openReview();
-    if(mode==='admin'){void updateArchive();void loadAiSettings();}
+    if(mode==='review'){void openReview();void updateArchive();void loadAiSettings();}
     if(mode==='tactics')void openTactics();
     return;
   }
@@ -548,8 +546,7 @@ document.addEventListener('keydown',e=>{if(e.code==='Space'&&coachView==='game'&
 const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung',gewonnen:'Gewonnen',verloren:'Verloren'};
 const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
-if(config.localAdmin)$('organization-options').append(new Option('Admin · Archiv','admin'));
-if(config.localAdmin)$('organization-options').append(new Option('Partie auswerten','review'));
+if(config.localAdmin)$('organization-options').append(new Option('Partien und Auswertung','review'));
 let reviewedFrame=null,reviewGptEnabled=false,reviewData=null,reviewCases=[],reviewGames=[],reviewGame=null;
 const reviewForm=$('review-form');
 const reviewRoot='/api/admin/review/';
@@ -638,35 +635,46 @@ async function loadReviewCaptures(){
   clearReviewFrame();
   const captures=$('review-capture');
   captures.replaceChildren();
-  if(!$('review-match').value)return;
+  $('review-availability').textContent='';
+  if(!$('review-match').value){$('review-load').disabled=true;return;}
   const game=await reviewGet('match?id='+encodeURIComponent($('review-match').value));
+  if(game.id!==$('review-match').value)return;
   reviewGame=game;
   renderReviewCaptures();
 }
 function renderReviewCaptures(){
   if(!reviewGame||reviewGame.id!==$('review-match').value)return;
   const captures=$('review-capture'), selected=captures.value;
-  const {frames,captureIds}=reviewGame;
+  const {frames,captureIds,availableCaptureIds=[],hasDetails}=reviewGame;
+  const available=new Set(availableCaptureIds);
   captures.replaceChildren();
   const recorded=new Set(frames.map(frame=>frame.id));
   for(const frame of frames){
-    captures.append(new Option([frame.id,reviewMessage(frame.phase,language)||phaseNames[frame.phase],
-      displayNames(frame.tip??frame.clicked??'',language)].filter(Boolean).join(' · '),frame.id));
+    const option=new Option([frame.id,reviewMessage(frame.phase,language)||phaseNames[frame.phase],
+      displayNames(frame.tip??frame.clicked??'',language),!available.has(frame.id)?(language==='en'?'image unavailable':'Bild fehlt'):''].filter(Boolean).join(' · '),frame.id);
+    option.disabled=!available.has(frame.id);captures.append(option);
   }
   const other=document.createElement('optgroup');
   other.label=translate('Weitere Aufnahmen',language);
-  for(const id of captureIds)if(!recorded.has(id))other.append(new Option(String(id),id));
+  for(const id of captureIds)if(!recorded.has(id)){const option=new Option(String(id)+(available.has(id)?'':(language==='en'?' · image unavailable':' · Bild fehlt')),id);option.disabled=!available.has(id);other.append(option);}
   if(other.children.length)captures.append(other);
-  if([...captures.options].some(option=>option.value===selected))captures.value=selected;
+  if([...captures.options].some(option=>option.value===selected&&!option.disabled))captures.value=selected;
+  $('review-load').disabled=!available.size||!captures.value;
+  const count=available.size,total=captureIds.length;
+  $('review-availability').textContent=(language==='en'?`${count} of ${total} images available.`:`${count} von ${total} Bildern verfügbar.`)+(hasDetails?'':(language==='en'?' Older match: detailed decision logs are unavailable.':' Ältere Partie: Ausführliche Entscheidungsdaten fehlen.'));
 }
 function renderReviewMatches(){
   const matches=$('review-match'),selected=matches.value;
-  const extra=[...matches.options].filter(option=>!reviewGames.some(game=>game.id===option.value));
-  matches.replaceChildren(...reviewGames.map(game=>new Option(
-    [new Date(game.ended).toLocaleString(language),reviewMessage(game.mode,language),
-      reviewMessage(game.outcome,language)].join(' · '),game.id)),...extra);
+  const term=$('review-search').value.trim().toLocaleLowerCase();
+  const visible=reviewGames.filter(game=>[game.id,new Date(game.ended).toLocaleString(language),game.mode,game.outcome,reviewMessage(game.mode,language),reviewMessage(game.outcome,language)].join(' ').toLocaleLowerCase().includes(term));
+  matches.replaceChildren(...visible.map(game=>new Option(
+    [new Date(game.ended).toLocaleString(language),reviewMessage(game.mode,language),reviewMessage(game.outcome,language),'#'+game.id.slice(0,8),
+      game.archived?(language==='en'?`archived · ${game.evidenceCount} images`:`archiviert · ${game.evidenceCount} Bilder`):(language==='en'?'not yet archived':'noch nicht archiviert'),
+      !game.hasDetails?(language==='en'?'limited details':'wenig Details'):''].filter(Boolean).join(' · '),game.id)));
   if([...matches.options].some(option=>option.value===selected))matches.value=selected;
+  $('review-match-count').textContent=language==='en'?`${visible.length} of ${reviewGames.length} matches`:`${visible.length} von ${reviewGames.length} Partien`;
 }
+$('review-search').oninput=()=>{const previous=$('review-match').value;renderReviewMatches();if(previous!==$('review-match').value)void reviewAction(loadReviewCaptures);};
 async function openReview(){
   await reviewAction(async()=>{
     clearReviewFrame();
@@ -717,7 +725,7 @@ async function loadReviewFrame(){
   $('review-banner').hidden=false;
   $('review-gpt').hidden=false;
   $('review-gpt-run').disabled=!reviewGptEnabled;
-  $('review-gpt-status').textContent=reviewGptEnabled?'':(language==='en'?'Set an OpenAI API key under Admin · Archive to use AI. You can still save a note without AI.':'Für den KI-Vorschlag unter Admin · Archiv einen OpenAI-API-Key hinterlegen. Eine Beobachtung kannst du auch ohne KI speichern.');
+  $('review-gpt-status').textContent=reviewGptEnabled?'':(language==='en'?'Set an OpenAI API key under Archive settings. You can still save a note without AI.':'Für den KI-Vorschlag unter Archivverwaltung einen OpenAI-API-Key hinterlegen. Eine Beobachtung kannst du auch ohne KI speichern.');
   $('review-mic').disabled=!(window.SpeechRecognition||window.webkitSpeechRecognition);
   $('review-mic-status').textContent=$('review-mic').disabled?(language==='en'?'Voice input is unavailable in this browser. You can type instead.':'Spracheingabe ist in diesem Browser nicht verfügbar. Du kannst den Text eintippen.'):'';
   $('review-advanced').open=false;
@@ -862,6 +870,7 @@ function renderReviewCases(cases){
     open.append(reviewText('openCase'));
     open.onclick=()=>reviewAction(async()=>{
       const matches=$('review-match');
+      $('review-search').value='';renderReviewMatches();
       if(![...matches.options].some(option=>option.value===item.matchId)){
         matches.append(new Option(item.matchId,item.matchId));
       }
@@ -913,15 +922,6 @@ function renderArchive(data){
   $('archive-findings-label').textContent=en?`Earlier analyses · ${data.insights}`:`Frühere Analysen · ${data.insights}`;
   $('archive-import').hidden=!data.pending;
   $('archive-import').disabled=!data.pending;
-  const recent=$('archive-games');
-  recent.replaceChildren(...data.recent.map(game=>{
-    const date=new Date(game.ende_ms).toLocaleString(language==='en'?'en-GB':'de-DE');
-    const mode=game.modus==='arena'?'Schlacht':game.modus==='draft'?'Draft':game.modus;
-    const row=textEl('li',`${date} · ${mode} · ${game.ergebnis} · ${game.aufnahmezahl} Aufnahmen · ${game.bilder} Belegbilder `);
-    const view=textEl('button',language==='en'?'Review':'Auswerten','small');view.type='button';view.onclick=()=>reviewAction(async()=>{
-      showCoachView('review');await openReview();$('review-match').value=game.id;await loadReviewCaptures();
-    });row.append(view);return row;
-  }));
   $('archive-findings').replaceChildren(...(data.findings??[]).map(finding=>{
     const row=textEl('li','');row.append(textEl('strong',finding.titel),textEl('p',finding.beobachtung,'muted'));return row;
   }));
@@ -949,7 +949,6 @@ async function updateArchive(importGames=false){
   finally{archiveBusy=false;$('archive-refresh').disabled=false;}
 }
 function returnToGame(){showCoachView('game');$('mode').focus();void refresh();}
-$('close-admin').onclick=returnToGame;
 $('close-help').onclick=returnToGame;
 $('archive-refresh').onclick=()=>updateArchive();
 $('archive-import').onclick=()=>updateArchive(true);
@@ -1018,7 +1017,9 @@ function updateQuickAi(enabled){
 }
 updateQuickAi(Boolean(config.quickAiEnabled));
 $('quick-key-settings').onclick=()=>{
-  showCoachView('admin');
+  showCoachView('review');
+  $('admin-panel').open=true;
+  void openReview();
   void updateArchive();
   void loadAiSettings();
   $('ai-key').focus();
@@ -1212,6 +1213,7 @@ function renderRuleEvidence(rule){
     const button=textEl('button',(language==='en'?'Review match ':'Partie ansehen ')+example.matchId.slice(0,8)+' · '+example.capture,'small');button.type='button';
     button.onclick=()=>reviewAction(async()=>{
       showCoachView('review');await openReview();
+      $('review-search').value='';renderReviewMatches();
       const match=$('review-match');match.value=example.matchId;
       if(match.value!==example.matchId)throw Error(language==='en'?'Match not available.':'Partie nicht verfügbar.');
       await loadReviewCaptures();$('review-capture').value=String(example.capture);await loadReviewFrame();
@@ -1234,10 +1236,13 @@ function editTactic(rule){
   editingTactic=rule?.id??null;
   renderRuleEvidence(rule);
   $('tactics-form-title').textContent=rule?'Erkenntnis bearbeiten':'Neue Erkenntnis';
+  $('tactics-edit-hint').textContent=rule?(language==='en'?'Editing the selected entry. Saving updates this same entry; title and explanation apply to the selected language.':'Du bearbeitest den ausgewählten Eintrag. Speichern ändert diesen Eintrag; Titel und Begründung gelten für die gewählte Sprache.'):(language==='en'?'Create a new entry. The title is its short heading.':'Du legst einen neuen Eintrag an. Der Titel ist die kurze Überschrift.');
+  $('tactics-save').textContent=rule?(language==='en'?'Save changes':'Änderungen speichern'):(language==='en'?'Save new rule':'Neue Regel speichern');
   tacticsForm.reset();
   const text=rule?tacticText(rule,language):null;
-  if(rule)for(const name of ['mode','phase','offer','enemy','weight','status','action','condition'])
-    tacticsForm.elements.namedItem(name).value=rule[name]??'';
+  if(rule)for(const name of ['mode','phase','offer','enemy','weight','status','action','condition']){
+    const field=tacticsForm.elements.namedItem(name);if(field)field.value=rule[name]??'';
+  }
   for(const field of ['title','reason'])tacticsForm.elements.namedItem(field).value=text?.[field]??'';
   const note=$('tactics-text-language');
   const hint=text?.stale?'Übersetzung prüfen.':text?.machine?'Automatisch übersetzt.':rule&&!text?'Für diese Sprache fehlt der Regeltext.':
@@ -1296,13 +1301,18 @@ function renderTacticList(){
 }
 $('research-tactics').onclick=async()=>{
   const button=$('research-tactics');if(button.disabled)return;
-  button.disabled=true;$('tactics-message').textContent=translate('Internetrecherche läuft …',language);
+  const status=$('tactics-research-status'),panel=$('tactics-research-result');panel.replaceChildren();
+  button.disabled=true;status.textContent=language==='en'?'Searching general Draft Showdown tactics; this may take up to two minutes…':'Allgemeine Suche nach Draft-Showdown-Taktiken läuft; das kann bis zu zwei Minuten dauern …';
   try{
     const result=await post('/api/taktikregeln/recherche',{language});
     renderTactics(result);
-    $('tactics-message').textContent=translate('Internetrecherche abgeschlossen.',language)+' '+
+    status.textContent=translate('Internetrecherche abgeschlossen.',language)+' '+
       (language==='en'?`${result.added} new notes, ${result.sources} sources.`:`${result.added} neue Notizen, ${result.sources} Quellen.`);
-  }catch(error){$('tactics-message').textContent=error.message;}
+    if(result.summary)panel.append(textEl('p',result.summary));
+    const sources=[...new Set((result.citations||[]).map(c=>c.url))];
+    for(const address of sources){try{const url=new URL(address);if(!['http:','https:'].includes(url.protocol))continue;const link=document.createElement('a');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.textContent=url.hostname;panel.append(link,document.createTextNode(' '));}catch{}}
+    if(!sources.length)panel.append(textEl('p',language==='en'?'No verifiable sources were returned; no notes were added.':'Keine überprüfbaren Quellen erhalten; es wurden keine Notizen hinzugefügt.','muted'));
+  }catch(error){status.textContent=(language==='en'?'Research failed: ':'Recherche fehlgeschlagen: ')+error.message;}
   finally{button.disabled=false;}
 };
 $('tactics-search').oninput=renderTacticList;
