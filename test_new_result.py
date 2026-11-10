@@ -28,6 +28,15 @@ class NewGermanResultTests(unittest.TestCase):
         image[300:355,25:143]=0
         self.assertIsNone(vision.match_outcome_small(image))
 
+    def test_german_mastery_claim_requires_title_and_button(self):
+        image=vision.decode(Path(__file__).resolve().parent/'data'/'test-mastery-claim-de.png')
+        nav=vision.game_navigation(image,None)
+        self.assertEqual(nav['step'],'reward')
+        self.assertTrue(.35<nav['point'][0]<.65 and .72<nav['point'][1]<.9)
+        for box in [(102,155,18,150),(268,323,30,138)]:
+            copy=image.copy();y1,y2,x1,x2=box;copy[y1:y2,x1:x2]=0
+            self.assertIsNone(vision.game_navigation(copy,None))
+
     def test_replay_requires_both_buttons(self):
         image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-replay-de.png')
         nav=vision.game_navigation(image,None)
