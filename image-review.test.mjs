@@ -7,7 +7,7 @@ import os from 'node:os';
 import {createImageReviewStore,imageReviewSchema,validateImageAnswer,fieldPartition,selectImageQuestions} from './image-review.mjs';
 import {createReferenceStore} from './reference-store.mjs';
 import {buildFieldEvaluation} from './field-learning.mjs';
-import {imageAnswerIssues} from './public/image-review.mjs';
+import {imageAnswerIssues,imageQuestionDraft} from './public/image-review.mjs';
 const names=new Set(['Sniper','Agent B','Spartheus','Schnecke','Astra']);
 const row=(name='Sniper')=>({name,typeConfirmed:true,count:9,countConfirmed:false,forms:[],box:[30,1600,100,1700]});
 const answer=(side='own')=>({language:'en',sides:{[side]:{verdict:'partial',groups:[row()],typesComplete:false}}});
@@ -65,7 +65,9 @@ test('persistent queue, blinded controls, optimistic locking and resumable proje
   await refs.confirmField(ref.id,saved);await store.projected(id,1,ref.id);
   assert.equal(await store.pending(),null);assert.equal((await refs.list())[0].corrections[0].name,'Astra');
   const combined={language:'de',sides:{...saved.answer.sides,enemy:{verdict:'unassessable',groups:[]}}};
-  await store.answer(id,1,combined,names);assert.equal((await store.list()).counts.open,0);
+  await store.reveal(id);assert.equal((await store.get(id)).blind,undefined);
+  assert.equal((await store.get(id)).context.assisted,true);
+  await store.answer(id,1,combined,names);assert.equal((await store.get(id)).answer.assisted,true);assert.equal((await store.list()).counts.open,0);
   // Export restarts safely and cannot mark a newer answer as done.
   await store.projected(id,1,ref.id);assert.equal(await store.pending(),id);
   await refs.confirmField(ref.id,await store.get(id,false));await store.projected(id,2,ref.id);
@@ -94,4 +96,17 @@ test('few diverse images include deterministic confidence-independent control an
  const changed=structuredClone(game);changed.reviewFrames.forEach(f=>f.armyObservation={sides:{own:{groups:[{name:'Astra'}]}}});
  assert.equal(selectImageQuestions(changed)[0].frame.id,selected[0].frame.id);
  assert.ok(selected.some(s=>s.frame.id===0));
+ const populated=structuredClone(game);populated.reviewFrames[1].ownReinforcements={'Agent B':2};
+ assert.ok(selectImageQuestions(populated).some(s=>s.frame.id===1),'prefer an early non-empty formation where counts can actually be checked');
+});
+
+
+test('proposals prefill editable types, counts and forms, never confirmations or saved answers',()=>{
+ const item={cards:[...names],context:{proposals:{own:{groups:[{name:'Spartheus',visibleMinimum:2,forms:[{labels:{de:'Blauer Helmbusch',en:'Blue plume'},count:2}]},{name:'Unknown',count:8}]},enemy:{groups:[{name:'Agent B',count:4},{name:'Agent B',count:4}]}}}};
+ const draft=imageQuestionDraft(item,'de'),g=draft.sides.own.groups[0];
+ assert.equal(g.name,'Spartheus');assert.equal(g.count,2);assert.equal(g.countIsMinimum,true);assert.equal(g.forms[0].label,'Blauer Helmbusch');
+ assert.equal(g.typeConfirmed,false);assert.equal(g.countConfirmed,false);assert.equal(g.forms[0].confirmed,false);assert.equal(g.forms[0].countConfirmed,false);
+ assert.equal(draft.sides.enemy.groups.length,1);assert.equal(draft.sides.own.verdict,null);assert.equal(draft.sides.own.typesComplete,false);
+ item.answer={sides:{own:{verdict:'partial',groups:[row('Sniper')]}}};assert.deepEqual(imageQuestionDraft(item).sides.own,item.answer.sides.own);
+ assert.equal(imageQuestionDraft({...item,answer:null},'en').sides.own.groups[0].forms[0].label,'Blue plume');
 });

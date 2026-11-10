@@ -15,6 +15,9 @@ import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from '.
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
 const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
+const confirmedFormStock=(name,count)=>({id:1,matchId:'confirmed-test',formCatalog:[{id:'base',unit:name},{id:'grown',unit:name}],
+ formInventory:{actor:'player',side:'own',matchId:'confirmed-test',captureId:1,units:[{name,totalCount:count,forms:[{formId:'base',count}]}]},
+ formBindings:Object.fromEntries([0,1,2].map(i=>[i,{confirmed:true,scopeConfirmed:true,actor:'player',sourceFormId:'base',targetFormId:'grown'}]))});
 test('reinforces a thin observed Spartheus front against developed Whelps',()=>{
   const profile=structuredClone(collection);profile.units.active_lineup=['Agent B','Schnecke','Sniper','Spartheus'];
   const frame={phase:'battle_choice',enemy:[{name:'Schnecke'},{name:'Drakling',action:'upgrade'}],ownReinforcements:{Spartheus:3,'Agent B':16,Sniper:2},offers:[{name:'Schnecke',action:'add',quantity:1},{name:'Spartheus',action:'add',quantity:3},{name:'Sniper',action:'add',quantity:2}]};
@@ -136,11 +139,11 @@ test('recognized additions count once in normal and fallback battle rankings',()
 });
 test('battle prefers reinforcement over +2 but respects small stacks and strong counters',()=>{
   const add={name:'Ritter',action:'add',quantity:2};
-  const pick=(offers,own=[],enemy=[],matchups=[])=>recommend({phase:'battle_choice',offers,own,enemy},'arena',collection,matchups).best;
+  const pick=(offers,own=[],enemy=[],matchups=[],context={})=>recommend({phase:'battle_choice',offers,own,enemy,...context},'arena',collection,matchups).best;
   for(const action of ['multiply','upgrade']){
     assert.equal(pick([add,{...add,action,quantity:null}]).index,1);
   }
-  assert.equal(pick([add,{...add,action:'upgrade'}],[{name:'Ritter'}]).index,0);
+  assert.equal(pick([add,{...add,action:'upgrade'}],[{name:'Ritter'}],[],[],confirmedFormStock('Ritter',1)).index,0);
   assert.equal(pick([{name:'Spartheus',action:'upgrade'},{name:'Sniper',action:'add',quantity:2}],
     [],[{name:'Schnecke'}],db).name,'Sniper');
 });
@@ -190,25 +193,29 @@ test('reroll is suggested only with a verified last slot and no ranged unit',()=
 
 test('a tied upgrade beats adding one of the same unit',()=>{
   const offers=[{name:'Merlinor',action:'add',quantity:1},{name:'Merlinor',action:'upgrade'}];
-  const result={phase:'battle_choice',offers,ownReinforcements:{Merlinor:1}};
+  const result={phase:'battle_choice',offers,ownReinforcements:{Merlinor:1},...confirmedFormStock('Merlinor',1)};
   const advice=recommend(result,'arena',collection,db);
   assert.equal(advice.evaluated[0].score,advice.evaluated[1].score);
   assert.equal(advice.best.index,1);
 });
 
-test('a tracked group makes upgrading more valuable than adding two troops',()=>{
+test('a confirmed source group makes upgrading more valuable; tracked totals alone do not establish that group',()=>{
   const counts=new Map();
   observeChosenReinforcement(counts,{name:'Parasit',action:'multiply',quantity:2});
   assert.equal(counts.has('Parasit'),false);
   observeChosenReinforcement(counts,{name:'Parasit',action:'add',quantity:4});
   observeChosenReinforcement(counts,{name:'Parasit',action:'multiply',quantity:2});
+  assert.equal(counts.get('Parasit'),4,'an unidentified multiplied form cannot double the whole addition ledger');
   const offers=[{name:'Parasit',action:'upgrade'},{name:'TNT',action:'add',quantity:2}];
   const enemy=[{name:'Drakling'},{name:'TNT'}];
   const rules=[{offer:'TNT',enemy:'Drakling',phase:'battle_choice',mode:'beide',weight:5,status:'aktiv'}];
-  const pick=ownReinforcements=>recommend({phase:'battle_choice',offers,enemy,ownReinforcements},
+  const pick=(ownReinforcements,context={})=>recommend({phase:'battle_choice',offers,enemy,ownReinforcements,...context},
     'arena',collection,db,false,rules).best.name;
   assert.equal(pick({}),'TNT');
-  assert.equal(pick(Object.fromEntries(counts)),'Parasit');
+  assert.equal(pick(Object.fromEntries(counts),confirmedFormStock('Parasit',8)),'Parasit');
+  const unknown=recommend({phase:'battle_choice',offers,enemy,ownReinforcements:Object.fromEntries(counts)},'arena',collection,db,false,rules);
+  assert.equal(unknown.evaluated[0].formEffect.known,false);
+  assert.match(unknown.evaluated[0].reason,/betroffene Form und Anzahl unbekannt/);
 });
 
 test('eight observed Snipers increase the Agent B target to four',()=>{
@@ -337,7 +344,7 @@ test('a visually ambiguous reinforcement never doubles the whole tracked stock',
   assert.equal(sameReinforcementVariant(offer,{variantSample:other}),false);
   assert.equal(sameReinforcementVariant(offer,{}),false);
   const replay=recommend({phase:'battle_choice',offers:[offer],ownReinforcements:{Totem:12}},'arena',collection,db);
-  assert.match(replay.evaluated[0].reason,/Bestand dieser Variante unbekannt/);
+  assert.match(replay.evaluated[0].reason,/betroffene Form und Anzahl unbekannt/);
 });
 
 test('variant evidence links the first timely field image in the same round',()=>{
@@ -652,4 +659,13 @@ test('editable active rules penalize Sniper and Snail against reinforced Agent B
  assert.equal(enemyReinforced({enemy:[{name:'Agent B',orange:{value:13},blue:{value:10}}]},'Agent B'),false);
  assert.equal(enemyReinforced({enemyAdditions:{'Agent B':3}},'Agent B'),false);
  assert.equal(translate('Gegner verstärkt: Aufwertung, Verdopplung oder mindestens vier hinzugefügt','en'),'Enemy reinforced: upgrade, double, or at least four added');
+});
+
+test('one upgrade offer uses only its confirmed source form, even when an old total ledger is much larger',()=>{
+ const context=confirmedFormStock('Merlinor',12);context.formInventory.units[0].forms=[{formId:'base',count:2},{formId:'grown',count:10}];
+ const result=recommend({...context,phase:'battle_choice',offers:[{name:'Merlinor',action:'upgrade'}],ownReinforcements:{Merlinor:120}},'arena',collection,db);
+ assert.equal(result.evaluated[0].formEffect.affectedCount,2);assert.equal(result.evaluated[0].formEffect.afterTotal,12);
+ assert.match(result.evaluated[0].reason,/2 bestätigte Figuren der Ausgangsform/);
+ assert.equal(translate('Aufwertung bevorzugt (2 bestätigte Figuren der Ausgangsform).','en'),'Upgrade preferred (2 confirmed units of the source form).');
+ assert.equal(translate('Verdopplung bevorzugt (betroffene Form und Anzahl unbekannt).','en'),'Double preferred (affected form and count unknown).');
 });

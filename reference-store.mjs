@@ -63,6 +63,7 @@ export async function createReferenceStore(root){
       item.fieldConfirmations[side]={...value,questionId:question.id,revision:question.revision,actor:'player',confirmedAt:Date.now()};
     }
     item.guidedQuestionId=question.id;item.imageHash=question.image_hash;item.reviewPurpose=question.purpose;
+    item.reviewAssisted=question.context?.assisted===true||question.answer.assisted===true;
     const temporary=meta(id)+'.tmp';await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));return item;
   }
   async function remove(id){if(!valid(id))throw Error('Ungültige Referenz.');await unlink(meta(id));await unlink(image(id)).catch(()=>{});}

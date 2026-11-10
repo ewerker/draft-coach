@@ -19,10 +19,11 @@ export function selectImageQuestions(game){
  const controls=[...strata.entries()].sort(([a],[b])=>hash(game.id+':stratum:'+a).localeCompare(hash(game.id+':stratum:'+b))).map(([,rows])=>rows.slice().sort((a,b)=>hash(game.id+':control:'+a.id).localeCompare(hash(game.id+':control:'+b.id)))[0]);
  const score=f=>['own','enemy'].reduce((sum,side)=>{const s=f.armyObservation?.sides?.[side];return sum+(!s?.groups?.length?5:0)+(s?.unknownRegions?.length??0)+(s?.groups??[]).filter(g=>g.poolConflict||g.actionCountConflict||g.unknownFormCount).length;},0)+(f.clicks??[]).filter(c=>c.karte&&c.karte!==(f.advice?.best??f.advice?.fallback??f.advice?.provisional)?.name).length*4;
  const selected=controls.slice(0,1).map(frame=>({frame,purpose:'control'}));
+ const early=frames.find(f=>Object.values(f.ownReinforcements??{}).some(n=>n>0)||(f.enemy??[]).length>0)??frames[0];
  for(const frame of frames.slice().sort((a,b)=>score(b)-score(a)||b.id-a.id)){
   if(selected.some(s=>s.frame.id===frame.id))continue;
   // Keep early and late formations, instead of many near-identical animations.
-  if(selected.length===1&&frames.length>3&&frame.id!==frames[0].id)continue;
+  if(selected.length===1&&frames.length>3&&frame.id!==early.id)continue;
   selected.push({frame,purpose:'targeted'});if(selected.length===3)break;
  }
  if(selected.length<3)for(const frame of frames.slice().reverse())if(!selected.some(s=>s.frame.id===frame.id)){selected.push({frame,purpose:'targeted'});if(selected.length===3)break;}
@@ -75,18 +76,24 @@ export function createImageReviewStore(withDatabase){
   });
  }
  async function list(){return withDatabase(true,db=>{
-  const rows=db.prepare('SELECT id,match_id,capture_id,created,purpose,partition,revision,answer_json,export_status,export_error,reference_id FROM image_questions ORDER BY created DESC,id').all();
-  const items=rows.map(({answer_json,...r})=>{const sides=answer_json?JSON.parse(answer_json).sides:{};return {...r,answered:!!sides.own&&!!sides.enemy,partial:!!sides.own!==!!sides.enemy};});
+  const rows=db.prepare('SELECT id,match_id,capture_id,created,purpose,partition,revision,answer_json,context_json,export_status,export_error,reference_id FROM image_questions ORDER BY created DESC,id').all();
+  const items=rows.map(({answer_json,context_json,...r})=>{const context=JSON.parse(context_json);const sides=answer_json?JSON.parse(answer_json).sides:{};return {...r,priority:context.priority??0,assisted:context.assisted===true,answered:!!sides.own&&!!sides.enemy,partial:!!sides.own!==!!sides.enemy};});
   return {items,counts:{open:items.filter(r=>!r.answered).length,answered:items.filter(r=>r.answered).length,partial:items.filter(r=>r.partial).length,exportPending:rows.filter(r=>r.export_status==='pending').length,failed:rows.filter(r=>r.export_status==='failed').length}};
  });}
- async function get(id,blind=true){return withDatabase(true,db=>{const r=decode(db.prepare('SELECT * FROM image_questions WHERE id=?').get(id));if(r&&blind&&(r.purpose==='control'||r.partition==='test')){r.context.proposals={};r.blind=true;}return r;});}
+ async function get(id,blind=true){return withDatabase(true,db=>{const r=decode(db.prepare('SELECT * FROM image_questions WHERE id=?').get(id));if(r&&blind&&!r.context.assisted&&(r.purpose==='control'||r.partition==='test')){r.context.proposals={};r.blind=true;}return r;});}
+ async function reveal(id){return withDatabase(false,db=>{
+  const row=db.prepare('SELECT context_json FROM image_questions WHERE id=?').get(id);if(!row)throw Error('IMAGE_QUESTION_NOT_FOUND');
+  const context=JSON.parse(row.context_json);context.assisted=true;context.revealedAt??=Date.now();
+  db.prepare('UPDATE image_questions SET context_json=? WHERE id=?').run(JSON.stringify(context),id);
+ });}
  async function answer(id,revision,input,names){
   const value=validateImageAnswer(input,names);
   return withDatabase(false,db=>{
    db.exec('BEGIN IMMEDIATE');try{
-    const row=db.prepare('SELECT revision,answer_json FROM image_questions WHERE id=?').get(id);
+    const row=db.prepare('SELECT revision,answer_json,context_json FROM image_questions WHERE id=?').get(id);
     if(!row)throw Error('IMAGE_QUESTION_NOT_FOUND');
     if(row.revision!==revision)throw Error('IMAGE_QUESTION_CHANGED');
+    value.assisted=JSON.parse(row.context_json).assisted===true;
     const json=JSON.stringify(value),next=revision+1;
     db.prepare("UPDATE image_questions SET revision=?,answer_json=?,export_status='pending',export_error=NULL WHERE id=?").run(next,json,id);
     db.prepare('INSERT INTO image_question_history VALUES (?,?,?,?)').run(id,next,Date.now(),json);
@@ -98,5 +105,5 @@ export function createImageReviewStore(withDatabase){
  async function projected(id,revision,referenceId,error=null){return withDatabase(false,db=>db.prepare("UPDATE image_questions SET export_status=?,reference_id=?,export_error=?,image=CASE WHEN ? THEN image ELSE x'' END WHERE id=? AND revision=?").run(error?'failed':'done',referenceId,error,!!error?1:0,id,revision));}
  async function image(id){return withDatabase(true,db=>{const b=db.prepare('SELECT image FROM image_questions WHERE id=?').get(id)?.image;return b?.length?Buffer.from(b):null;});}
  async function retry(id){return withDatabase(false,db=>db.prepare("UPDATE image_questions SET export_status='pending',export_error=NULL WHERE id=? AND answer_json IS NOT NULL").run(id));}
- return {add,list,get,answer,pending,projected,image,retry};
+ return {add,list,get,answer,pending,projected,image,retry,reveal};
 }

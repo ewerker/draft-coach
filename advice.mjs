@@ -1,4 +1,5 @@
 import {CARDS,buildDatabaseAdvice} from './data/coach-engine.mjs';
+import {calculateFormEffect} from './form-mechanics.mjs';
 export function allowedNames(collection,mode,extended=false) {
   const units=collection.units.units
     .filter(card=>extended||mode==='arena'||collection.units.active_lineup.includes(card.name))
@@ -81,8 +82,8 @@ export function observeChosenReinforcement(counts, offer){
   if(!offer?.name||!Number.isInteger(offer.quantity)||offer.quantity<1)return;
   const previous=counts.get(offer.name)??0;
   if(offer.action==='add')counts.set(offer.name,previous+offer.quantity);
-  if(previous&&!offer.variantIndex&&!offer.variantUncertain&&['multiply','multiply_upgrade'].includes(offer.action))
-    counts.set(offer.name,previous*offer.quantity);
+  // A sent multiplier does not identify its source form. Keep the addition
+  // ledger as a lower bound; only the form model calculates an expected effect.
 }
 
 const deckRanged=new Set(['Merlinor','Kupid','Sniper']);
@@ -126,6 +127,7 @@ export function enemyReinforced(result,name){
 }
 
 export function recommend(result, mode, collection, db, extended=false, rules=[], includeTests=false) {
+  if(result.formBindings)result={...result,offers:result.offers.map((o,i)=>({...o,formBinding:result.formBindings[o.position??i]}))};
   const allowed=allowedNames(collection,mode,extended||[1,2].includes(result.specialStep));
   if(mode==='draft'){
     const owned=new Set(collection.units.units.map(card=>card.name));
@@ -324,7 +326,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     const noteDelta=Math.max(-4,Math.min(4,notes.reduce((total,rule)=>total+rule.weight,0)));
     const delta=Math.max(-25,Math.min(25,confirmedDelta+noteDelta));
     if(noteDelta)why+=' Unbestätigte, schwach gewichtete Notiz berücksichtigt.';
-    return {index,name:offer.name,score:Math.round((score+delta)*10)/10,reason:why,ruleOnly,delta,
+    return {index,name:offer.name,score:Math.round((score+delta)*10)/10,reason:why,ruleOnly,delta,formEffect:reinforcement?.effect??null,
       rules:applied.map(({id,title,reason,texts,weight,status})=>({id,title,reason,texts,weight,status}))};
   });
   warnings.push('Basiswertung aus der bisherigen App. Mengen, gegnerische Stärken und eigene Synergien sind noch nicht vollständig bewertet.');
@@ -345,15 +347,17 @@ function visibleAdditions(result,offer){
 function reinforcementValue(result,offer){
   if(result.phase!=='battle_choice'||!['multiply','upgrade','multiply_upgrade'].includes(offer.action))return null;
   const uncertain=offer.variantIndex||result.ownVariantUncertain?.includes(offer.name);
+  const effect=calculateFormEffect({offer,inventory:result.formInventory,binding:offer.formBinding,forms:result.formCatalog,mechanisms:result.mechanisms,matchId:result.matchId,captureId:result.sourceCaptureId??result.id});
   const tracked=uncertain?0:result.ownReinforcements?.[offer.name]??0;
-  const count=uncertain?null:Math.max(tracked,result.own?.filter(card=>card.name===offer.name).length??0)||null;
+  const count=effect.known?effect.affectedCount:null;
   const upgrade=offer.action!=='multiply';
   const double=offer.action!=='upgrade';
-  const points=(upgrade?(count===null?11:Math.min(count*(count>2?4:2),30)):0)+
-    (double?(count===null?14:Math.min(count*3,20)):0);
+  const heuristic=count===null?Math.min(1,Number(tracked)/10):0;
+  const points=(upgrade?(count===null?11+heuristic*4:Math.min(count*(count>2?4:2),30)):0)+
+    (double?(count===null?14+heuristic*3:Math.min(count*3,20)):0);
   const action=upgrade&&double?'Verdopplung mit Aufwertung':upgrade?'Aufwertung':'Verdopplung';
-  const scope=uncertain?'Bestand dieser Variante unbekannt':tracked&&count===tracked?`mindestens ${tracked} aus beobachteten Wahlen`:count===null?'Bestand unbekannt':`${count} vorhandene Figuren`;
-  return {points,count,reason:`${action} bevorzugt (${scope}).`,
+  const scope=count===null?'betroffene Form und Anzahl unbekannt':`${count} bestätigte Figuren der Ausgangsform`;
+  return {points,count,effect,reason:`${action} bevorzugt (${scope}).`,
     preferIfClose:!uncertain&&(count===null||count>2||(double&&count>=2))};
 }
 

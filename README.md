@@ -94,3 +94,6 @@ Proposed [end-to-end learning plan](docs/lernprozess-gesamtplan.md) with English
 
 ### Targeted army image reviews
 Review up to three battlefield images at a time in **Matches and review → Targeted image questions**. Confirm unit types, counts and appearances separately; unknown values stay unknown. Answers persist, and recognition evaluation runs while play is stopped. Whole matches stay in separate training and test partitions. This local workflow needs no API key. [Workflow and limits](docs/p4-bildbestaetigung.md).
+
+### Form-specific upgrade calculations
+P5 stores bilingual evolution-form identities and confirmed counts separately from card levels/stars. The optional review tool calculates source-form-only additions, upgrades and doubles; unknown or contradictory effects remain unknown. Logged taps never replace confirmed armies. [Model, checks and limits](docs/p5-entwicklungsformen.md).

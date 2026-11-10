@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft. Punkt 3 ist in Arbeit: Beobachtungspipeline und CPU-Vergleich sind gebaut, die Erkennungsziele sind noch nicht erreicht. P4 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. P5–P9 sind noch nicht begonnen.**
+**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft. Punkt 3 ist in Arbeit: Beobachtungspipeline und CPU-Vergleich sind gebaut, die Erkennungsziele sind noch nicht erreicht. P4 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. P5 ist umgesetzt und wird abschließend geprüft. P6–P9 sind noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 
@@ -81,9 +81,9 @@ Pilot, Prüfungen und offene Grenzen: [P3 Truppenpilot](p3-truppenpilot.md). P3.
 
 **Umfang:** Regeln wie „Verdopplung betrifft die angezeigte Ausgangsform“ werden als strukturierte Berechnungsmechanik geführt. Kartenbezogene Taktikpunkte bleiben ein eigener Regeltyp. „Alle Karten“ ist als Geltungsbereich zulässig, wenn der Mechanismus tatsächlich dafür belegt ist.
 
-- [ ] P5.1 Stabile Kennungen der Ausgangs- und Zielform einführen. Kartenstufe, Sterne, Entwicklungsform und betroffene Stückzahl getrennt halten; keine unbewiesene Nummerierung der Formen voraussetzen.
-- [ ] P5.2 Hinzufügen, Aufwerten, Verdoppeln und kombinierte Angebote modellieren. Eine KI darf nur Vorschläge innerhalb erlaubter Mechanismen erstellen, keinen beliebigen Programmcode ausführen.
-- [ ] P5.3 Die betroffene Gruppe berechnen, wenn sie bekannt ist. Bei unbekannter Form oder Anzahl keine Wirkung auf den Gesamtbestand behaupten; Unsicherheit in die Bewertung übernehmen.
+- [x] P5.1 Stabile Kennungen der Ausgangs- und Zielform einführen. Kartenstufe, Sterne, Entwicklungsform und betroffene Stückzahl getrennt halten; keine unbewiesene Nummerierung der Formen voraussetzen.
+- [x] P5.2 Hinzufügen, Aufwerten, Verdoppeln und kombinierte Angebote modellieren. Eine KI darf nur Vorschläge innerhalb erlaubter Mechanismen erstellen, keinen beliebigen Programmcode ausführen.
+- [x] P5.3 Die betroffene Gruppe berechnen, wenn sie bekannt ist. Bei unbekannter Form oder Anzahl keine Wirkung auf den Gesamtbestand behaupten; Unsicherheit in die Bewertung übernehmen.
 
 **Abnahme A5:** Mit bestätigten Formen werden mindestens diese Szenarien geprüft: 2 Grundformen plus 10 entwickelte Figuren; Verdopplung nur der Grundform ergibt 4 plus 10. Aufwertung nur der zwei Grundformen verändert ihre Form, nicht die Gesamtzahl 12. Ein kombiniertes Angebot wird erst mit belegter Bedeutung geprüft. Auch ein einzelnes angebotenes Upgrade wird gegen gemischte eigene Formen geprüft, nicht nur zwei gleichnamige Wahlkarten nebeneinander. Widersprechende Belege begrenzen den Geltungsbereich.
 
@@ -148,6 +148,6 @@ Quellen zu Werkzeugoptionen: [GitHub-Aufgabenlisten und Unteraufgaben](https://d
 
 ## English summary
 
-This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4 targeted image confirmation is implemented and technically verified; user acceptance is pending. P5–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
+This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4 targeted image confirmation is implemented and technically verified; user acceptance is pending. P5 is implemented and technically verified; user acceptance is pending. P6–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
 
 German and English share canonical identifiers, evidence, rule versions and activation. Language-dependent recognition coverage is measured separately. Users receive concrete questions and proposals instead of mandatory technical forms. Saved notes, machine predictions, image confirmations, calculation correctness and evidence of tactical benefit remain distinguishable. No guaranteed win-rate improvement or fixed number of matches is promised. No new paid service is purchased as part of planning.

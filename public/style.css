@@ -304,3 +304,15 @@
   .image-review-picture a { margin:.2rem 0; font-size:.8rem; }
   .image-review-canvas { max-height:min(30dvh,240px); margin:.25rem auto; }
 }
+
+#form-mechanics-content { min-width:0; }
+#form-mechanics-content details { margin:1rem 0; border-top:1px solid var(--border,#40516a); padding-top:.8rem; }
+#form-mechanics-content label { display:block; margin:.8rem 0; }
+#form-mechanics-content input:not([type=checkbox]),#form-mechanics-content select,#form-mechanics-content textarea { display:block; width:100%; min-width:0; box-sizing:border-box; }
+#form-mechanics-content button { margin:.25rem .5rem .25rem 0; }
+.mechanics-check { display:flex!important; gap:.6rem; align-items:flex-start; }
+.mechanics-check input { flex:none; margin-top:.3rem; }
+.mechanics-form-row { border-bottom:1px solid var(--border,#40516a); padding:.6rem 0; }
+.mechanics-source-image { display:block; max-height:320px; max-width:100%; width:auto; margin:1rem auto; border-radius:10px; }
+.mechanics-effect { padding:1rem; border-left:3px solid #b9ed83; margin:1rem 0; background:color-mix(in srgb,#b9ed83 8%,transparent); }
+.mechanics-message { overflow-wrap:anywhere; }

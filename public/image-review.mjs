@@ -1,5 +1,28 @@
 import {displayNames} from './language.mjs';
 
+// Suggestions are editable drafts, never confirmations. Even an exact model
+// count needs a player's separate confirmation before entering the truth set.
+export function imageQuestionDraft(item,language='de'){
+ const result=structuredClone(item.answer??{sides:{}}),valid=new Set(item.cards??[]);
+ for(const side of ['enemy','own']){
+  if(result.sides[side])continue;
+  const seen=new Set(),groups=[];
+  for(const g of item.context?.proposals?.[side]?.groups??[]){
+   if(!valid.has(g.name)||seen.has(g.name))continue;seen.add(g.name);
+   const raw=g.count??g.proposedCount??g.visibleMinimum;
+   const count=Number.isInteger(raw)&&raw>0&&raw<=1000?raw:null;
+   const forms=(g.forms??[]).slice(0,32).flatMap(f=>{
+    const label=f.labels?.[language]??f.label;if(typeof label!=='string'||!label.trim()||label.length>100)return [];
+    return [{label,confirmed:false,count:Number.isInteger(f.count)&&f.count>0&&f.count<=1000?f.count:null,countConfirmed:false}];
+   });
+   groups.push({name:g.name,typeConfirmed:false,count,countConfirmed:false,forms,box:null,
+    proposalSource:g.proposalSource??'recognition',countIsMinimum:g.count==null&&g.proposedCount==null&&g.visibleMaximum!==g.visibleMinimum&&count!==null});
+  }
+  result.sides[side]={verdict:null,groups,typesComplete:false,emptyConfirmed:false};
+ }
+ return result;
+}
+
 const fieldKey=(side,index,field,formIndex='')=>[side,index??'',field,formIndex].join(':');
 // Only required confirmations block saving. An unconfirmed optional number is
 // deliberately left unknown rather than turning an estimate into ground truth.
@@ -71,9 +94,7 @@ export function createImageReviewPanel({root,getLanguage,post}){
  async function run(fn){try{notice='';noticeIsError=false;await fn();}catch(e){notice=t().errors[e.message]??e.message;noticeIsError=true;focusIssue='summary';}render();}
  async function refresh(){data=await read('/api/image-review');render();}
  async function open(id){item=await read('/api/image-review/item?id='+encodeURIComponent(id));mark=null;zoom='full';validationAttempted=false;issues=[];focusIssue=null;
-  answer=structuredClone(item.answer??{sides:{}});
-  // Proposals prefill names only. Counts and forms are never silently trusted.
-  if(!item.answer)for(const side of ['enemy','own'])answer.sides[side]={verdict:null,groups:(item.context.proposals?.[side]?.groups??[]).map(g=>({name:g.name,typeConfirmed:false,count:null,countConfirmed:false,forms:[],box:null})),typesComplete:false,emptyConfirmed:false};
+  answer=imageQuestionDraft(item,getLanguage());
   try{const draft=JSON.parse(localStorage.getItem(key()));if(draft?.sides)answer=draft;}catch{}
   render();root.scrollIntoView({block:'start',behavior:'smooth'});
  }
@@ -121,6 +142,8 @@ export function createImageReviewPanel({root,getLanguage,post}){
    const heading=el('div',null,'image-review-unit-head');heading.append(name,button(t().remove,()=>{s.groups.splice(index,1);remember();}));row.append(heading);
    attachField(heading,name,key('name'));
    row.append(check(t().typeConfirm,g.typeConfirmed,v=>g.typeConfirmed=v,key('type')));
+   if(g.proposalSource)row.append(el('p',getLanguage()==='en'?'Prefilled proposal. Correct or confirm the entries below.':'Vorausgefüllter Vorschlag. Bitte unten korrigieren oder bestätigen.','muted'));
+   if(g.countIsMinimum)row.append(el('p',getLanguage()==='en'?'The suggested count is a visible minimum, not a complete total.':'Die vorgeschlagene Zahl ist eine sichtbare Mindestzahl, keine gesicherte Gesamtzahl.','muted'));
    if(!g.typeConfirmed)row.append(el('p',validationCopy().missing,'image-review-required-hint'));
    row.append(input(t().count,g.count,v=>{g.count=v;g.countConfirmed=false;row.querySelector('[data-count-confirm]').checked=false;},'number',key('count')));
    const c=check(t().countConfirm,g.countConfirmed,v=>g.countConfirmed=v);c.firstChild.dataset.countConfirm='';row.append(c);
@@ -158,13 +181,21 @@ export function createImageReviewPanel({root,getLanguage,post}){
   controls.clear();if(validationAttempted&&item)issues=imageAnswerIssues(answer,item.cards);
   root.dataset.reviewOriginal='';root.replaceChildren();root.append(el('h3',t().title),el('p',t().intro,'muted'));
   root.append(el('p',`${data.counts.open??0} ${t().open} · ${data.counts.answered??0} ${t().answered}`));
-  const bar=el('div',null,'image-review-actions');bar.append(button(t().start,async()=>{round=data.items.filter(q=>!q.answered).slice().sort((a,b)=>a.created-b.created).slice(0,3).map(q=>q.id);position=0;if(round.length)await open(round[0]);}),button(t().suggest,async()=>{await post('/api/image-review/suggest');await refresh();}));root.append(bar);
+  const bar=el('div',null,'image-review-actions');bar.append(button(t().start,async()=>{round=data.items.filter(q=>!q.answered).slice().sort((a,b)=>(b.priority??0)-(a.priority??0)||a.created-b.created).slice(0,3).map(q=>q.id);position=0;if(round.length)await open(round[0]);}),button(t().suggest,async()=>{await post('/api/image-review/suggest');await refresh();}));root.append(bar);
   const message=el('p',notice,'image-review-message');message.setAttribute('role','status');root.append(message);
   if(!data.items.length)root.append(el('p',t().none,'muted'));
   if(item){
    root.append(el('h4',`${t().progress} ${position+1} ${t().of} ${Math.max(round.length,1)} · #${item.match_id.slice(0,8)} / ${item.capture_id}`));
    root.append(el('p',`${t()[item.partition==='test'?'test':'training']} · ${item.context.language?.toUpperCase()} · ${({de:{battle_choice:'Wahl im Kampf',spell_choice:'Zauberwahl'},en:{battle_choice:'Battle choice',spell_choice:'Spell choice'}})[getLanguage()]?.[item.context.phase]??item.context.phase}`,'muted'));
    root.append(el('p',item.blind?t().blind:t().proposal,'image-review-message'),el('p',t().note,'muted'));
+   if(item.blind)root.append(button(getLanguage()==='en'?'Show suggestions (assisted review)':'Vorschläge einblenden (unterstützte Prüfung)',async()=>{
+    await post('/api/image-review/reveal',{id:item.id});item=await read('/api/image-review/item?id='+encodeURIComponent(item.id));
+    const proposed=imageQuestionDraft({...item,answer:null},getLanguage());
+    for(const side of ['enemy','own'])if(!answer.sides[side]?.groups?.length&&!answer.sides[side]?.verdict)answer.sides[side]=proposed.sides[side];remember();
+   }));
+   else root.append(button(getLanguage()==='en'?'Load proposals into unanswered sides':'Vorschläge für offene Seiten einsetzen',()=>{
+    const proposed=imageQuestionDraft({...item,answer:null},getLanguage());for(const side of ['enemy','own'])if(!answer.sides[side]?.verdict)answer.sides[side]=proposed.sides[side];remember();
+   }));
    const layout=el('div',null,'image-review-layout'),picture=el('div',null,'image-review-picture'),editors=el('div');canvasImage(picture);editors.append(sideEditor('enemy'),sideEditor('own'),el('p',t().boxHint,'muted'),el('p',t().formHint,'muted'),el('p',t().draft,'muted'));layout.append(picture,editors);root.append(layout);
    const submit=button(t().save,async()=>{
     validationAttempted=true;issues=imageAnswerIssues(answer,item.cards);
@@ -179,7 +210,7 @@ export function createImageReviewPanel({root,getLanguage,post}){
    const e=item.evaluation;editors.append(el('p',`${t().evaluation}: ${e?.running?t().running:e?.error?e.error:!e?.eligibleCases||!e?.inventory?.trainingMatches?t().waiting:e.pending?t().stale:t().ready}. ${t().idle}`,'muted'));
   }
   const list=el('details',null,'image-review-list');list.append(el('summary',`${t().all} (${data.items.length})`));
-  for(const q of data.items){const row=el('div',null,'image-review-list-row');row.append(el('span',`${new Date(q.created).toLocaleString(getLanguage()==='en'?'en-GB':'de-DE')} · #${q.match_id.slice(0,8)} · ${q.capture_id} · ${q.answered?t().answered:t().open}`),button(t().edit,async()=>{round=[q.id];position=0;await open(q.id);}));
+  for(const q of data.items){const row=el('div',null,'image-review-list-row');row.append(el('span',`${q.priority?(getLanguage()==='en'?'Key image · ':'Schlüsselbild · '):''}${new Date(q.created).toLocaleString(getLanguage()==='en'?'en-GB':'de-DE')} · #${q.match_id.slice(0,8)} · ${q.capture_id} · ${q.answered?t().answered:t().open}`),button(t().edit,async()=>{round=[q.id];position=0;await open(q.id);}));
    if(q.export_status==='pending')row.append(el('small',t().pending));
    if(q.export_status==='done')row.append(el('small',t().exported));
    if(q.export_status==='failed')row.append(el('small',t().failed+': '+q.export_error),button(t().retry,async()=>{await post('/api/image-review/retry',{id:q.id});await refresh();}));list.append(row);}

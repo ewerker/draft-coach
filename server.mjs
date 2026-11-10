@@ -15,6 +15,7 @@ import {ruleEvidence} from './learning.mjs';
 import {createReferenceStore} from './reference-store.mjs';
 import {buildFieldEvaluation,fieldReadiness} from './field-learning.mjs';
 import {selectImageQuestions} from './image-review.mjs';
+import {calculateFormEffect} from './form-mechanics.mjs';
 import {acceptArmyObservation,updateArmyHistory,armyPilotGate} from './army-state.mjs';
 import {createArmyService} from './army-service.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
@@ -113,7 +114,7 @@ async function captureVersions(){
   if(hash!==runCollectionHash){runVersionSet={...runVersionSet,collection:await archive.runs.version('collection',collection)};runCollectionHash=hash;}
   return {...runVersionSet};
 }
-function backgroundBusy(ignoreArchive=false){return !persistenceReady||backupInProgress||state.auto||state.capturing||state.recognizing||Boolean(activeMatch)||queue.running||manualTapPending||importing||savingTactics||referenceSaving||fieldLearningRunning||lossGuardSaving||Boolean(stoppedMatch?.saving)||!ignoreArchive&&archive.busy;}
+function backgroundBusy(ignoreArchive=false){return !persistenceReady||backupInProgress||state.auto||state.capturing||state.recognizing||Boolean(activeMatch)||queue.running||manualTapPending||importing||savingTactics||referenceSaving||fieldLearningRunning||formSyncRunning||lossGuardSaving||Boolean(stoppedMatch?.saving)||!ignoreArchive&&archive.busy;}
 const backgroundRunner=createJobRunner(archive.runs,{busy:backgroundBusy,playing:()=>backgroundBusy(true),handlers:{
   archive:async(job,guard)=>{const result=await archive.archiveGames(job.match_id,guard);setMatchArchiveStatus(job.match_id,'archived');return {kind:'archive',images:result.images,skipped:result.skipped};},
   prepare_review:async(job,guard)=>{guard();await syncKnowledge();guard();await proposeImageQuestions(job.match_id,guard);return archive.runs.report(job.match_id);}
@@ -223,6 +224,14 @@ await mkdir(PREPARATION,{recursive:true});
 const referenceStore=await createReferenceStore(path.join(RUNTIME,'referenzen'));
 let savedReferences=await referenceStore.list();
 let referenceSaving=false;
+let formsDirty=true,formSyncRunning=false;
+async function syncFormCatalog(){
+  if(!formsDirty||formSyncRunning||backgroundBusy())return;
+  formSyncRunning=true;
+  try{const snapshot=savedReferences;await archive.forms.syncReferences(snapshot);formsDirty=savedReferences!==snapshot;}catch(error){console.error('Formenabgleich:',error.message);}
+  finally{formSyncRunning=false;}
+}
+setInterval(()=>void syncFormCatalog(),5000).unref();
 function referenceExamples(){return [...savedReferences.flatMap(ref=>(ref.corrections||[]).filter(c=>!c.phase.endsWith('_field')).map(c=>({...c,path:referenceStore.image(ref.id)}))),...buildFieldEvaluation(savedReferences,referenceStore.image).examples];}
 let projectingImageAnswer=false;
 const fieldUnitNames=()=>[...new Set([...CARDS.filter(c=>c.kind==='unit').map(c=>c.name),...collection.units.units.map(c=>c.name)].map(n=>n==='Verwüster'?'Zerstörer':n==='Bientank'?'Bienenkorb':n))];
@@ -255,6 +264,7 @@ async function projectImageAnswer(){
       if(!ref){ref=await referenceStore.add(await archive.imageReview.image(id),{source:'match',matchId:question.match_id,captureId:question.capture_id,phase:question.context.phase,language:question.context.language});savedReferences.unshift(ref);}
       const updated=await referenceStore.confirmField(ref.id,question);
       savedReferences=savedReferences.map(r=>r.id===ref.id?updated:r);
+      formsDirty=true;
       await archive.imageReview.projected(id,question.revision,ref.id);
       fieldLearningError=null;fieldLearning=null;armyPlan=null;
     }catch(error){await archive.imageReview.projected(id,question.revision,null,error.message);}
@@ -933,6 +943,10 @@ const queue=new LatestQueue(async job=>{
   state.recognizing=true;
   try {
     const result=await recognize(job);
+    if(job.source==='reference'){
+      const ref=savedReferences.find(r=>r.id===job.referenceId);
+      if(ref?.matchId&&Number.isSafeInteger(ref.captureId))Object.assign(result,await archive.forms.context(ref.matchId,ref.captureId),{matchId:ref.matchId,sourceCaptureId:ref.captureId});
+    }
     if(autoMode&&job.matchId&&job.matchId===activeMatch?.id&&job.target===device&&job.id===state.latestId){
       if(result.modeHint&&!activeMatch.reviewFrames.length){
         state.mode=activeMatch.mode=result.modeHint;
@@ -1376,6 +1390,7 @@ async function reviewContext(matchId,capture,language){
       frame={...result,id:capture,language:language==='en'?'en':'de',clicks:frame.clicks,enemy:click?.gegner??result.enemy};
     }finally{await unlink(file).catch(()=>{});}
   }
+  frame={...frame,...await archive.forms.context(game.id,capture),matchId:game.id,sourceCaptureId:capture};
   return {game,frame};
 }
 async function saveBannerCorrection(data){
@@ -1481,6 +1496,7 @@ async function handleRequest(req,res){
         if(projectingImageAnswer||backupInProgress)throw Error('IMAGE_REVIEW_BUSY');
         return json(res,200,await archive.imageReview.answer(data.id,data.revision,data.answer,new Set(fieldUnitNames())));
       }
+      if(url.pathname==='/api/image-review/reveal'){await archive.imageReview.reveal(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/image-review/retry'){await archive.imageReview.retry(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/admin/jobs/retry'){await archive.runs.retry(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/matches/recover'){
@@ -1498,7 +1514,28 @@ async function handleRequest(req,res){
         stoppedMatch={...row.match,ended:Date.now()};return json(res,200,await saveMatchOutcome({matchId:row.id,outcome:data.action}));
       }
       if(url.pathname.startsWith('/api/admin/review/')||url.pathname.startsWith('/api/reference/')||url.pathname==='/api/admin/archiv/uebernehmen')
-        res.once('finish',()=>{if(res.statusCode<400)void syncKnowledge().catch(error=>console.error('Wissensabgleich:',error.message));});
+        res.once('finish',()=>{if(res.statusCode<400){formsDirty=true;void syncKnowledge().catch(error=>console.error('Wissensabgleich:',error.message));}});
+      if(url.pathname==='/api/admin/forms/label'){
+        if(backgroundBusy())throw Error('MECHANICS_BUSY');
+        await archive.forms.updateForm(data);return json(res,200,await archive.forms.list());
+      }
+      if(url.pathname==='/api/admin/mechanics/record'){
+        if(backgroundBusy())throw Error('MECHANICS_BUSY');
+        await archive.forms.recordMechanism(data);return json(res,200,await archive.forms.list());
+      }
+      if(['/api/admin/mechanics/frame','/api/admin/mechanics/preview','/api/admin/mechanics/bind'].includes(url.pathname)){
+        if(backgroundBusy())throw Error('MECHANICS_BUSY');
+        await syncFormCatalog();
+        const {game,frame}=await reviewContext(data.matchId,data.capture,data.language);
+        if(url.pathname.endsWith('/frame'))return json(res,200,{matchId:game.id,capture:frame.id,offers:frame.offers??[],...await archive.forms.context(game.id,frame.id)});
+        if(!Number.isInteger(data.position)||data.position<0||data.position>3||data.confirmed!==true)throw Error('INVALID_FORM_BINDING');
+        const offer=(frame.offers??[])[data.position];if(!offer?.name)throw Error('UNKNOWN_FORM_OFFER');
+        const binding={sourceFormId:data.sourceFormId||null,targetFormId:data.targetFormId||null,mechanismId:data.mechanismId||null,confirmed:true,scopeConfirmed:true,actor:'player'};
+        const context=await archive.forms.context(game.id,frame.id);
+        const effect=calculateFormEffect({offer,inventory:context.formInventory,binding,forms:context.formCatalog,mechanisms:context.mechanisms,matchId:game.id,captureId:frame.id});
+        if(url.pathname.endsWith('/bind'))await archive.forms.bind({...data,capture:frame.id,position:offer.position??data.position});
+        return json(res,200,{effect,expectedOnly:true});
+      }
       if(url.pathname==='/api/admin/knowledge/create'){
         await syncKnowledge();const created=await archive.knowledge.create(data);
         return json(res,200,{...await archive.knowledge.list(),createdId:created.id});
@@ -1842,6 +1879,7 @@ async function handleRequest(req,res){
       return json(res,404,{error:'Nicht gefunden'});
     }
     if(req.method!=='GET')return json(res,405,{error:'Nicht unterstützt'});
+    if(url.pathname==='/api/admin/forms'){await syncFormCatalog();return json(res,200,await archive.forms.list());}
     if(url.pathname==='/api/image-review')return json(res,200,await archive.imageReview.list());
     if(url.pathname==='/api/image-review/item'){
       const question=await archive.imageReview.get(url.searchParams.get('id'));
@@ -1930,13 +1968,14 @@ async function handleRequest(req,res){
     else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs','/mechanics.mjs':'mechanics.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs','/mechanics.mjs':'mechanics.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
     const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));
   }catch(e){if(res.headersSent)res.destroy();else json(res,400,{error:e.message});}
 }
 await archive.initializeReview();
+await archive.forms.syncReferences(savedReferences);formsDirty=false;
 await archive.runs.recover();await refreshRecovery();
 serial=Math.max(serial,await archive.runs.maxCapture());
 runVersionSet={program:await archive.runs.version('program',{version,buildInfo,vision:fieldLearningRevision,

@@ -21,12 +21,12 @@ export function buildFieldEvaluation(references,imagePath,engineRevision=''){
   // A byte-identical screenshot in a second match cannot cross the holdout boundary.
   const testHashes=new Set(linked.filter(r=>testIds.has(r.matchId)&&r.imageHash).map(r=>r.imageHash));
   const training=linked.filter(r=>!testIds.has(r.matchId)&&(!r.imageHash||!testHashes.has(r.imageHash)));
-  const testing=linked.filter(r=>testIds.has(r.matchId));
+  const testing=linked.filter(r=>testIds.has(r.matchId)&&r.reviewAssisted!==true);
   const examples=training.flatMap(r=>['own','enemy'].flatMap(side=>sideTruth(r,side,true)).map(c=>({...c,path:imagePath(r.id),referenceId:r.id,matchId:r.matchId,language:r.language??'unknown'})));
   const cases=testing.flatMap(r=>['own','enemy'].filter(side=>completeSide(r,side)).map(side=>({
     id:r.id,matchId:r.matchId,side,path:imagePath(r.id),language:r.language??'unknown',phase:r.phase??'unknown',reviewPurpose:r.reviewPurpose??'legacy',truth:sideTruth(r,side)
   })));
-  const material=references.map(r=>({id:r.id,matchId:r.matchId,corrections:r.corrections,complete:r.complete,fieldConfirmations:r.fieldConfirmations,imageHash:r.imageHash,reviewPurpose:r.reviewPurpose})).sort((a,b)=>a.id.localeCompare(b.id));
+  const material=references.map(r=>({id:r.id,matchId:r.matchId,corrections:r.corrections,complete:r.complete,fieldConfirmations:r.fieldConfirmations,imageHash:r.imageHash,reviewPurpose:r.reviewPurpose,reviewAssisted:r.reviewAssisted})).sort((a,b)=>a.id.localeCompare(b.id));
   const fingerprint=createHash('sha256').update(JSON.stringify({schema:1,engineRevision,material})).digest('hex');
   return {examples,cases,fingerprint,inventory:{images:references.length,linkedImages:linked.length,unlinkedImages:references.length-linked.length,matches:matches.length,trainingMatches:matches.length-testCount,testMatches:testCount,
     ownMarked:references.filter(r=>sideTruth(r,'own').length).length,

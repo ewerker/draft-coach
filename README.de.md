@@ -100,3 +100,6 @@ Entwicklungsstand zur [Partieauswertung und zum Lernen](docs/partieauswertung-pl
 
 ### Gezielte Truppen-Bildprüfung
 Unter **Partien und Auswertung → Gezielte Bildfragen** prüfst du bis zu drei Bilder pro Runde. Figurentyp, Anzahl und sichtbare Form werden einzeln bestätigt; Unbekanntes bleibt offen. Antworten werden gespeichert und die Erkennungsprüfung läuft in Spielpausen automatisch. Ganze Partien bleiben als Lern- oder Testbestand getrennt. Lokal ohne API-Key. [Ablauf und Grenzen](docs/p4-bildbestaetigung.md).
+
+### Formbezogene Aufwertung und Verdopplung
+P5 speichert Entwicklungsformen und bestätigte Mengen getrennt von Kartenstufe und Sternen. Das optionale Prüfwerkzeug berechnet nur die zugeordnete Ausgangsform; Unbekanntes und Widersprüche bleiben offen. Ein gesendeter Klick ersetzt keinen bestätigten Truppenbestand. [Modell, Prüfungen und Grenzen](docs/p5-entwicklungsformen.md).
