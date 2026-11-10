@@ -10,6 +10,7 @@ import {isIPv4} from 'node:net';
 import readline from 'node:readline';
 import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
 import {resolveBuild} from './build-info.mjs';
+import {collectionLineup} from './collection-lineup.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -24,7 +25,7 @@ const buildInfo=await resolveBuild(ROOT,version);
 const build=buildInfo?.number??null;
 const archive=createArchive(archiveFile,RUNTIME);
 const PREPARATION=path.join(RUNTIME,'vorbereitung');
-const preparationKinds=['units','spells','deck-units','deck-spells'];
+const preparationKinds=['units','spells'];
 const preparationPattern=/^(units|spells|deck-units|deck-spells)-(\d{13})-[a-f0-9]{8}\.png$/;
 const PORT=Number(process.env.PORT||4317);
 const lanAddress=process.env.COACH_LAN_ADDRESS;
@@ -242,14 +243,13 @@ async function buildCollectionDraft() {
     }
     const groups={};
     for(const [kind,key,activeKey,expected] of [['units','units','active_lineup',4],['spells','spells','active_loadout',3]]){
-      const deck=images.findLast(item=>item.kind==='deck-'+kind);
-      const deckNames=[...new Set((deck?.cards||[]).map(card=>card.name))];
-      const deckComplete=deckNames.length===expected;
-      const chosen=deckComplete?deckNames:collection[kind][activeKey];
-      if(deck&&!deckComplete)warnings.push('Aufstellung '+(kind==='units'?'Einheiten':'Zauber')+': '+deckNames.length+' von '+expected+' erkannt. Bisherige Auswahl prüfen.');
-      const observations=images.filter(item=>item.kind===kind||item===deck).flatMap(item=>item.cards);
+      const selection=collectionLineup(images,kind,collection[kind][activeKey],expected);
+      const observations=images.filter(item=>item.kind===kind).flatMap(item=>[...(item.cards||[]),...(!selection.incomplete?(item.lineup||[]).filter(card=>selection.chosen.includes(card.name)&&card.score>=0.8):[])]);
       const previous=new Map(collection[kind][key].map(card=>[card.name,card]));
       const known=new Set([...previous.keys(),...observations.map(card=>card.name)]);
+      const chosen=selection.chosen;
+      if(selection.incomplete)warnings.push('Aufstellung '+(kind==='units'?'Einheiten':'Zauber')+': nicht vollständig und sicher erkannt. Bisherige Auswahl bleibt erhalten; bitte prüfen.');
+      if(selection.conflict)warnings.push('Aufstellung '+(kind==='units'?'Einheiten':'Zauber')+': Aufnahmen zeigen unterschiedliche Auswahlen. Die neueste vollständige Auswahl bitte prüfen.');
       groups[kind]=[...known].map(name=>{
         const matches=observations.filter(card=>card.name===name);
         const values=[...new Set(matches.map(card=>card.bottom_badge).filter(value=>value!=null))];

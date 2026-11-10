@@ -170,7 +170,7 @@ In drei Schritten loslegen|Get started in three steps
 Handy verbinden.|Connect your phone.
 Öffne „Handy verbinden“ in der Vorbereitung. Verbinde das Gerät per USB-Debugging oder über „Geschütztes WLAN-Pairing“. Beim WLAN-Pairing verwendest du zuerst die Adresse im Kopplungsdialog und danach die Adresse auf der Hauptseite „Debugging über WLAN“. Die automatische Probeaufnahme zeigt, ob die Verbindung klappt.|Open “Connect phone” in Preparation. Connect using USB debugging or secure wireless pairing. For wireless pairing, use the address in the pairing dialog first, then the address on the main Wireless debugging page. The automatic test capture checks the connection.
 Sammlung und Deck erfassen.|Capture your collection and deck.
-Wähle „Vorbereitung“. Nimm Einheiten und Zauber getrennt auf. Wenn du scrollst, lass die Bilder etwas überlappen. Erfasse auch die aktiven Aufstellungen, werte die Aufnahmen aus und übernimm die geprüften Daten.|Choose “Setup”. Capture units and spells separately, with a little overlap when scrolling. Capture your active lineups too, then analyse the images and confirm the reviewed data.
+Wähle „Vorbereitung“. Nimm Einheiten und Zauber getrennt auf. Wenn du scrollst, lass die Bilder etwas überlappen. Die aktive Aufstellung wird oben aus denselben Bildern gelesen. Werte die Aufnahmen aus und übernimm die geprüften Daten.|Choose “Setup”. Capture units and spells separately, with a little overlap when scrolling. The active lineup is read from the top of the same screenshots. Analyse the images and confirm the reviewed data.
 Spielen.|Play.
 Wähle „Draft“ oder „Schlacht“ passend zum Spiel. Nutze „Manuell aufnehmen“, die Leertaste oder den Automodus. Der Coach bewertet die sichtbare Wahl. Du kannst selbst wählen oder „Tipp automatisch antippen“ aktivieren.|Choose “Draft” or “Battle” to match the game. Use manual capture, Space or Auto capture. The Coach ranks the visible offers. Pick one yourself or turn on “Auto-tap recommendation”.
 Was kann ich ins Mikrofon sagen?|What can I say into the microphone?
@@ -287,7 +287,7 @@ Sammlung · Einheiten|Collection · Units
 Sammlung · Zauber|Collection · Spells
 Aufstellung · Einheiten|Lineup · Units
 Aufstellung · Zauber|Lineup · Spells
-Wähle die Aufnahmeart und nutze den Aufnahmebutton oder sage „Jetzt“. Scrolle für Sammlungsbilder mit etwas Überlappung weiter.|Choose what to capture and press the capture button or say “Now”. When scrolling through the collection, leave some overlap between screenshots.
+Nimm Einheiten und Zauber getrennt auf. Die aktive Aufstellung wird oben aus den Sammlungsbildern erkannt. Scrolle mit etwas Überlappung weiter.|Capture units and spells separately. The active lineup is detected at the top of the collection screenshots. Leave some overlap when scrolling.
 Sammlung|Collection
 Aktive Aufstellung|Active lineup
 Zeige die ausgewählten Einheiten oder Zauber oben im jeweiligen Spielbildschirm vollständig an. Wähle oben die passende Aufnahmeart und nimm je ein Bild auf.|Show the full selected unit or spell lineup at the top of the game screen. Select the matching capture type above and take one screenshot of each.
@@ -542,6 +542,9 @@ const preparationLabels=new Map([
   ['Ausgewählte Einheiten','Selected units'],['Ausgewählte Zauber','Selected spells']
 ]);
 function translatePreparation(text){
+  if(text==='Frühere Aufstellungsaufnahme (wird nicht ausgewertet)')return 'Previous lineup capture (not analysed)';
+  const lineupStatus=/^Aufstellung (Einheiten|Zauber): (nicht vollständig und sicher erkannt\. Bisherige Auswahl bleibt erhalten; bitte prüfen\.|Aufnahmen zeigen unterschiedliche Auswahlen\. Die neueste vollständige Auswahl bitte prüfen\.)$/.exec(text);
+  if(lineupStatus)return preparationLabels.get(lineupStatus[1])+' lineup: '+(lineupStatus[2].startsWith('nicht')?'not fully and reliably detected. The previous selection remains; please review it.':'screenshots show different selections. Please review the latest complete selection.');
   const reference=/^Sammlung · (Einheiten|Zauber) (\d+)$/.exec(text);
   if(reference)return 'Collection · '+preparationLabels.get(reference[1])+' '+reference[2];
   const capture=/^Aufnahme (\d+)$/.exec(text);

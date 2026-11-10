@@ -26,7 +26,7 @@
   <h3>In drei Schritten loslegen</h3>
   <ol>
     <li><strong>Handy verbinden.</strong> Öffne „Handy verbinden“ in der Vorbereitung. Verbinde das Gerät per USB-Debugging oder über „Geschütztes WLAN-Pairing“. Beim WLAN-Pairing verwendest du zuerst die Adresse im Kopplungsdialog und danach die Adresse auf der Hauptseite „Debugging über WLAN“. Die automatische Probeaufnahme zeigt, ob die Verbindung klappt.</li>
-    <li><strong>Sammlung und Deck erfassen.</strong> Wähle „Vorbereitung“. Nimm Einheiten und Zauber getrennt auf. Wenn du scrollst, lass die Bilder etwas überlappen. Erfasse auch die aktiven Aufstellungen, werte die Aufnahmen aus und übernimm die geprüften Daten.</li>
+    <li><strong>Sammlung und Deck erfassen.</strong> Wähle „Vorbereitung“. Nimm Einheiten und Zauber getrennt auf. Wenn du scrollst, lass die Bilder etwas überlappen. Die aktive Aufstellung wird oben aus denselben Bildern gelesen. Werte die Aufnahmen aus und übernimm die geprüften Daten.</li>
     <li><strong>Spielen.</strong> Wähle „Draft“ oder „Schlacht“ passend zum Spiel. Nutze „Manuell aufnehmen“, die Leertaste oder den Automodus. Der Coach bewertet die sichtbare Wahl. Du kannst selbst wählen oder „Tipp automatisch antippen“ aktivieren.</li>
   </ol>
   <h3>Was kann ich ins Mikrofon sagen?</h3>
@@ -249,14 +249,10 @@
   <label for="prep-kind">Was möchtest du aufnehmen?</label>
   <select id="prep-kind">
     <optgroup label="Sammlung"><option value="units">Sammlung · Einheiten</option><option value="spells">Sammlung · Zauber</option></optgroup>
-    <optgroup label="Aktive Aufstellung"><option value="deck-units">Aufstellung · Einheiten</option><option value="deck-spells">Aufstellung · Zauber</option></optgroup>
   </select>
-  <p>Wähle die Aufnahmeart und nutze den Aufnahmebutton oder sage „Jetzt“. Scrolle für Sammlungsbilder mit etwas Überlappung weiter.</p>
+  <p>Nimm Einheiten und Zauber getrennt auf. Die aktive Aufstellung wird oben aus den Sammlungsbildern erkannt. Scrolle mit etwas Überlappung weiter.</p>
   <h2>Sammlung</h2>
   <div id="prep-images"></div>
-  <h2>Aktive Aufstellung</h2>
-  <p>Zeige die ausgewählten Einheiten oder Zauber oben im jeweiligen Spielbildschirm vollständig an. Wähle oben die passende Aufnahmeart und nimm je ein Bild auf.</p>
-  <div id="deck-images"></div>
   <h2>Deck und Zauber vorschlagen</h2>
   <p>Der Vorschlag nutzt deine gespeicherte Sammlung. Du kannst ihn im Spiel von Hand übernehmen.</p>
   <button id="suggest-lineup" type="button">Vorschlag anzeigen</button>

@@ -1016,7 +1016,9 @@ elif __name__ == '__main__':
                 images = []
                 for item in req['preparation']:
                     try:
-                        images.append({**item,'cards':read_collection(item['path'],item['kind'])})
+                        cards=read_collection(item['path'],item['kind'])
+                        lineup=read_collection(item['path'],'deck-'+item['kind']) if item['kind'] in ('units','spells') else []
+                        images.append({**item,'cards':cards,'lineup':lineup})
                     except (ValueError,cv2.error) as exc:
                         images.append({**item,'cards':[],'error':str(exc)})
                 result={'images':images}

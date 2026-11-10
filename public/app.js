@@ -1711,14 +1711,11 @@ async function refresh(){
   if(prep&&nextPrepKey!==prepKey){
     prepKey=nextPrepKey;
     $('prep-images').replaceChildren();
-    $('deck-images').replaceChildren();
     for(const [kind,title,target] of [
       ['units','Einheiten','prep-images'],
-      ['spells','Zauber','prep-images'],
-      ['deck-units','Ausgewählte Einheiten','deck-images'],
-      ['deck-spells','Ausgewählte Zauber','deck-images']
+      ['spells','Zauber','prep-images']
     ]){
-      const group=shots.filter(shot=>shot.kind===kind);
+      const group=shots.filter(shot=>shot.kind===kind||shot.kind==='deck-'+kind);
       $(target).append(textEl('h3',title+' · '+group.length));
       const list=textEl('div','','references');
       for(const [index,shot] of group.entries()){
@@ -1732,14 +1729,14 @@ async function refresh(){
         preview.src=shot.image;
         preview.loading='lazy';
         preview.alt=label;
-        if(kind.startsWith('deck-')){
+        if(shot.kind.startsWith('deck-')){
           const crop=textEl('div','','deck-preview');
           crop.append(preview);
           link.append(crop);
         }else{
           link.append(preview);
         }
-        link.append(textEl('span','Aufnahme '+(index+1)));
+        link.append(textEl('span',shot.kind.startsWith('deck-')?'Frühere Aufstellungsaufnahme (wird nicht ausgewertet)':'Aufnahme '+(index+1)));
         const remove=textEl('button','Löschen','small');
         remove.type='button';
         remove.setAttribute('aria-label',label+' löschen');
