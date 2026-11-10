@@ -79,6 +79,10 @@ Die bisherigen Programmtests bleiben Bestandteil der Prüfung. Der Status im Ges
 
 Prüfstand dieses Ausbaus: **82 automatisierte Tests bestanden, 0 fehlgeschlagen**, einschließlich des HTTP-Neustarttests und der ZIP-Wiederherstellung. Ein separater Schreibtest mit einem vorhandenen Partie-Metadatensatz (33 Entscheidungsbilder, rund 233 kB Zwischenstand) ergab bei 20 Schreibvorgängen einen Median von 7,36 ms, einen 95-%-Wert von 8,16 ms und maximal 8,24 ms auf dem verwendeten Rechner. Diese Messung gilt für diesen Datensatz und diese Maschine, nicht als allgemeine Laufzeitgarantie.
 
+
+
+Zusätzlich im laufenden Coach geprüft: deutsche und englische Auftragsübersicht, sichtbare Speichergrenzen und Downloadlink für die vollständige Sicherung. Der vorherige Bestand von **203 Partien und 4.012 Belegbildern** ist nach der Migration unverändert vorhanden. Die ursprüngliche Datenbank wurde vor dem Einspielen separat gesichert. Der isolierte HTTP-Test besteht auch aus der lokalen Installationsvariante; er normalisiert deren externe Datenpfade ausschließlich innerhalb seiner Testkopie.
+
 ## English summary
 
 Matches are checkpointed and recoverable without inventing outcomes or replaying old taps. Explicit recovery never automatically starts capture. Completed results and two persistent background jobs are committed once. Jobs pause during play, retry at most three times and retain their reports. The initial report checks data completeness, not tactical effectiveness. Decisions preserve language-neutral version references; German and English share one history. New automatic evidence images are deduplicated and budgeted; existing and confirmed evidence is preserved. A full ZIP backup includes SQLite and the required runtime data while excluding credentials. The restore helper validates paths and checksums and requires a new directory.

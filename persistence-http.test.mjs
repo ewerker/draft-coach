@@ -32,6 +32,12 @@ test('HTTP lifecycle: capture, stop/restart, explicit resume, one result, backgr
   try{
     const probe=createServer();probe.listen(0,'127.0.0.1');await once(probe,'listening');port=probe.address().port;await new Promise(resolve=>probe.close(resolve));
     for(const file of await readdir(source))if(/\.(mjs|json|py)$/.test(file))await cp(path.join(source,file),path.join(dir,file));
+    // Installed builds can use external archive paths. The fixture must always stay isolated.
+    const serverFile=path.join(dir,'server.mjs');
+    const portableServer=(await readFile(serverFile,'utf8')).replace('IMAGES=path.dirname(ROOT)',"IMAGES=path.join(ROOT,'references')")
+      .replace("path.join(IMAGES,'sammlung-gesamt.json')","path.join(ROOT,'data','sample-collection.json')")
+      .replace("createArchive(path.join(IMAGES,'Draft-Coach-Archiv','Draft-Coach.sqlite3'),RUNTIME)","createArchive(path.join(RUNTIME,'Draft-Coach.sqlite3'),RUNTIME)");
+    await writeFile(serverFile,portableServer);
     await cp(path.join(source,'data'),path.join(dir,'data'),{recursive:true});await cp(path.join(source,'public'),path.join(dir,'public'),{recursive:true});
     await mkdir(path.join(dir,'references'));
     await writeFile(path.join(dir,'test-device'),"import sys\nfrom pathlib import Path\nif 'exec-out' in sys.argv: sys.stdout.buffer.write(Path('data/opponent-deck-30830.png').read_bytes())\n");

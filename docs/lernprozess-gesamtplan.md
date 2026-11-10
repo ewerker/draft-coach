@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist freigegeben und wird umgesetzt; P3–P9 sind noch nicht begonnen.**
+**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft; P3–P9 sind noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 
@@ -146,6 +146,6 @@ Quellen zu Werkzeugoptionen: [GitHub-Aufgabenlisten und Unteraufgaben](https://d
 
 ## English summary
 
-This plan is based on release v0.7.6. The user has authorized implementation of P1; later work packages have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
+This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified; P3–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
 
 German and English share canonical identifiers, evidence, rule versions and activation. Language-dependent recognition coverage is measured separately. Users receive concrete questions and proposals instead of mandatory technical forms. Saved notes, machine predictions, image confirmations, calculation correctness and evidence of tactical benefit remain distinguishable. No guaranteed win-rate improvement or fixed number of matches is promised. No new paid service is purchased as part of planning.

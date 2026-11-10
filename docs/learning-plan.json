@@ -45,12 +45,25 @@
     {
       "id": "P2",
       "title": "Dauerhafte Partiedaten und Hintergrundaufträge",
-      "status": "implemented",
+      "status": "verified",
       "dependsOn": [
         "P1"
       ],
       "acceptance": "A2",
-      "evidence": []
+      "evidence": [
+        {
+          "type": "implementation_commit",
+          "value": "3e76c68"
+        },
+        {
+          "type": "test_report",
+          "path": "docs/p2-partiesicherung.md"
+        },
+        {
+          "type": "acceptance_evidence",
+          "value": "82 passing tests; HTTP restart/resume and exactly-once outcome; full backup restore; DE/EN browser verification; 203 legacy matches and 4012 images preserved. User acceptance pending."
+        }
+      ]
     },
     {
       "id": "P3",
