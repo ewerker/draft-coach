@@ -17,8 +17,16 @@ class NewGermanResultTests(unittest.TestCase):
     def test_missing_heading_or_button_does_not_confirm_result(self):
         for box in [(25,67,16,152),(300,355,25,143)]:
             image=self.image.copy();y1,y2,x1,x2=box;image[y1:y2,x1:x2]=0
-            self.assertIsNone(vision.new_loss_navigation(image))
+            self.assertIsNone(vision.new_result_navigation(image,'verloren'))
             self.assertIsNone(vision.match_outcome_small(image))
+
+    def test_win_and_continue_are_recognized(self):
+        image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-win-de.png')
+        self.assertEqual(vision.match_outcome_small(image),'gewonnen')
+        self.assertEqual(vision.game_navigation(image,'gewonnen')['step'],'result')
+        self.assertIsNone(vision.new_result_navigation(image,'verloren'))
+        image[300:355,25:143]=0
+        self.assertIsNone(vision.match_outcome_small(image))
 
     def test_replay_requires_both_buttons(self):
         image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-replay-de.png')

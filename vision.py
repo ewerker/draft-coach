@@ -417,15 +417,17 @@ with np.load(ROOT/'data'/'match-results.npz',allow_pickle=False) as result_data:
 
 with np.load(ROOT/'data'/'new-result-de.npz',allow_pickle=False) as data:
     new_loss_de=data['loss'].copy()
+    new_win_de=data['win'].copy()
     new_continue_de=data['continue_button'].copy()
     new_replay_de=data['replay'].copy()
     new_home_de=data['home'].copy()
 
-def new_loss_navigation(small):
+def new_result_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     heading=gray[25:67,16:152]
     button=gray[300:355,25:143]
-    if cv2.minMaxLoc(cv2.matchTemplate(heading,new_loss_de,cv2.TM_CCOEFF_NORMED))[1]<.94:return None
+    pattern=new_win_de if outcome=='gewonnen' else new_loss_de
+    if cv2.minMaxLoc(cv2.matchTemplate(heading,pattern,cv2.TM_CCOEFF_NORMED))[1]<.94:return None
     _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button,new_continue_de,cv2.TM_CCOEFF_NORMED))
     if score<.94:return None
     x+=25+new_continue_de.shape[1]/2;y+=300+new_continue_de.shape[0]/2
@@ -449,9 +451,8 @@ def navigation_button(gray,name,area,step,mode=None):
 def game_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     if outcome:
-        if outcome=='verloren':
-            new_result=new_loss_navigation(small)
-            if new_result:return new_result
+        new_result=new_result_navigation(small,outcome)
+        if new_result:return new_result
         area=(25,283,143,347)
         return navigation_button(gray,'result',area,'result') or navigation_button(gray,'result_de',area,'result')
     # The new Draft end screen offers a direct replay and a home button.
@@ -518,7 +519,8 @@ def match_outcome(img):
 
 
 def match_outcome_small(small):
-    if new_loss_navigation(small):return 'verloren'
+    for result in ('gewonnen','verloren'):
+        if new_result_navigation(small,result):return result
     # Reward screens have a blue backdrop around the animated heading.
     sides=small[85:220,[2,3,4,163,164,165]]
     if np.mean((sides[:,:,0].astype(int)-sides[:,:,2])>35)<.68:
