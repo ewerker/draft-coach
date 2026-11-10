@@ -7,9 +7,29 @@ import os from 'node:os';
 import {createImageReviewStore,imageReviewSchema,validateImageAnswer,fieldPartition,selectImageQuestions} from './image-review.mjs';
 import {createReferenceStore} from './reference-store.mjs';
 import {buildFieldEvaluation} from './field-learning.mjs';
+import {imageAnswerIssues} from './public/image-review.mjs';
 const names=new Set(['Sniper','Agent B','Spartheus','Schnecke','Astra']);
 const row=(name='Sniper')=>({name,typeConfirmed:true,count:9,countConfirmed:false,forms:[],box:[30,1600,100,1700]});
 const answer=(side='own')=>({language:'en',sides:{[side]:{verdict:'partial',groups:[row()],typesComplete:false}}});
+
+test('save helper identifies missing confirmations without trusting unknown counts or changing the draft',()=>{
+ const draft=answer();draft.sides.own.groups[0].typeConfirmed=false;
+ const original=structuredClone(draft),issues=imageAnswerIssues(draft,[...names]);
+ assert.deepEqual(issues.map(i=>[i.side,i.index,i.field,i.key]),[['own',0,'type','own:0:type:']]);
+ assert.deepEqual(draft,original);assert.throws(()=>validateImageAnswer(draft,names),/CONFIRM_UNIT_TYPE/);
+ draft.sides.own.groups[0].typeConfirmed=true;
+ assert.deepEqual(imageAnswerIssues(draft,[...names]),[]);
+ assert.equal(validateImageAnswer(draft,names).sides.own.groups[0].count,null);
+ draft.sides.own.groups[0].forms=[{label:'Blue plume',confirmed:false}];
+ assert.equal(imageAnswerIssues(draft,[...names])[0].key,'own:0:formConfirm:0');
+ draft.sides.own.groups[0].forms[0].confirmed=true;
+ assert.deepEqual(imageAnswerIssues(draft,[...names]),[]);
+ draft.sides.own.verdict=null;
+ assert.equal(imageAnswerIssues(draft,[...names])[0].field,'verdict');
+ const empty={sides:{enemy:{verdict:'yes',groups:[],typesComplete:true}}};
+ assert.equal(imageAnswerIssues(empty,[...names])[0].field,'empty');
+ empty.sides.enemy.emptyConfirmed=true;assert.deepEqual(imageAnswerIssues(empty,[...names]),[]);
+});
 
 test('only explicit confirmations become truth; mixed forms and partial/empty sides stay distinct',()=>{
  const value=answer();value.sides.own.groups[0].forms=Array.from({length:6},(_,i)=>({label:'Appearance '+i,confirmed:true,count:8,countConfirmed:false}));

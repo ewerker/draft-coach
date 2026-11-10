@@ -285,6 +285,13 @@
 .image-review-list { margin-top:1rem; }
 .image-review-list-row { display:flex; flex-wrap:wrap; align-items:center; gap:.7rem; padding:.7rem 0; border-bottom:1px solid var(--border,#40516a); }
 .image-review-list-row small { flex-basis:100%; }
+.image-review-required-hint { font-size:.85rem; margin:.25rem 0 .8rem; color:var(--muted,#b4c2d7); }
+.image-review-field-error { color:#ffb8b8; font-size:.9rem; margin:.4rem 0; flex-basis:100%; }
+.image-review-invalid { outline:2px solid #ec7777; outline-offset:3px; border-radius:5px; }
+.image-review-feedback { border:2px solid #ec7777; border-radius:10px; padding:.8rem 1rem; margin:1rem 0; background:color-mix(in srgb,#c33 10%,transparent); }
+.image-review-feedback ul { padding-left:1.25rem; margin:.5rem 0 0; }
+.image-review-feedback li { margin:.3rem 0; }
+[data-theme=light] .image-review-field-error { color:#a01826; }
 @media(max-width:760px) { .image-review-layout { grid-template-columns:minmax(0,1fr); } .image-review-picture { position:static; max-width:300px; margin:auto; } .image-review-side { padding:.7rem; } }
 
 #image-review-content button { margin:.2rem .35rem .2rem 0; }

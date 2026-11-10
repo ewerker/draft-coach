@@ -1,4 +1,38 @@
 import {displayNames} from './language.mjs';
+
+const fieldKey=(side,index,field,formIndex='')=>[side,index??'',field,formIndex].join(':');
+// Only required confirmations block saving. An unconfirmed optional number is
+// deliberately left unknown rather than turning an estimate into ground truth.
+export function imageAnswerIssues(answer,cards){
+ const issues=[],names=new Set(cards),validCount=n=>Number.isInteger(n)&&n>=1&&n<=1000;
+ const add=(side,index,field,code,formIndex)=>issues.push({side,index,field,code,formIndex,key:fieldKey(side,index,field,formIndex)});
+ let answered=0;
+ for(const side of ['enemy','own']){
+  const s=answer?.sides?.[side];if(!s)continue;
+  if(!s.verdict){if(s.groups?.some(g=>g.typeConfirmed||g.box||g.count!=null||g.forms?.length))add(side,null,'verdict','sideAnswer');continue;}
+  answered++;
+  if(!['yes','partial','no','unassessable'].includes(s.verdict)){add(side,null,'verdict','sideAnswer');continue;}
+  if(s.verdict==='unassessable')continue;
+  const seen=new Set();
+  for(const [index,g] of (s.groups??[]).entries()){
+   if(!names.has(g.name))add(side,index,'name','chooseUnit');
+   else if(seen.has(g.name))add(side,index,'name','duplicateUnit');
+   seen.add(g.name);
+   if(g.typeConfirmed!==true)add(side,index,'type','confirmType');
+   if(g.countConfirmed===true&&!validCount(g.count))add(side,index,'count','validCount');
+   for(const [fi,f] of (g.forms??[]).entries()){
+    if(!f.label?.trim()||f.label.length>100)add(side,index,'formLabel','describeForm',fi);
+    if(f.confirmed!==true)add(side,index,'formConfirm','confirmForm',fi);
+    if(f.countConfirmed===true&&!validCount(f.count))add(side,index,'formCount','validCount',fi);
+   }
+   if(g.countConfirmed===true&&(g.forms??[]).reduce((sum,f)=>sum+(f.countConfirmed===true&&validCount(f.count)?f.count:0),0)>g.count)add(side,index,'count','formTotal');
+   if(g.box&&(!Array.isArray(g.box)||g.box.length!==4||g.box.some(n=>!Number.isFinite(n))||g.box[0]<0||g.box[1]<(side==='enemy'?325:1580)||g.box[2]>1080||g.box[3]>(side==='enemy'?1015:2090)||g.box[2]-g.box[0]<12||g.box[3]-g.box[1]<12||g.box[2]-g.box[0]>450||g.box[3]-g.box[1]>450))add(side,index,'box','exampleBox');
+  }
+  if(s.typesComplete===true&&!s.groups?.length&&s.emptyConfirmed!==true)add(side,null,'empty','confirmEmpty');
+ }
+ if(!answered&&!issues.length)add('enemy',null,'verdict','sideAnswer');
+ return issues;
+}
 const messages={de:{title:'Gezielte Bildfragen',intro:'Hilf der Truppenerkennung mit wenigen Bestätigungen. Pro Runde höchstens drei Bilder; weitere bleiben in der Liste.',
  open:'offen',answered:'beantwortet',start:'Bis zu drei Bilder prüfen',suggest:'Neue Bildfragen zusammenstellen',all:'Alle Bildfragen',none:'Keine offenen Bildfragen. Neue Fragen entstehen nach abgeschlossenen Partien oder über den Button.',
  own:'Eigene Truppen · unten',enemy:'Gegnerische Truppen · oben',yes:'Stimmt',partial:'Teilweise',no:'Stimmt nicht',unassessable:'Nicht beurteilbar',
@@ -23,26 +57,46 @@ en:{title:'Targeted image questions',intro:'Help army recognition with a few con
  errors:{IMAGE_REVIEW_BUSY:'Stop capture after the match, then try again.',IMAGE_QUESTION_CHANGED:'This question has changed. Please open it again.',CONFIRM_UNIT_TYPE:'Confirm each unit type or remove it.',CONFIRM_EMPTY_FIELD:'Confirm that the side is empty, or leave its coverage incomplete.',INVALID_UNIT_COUNT:'Enter a whole count from 1 to 1000 or leave it unknown.',INVALID_UNIT_FORM:'Describe and confirm the form. Form counts must not exceed the total.',INVALID_EXAMPLE_BOX:'Mark a single unit inside the selected battlefield area.',DUPLICATE_UNIT_TYPE:'Enter each unit once; add its different forms within that unit.',INVALID_IMAGE_ANSWER:'Answer at least one side and check the entries.'}}};
 export function createImageReviewPanel({root,getLanguage,post}){
  let data={items:[],counts:{}},item=null,answer=null,round=[],position=0,notice='',mark=null,zoom='full';
+ let validationAttempted=false,issues=[],focusIssue=null,noticeIsError=false;
+ const controls=new Map();
+ const validationCopy=()=>getLanguage()==='en'?{
+  title:'Please check before saving',confirmType:'Tick “Confirm this unit type” for this unit.',chooseUnit:'Choose a unit type or remove this row.',duplicateUnit:'This unit is already listed. Add different forms within the same unit.',validCount:'Enter a whole count from 1 to 1000, or leave the count unconfirmed.',describeForm:'Describe the visible form (up to 100 characters) or remove it.',confirmForm:'Tick “Confirm this form” or remove the form.',formTotal:'Confirmed form counts exceed the confirmed total. Check the counts.',exampleBox:'Mark one example inside the selected battlefield area.',confirmEmpty:'Confirm that this side is empty, or untick complete coverage.',sideAnswer:'Choose Correct, Partly correct, Incorrect or Cannot assess for this side.',missing:'Missing unit confirmation. Tick the box before saving.'
+ }:{title:'Bitte vor dem Speichern prüfen',confirmType:'Setze bei dieser Figur das Häkchen „Diesen Figurentyp bestätigen“.',chooseUnit:'Wähle eine Figur oder entferne diese Zeile.',duplicateUnit:'Diese Figur ist bereits eingetragen. Weitere Formen gehören in dieselbe Figur.',validCount:'Gib eine ganze Anzahl von 1 bis 1000 ein oder lasse die Anzahl unbestätigt.',describeForm:'Beschreibe die sichtbare Form mit höchstens 100 Zeichen oder entferne sie.',confirmForm:'Setze das Häkchen „Diese Form bestätigen“ oder entferne die Form.',formTotal:'Die bestätigten Formzahlen sind größer als die bestätigte Gesamtzahl. Bitte prüfe die Zahlen.',exampleBox:'Markiere ein einzelnes Exemplar innerhalb der gewählten Spielfeldhälfte.',confirmEmpty:'Bestätige die leere Seite oder entferne das Häkchen für vollständige Erfassung.',sideAnswer:'Wähle für diese Seite „Stimmt“, „Teilweise“, „Stimmt nicht“ oder „Nicht beurteilbar“.',missing:'Figurentyp noch nicht bestätigt. Bitte vor dem Speichern das Häkchen setzen.'};
  const t=()=>messages[getLanguage()==='en'?'en':'de'];
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text)n.textContent=text;if(cls)n.className=cls;return n;};
  const button=(text,fn,cls='small')=>{const n=el('button',text,cls);n.type='button';n.onclick=()=>run(fn);return n;};
  const read=async url=>{const response=await fetch(url);const value=await response.json();if(!response.ok)throw Error(value.error??'Request failed');return value;};
  const key=()=>`coach-image-answer-${item?.id}-${item?.revision}`;
  function remember(){try{localStorage.setItem(key(),JSON.stringify(answer));}catch{}}
- async function run(fn){try{notice='';await fn();}catch(e){notice=t().errors[e.message]??e.message;}render();}
+ async function run(fn){try{notice='';noticeIsError=false;await fn();}catch(e){notice=t().errors[e.message]??e.message;noticeIsError=true;focusIssue='summary';}render();}
  async function refresh(){data=await read('/api/image-review');render();}
- async function open(id){item=await read('/api/image-review/item?id='+encodeURIComponent(id));mark=null;zoom='full';
+ async function open(id){item=await read('/api/image-review/item?id='+encodeURIComponent(id));mark=null;zoom='full';validationAttempted=false;issues=[];focusIssue=null;
   answer=structuredClone(item.answer??{sides:{}});
   // Proposals prefill names only. Counts and forms are never silently trusted.
   if(!item.answer)for(const side of ['enemy','own'])answer.sides[side]={verdict:null,groups:(item.context.proposals?.[side]?.groups??[]).map(g=>({name:g.name,typeConfirmed:false,count:null,countConfirmed:false,forms:[],box:null})),typesComplete:false,emptyConfirmed:false};
   try{const draft=JSON.parse(localStorage.getItem(key()));if(draft?.sides)answer=draft;}catch{}
   render();root.scrollIntoView({block:'start',behavior:'smooth'});
  }
- function input(label,value,onchange,type='text'){
-  const l=el('label',label),n=el('input');n.type=type;n.value=value??'';if(type==='number'){n.min='1';n.max='1000';n.step='1';}
-  n.oninput=()=>{onchange(type==='number'?(n.value===''?null:Number(n.value)):n.value);remember();};l.append(n);return l;
+ function issueText(issue){const name=answer?.sides?.[issue.side]?.groups?.[issue.index]?.name;return `${t()[issue.side]}${name?' · '+displayNames(name,getLanguage()):''}: ${validationCopy()[issue.code]}`;}
+ function attachField(container,control,key){
+  const error=el('p',null,'image-review-field-error');error.id='image-review-error-'+key.replaceAll(':','-');error.hidden=true;
+  container.append(error);controls.set(key,{container,control,error});return container;
  }
- function check(label,value,onchange){const l=el('label',null,'image-review-check'),n=el('input');n.type='checkbox';n.checked=!!value;n.onchange=()=>{onchange(n.checked);remember();};l.append(n,document.createTextNode(label));return l;}
+ function feedback(){const box=el('div',null,'image-review-feedback');box.tabIndex=-1;box.setAttribute('role','alert');return box;}
+ function paintValidation(){
+  for(const [key,binding] of controls){const issue=issues.find(i=>i.key===key);binding.error.textContent=issue?validationCopy()[issue.code]:'';binding.error.hidden=!issue;binding.container.classList.toggle('image-review-invalid',!!issue);binding.control.setAttribute('aria-invalid',String(!!issue));if(issue)binding.control.setAttribute('aria-describedby',binding.error.id);else binding.control.removeAttribute('aria-describedby');}
+  for(const box of root.querySelectorAll('.image-review-feedback')){
+   box.replaceChildren();box.hidden=!issues.length&&!noticeIsError;
+   if(issues.length){box.append(el('strong',validationCopy().title));const list=el('ul');for(const issue of issues)list.append(el('li',issueText(issue)));box.append(list);}
+   else if(noticeIsError)box.append(el('p',notice));
+  }
+ }
+ function updateValidation(){if(validationAttempted){issues=imageAnswerIssues(answer,item?.cards??[]);paintValidation();}}
+ function input(label,value,onchange,type='text',key=null){
+  const l=el('label',label),n=el('input');n.type=type;n.value=value??'';if(type==='number'){n.min='1';n.max='1000';n.step='1';}
+  n.oninput=()=>{onchange(type==='number'?(n.value===''?null:Number(n.value)):n.value);remember();updateValidation();};l.append(n);return key?attachField(l,n,key):l;
+ }
+ function check(label,value,onchange,key=null){const l=el('label',null,'image-review-check'),n=el('input');n.type='checkbox';n.checked=!!value;n.onchange=()=>{onchange(n.checked);remember();if(key?.split(':')[2]==='type'){const hint=n.closest('.image-review-unit')?.querySelector('.image-review-required-hint');if(hint)hint.hidden=n.checked;}updateValidation();};l.append(n,document.createTextNode(label));if(!key)return l;const wrap=el('div',null,'image-review-check-field');wrap.append(l);return attachField(wrap,n,key);}
  function sideEditor(side){
   const s=answer.sides[side]??={verdict:null,groups:[],typesComplete:false,emptyConfirmed:false};
   const area=el('section',null,'image-review-side');area.append(el('h4',t()[side]));
@@ -55,27 +109,30 @@ export function createImageReviewPanel({root,getLanguage,post}){
     remember();
    });b.setAttribute('aria-pressed',String(s.verdict===verdict));actions.append(b);
   }
-  actions.append(button(t().clear,()=>{s.verdict=null;s.typesComplete=false;s.emptyConfirmed=false;for(const g of s.groups){g.typeConfirmed=false;g.countConfirmed=false;}remember();}));area.append(actions);
+  actions.append(button(t().clear,()=>{s.verdict=null;s.typesComplete=false;s.emptyConfirmed=false;for(const g of s.groups){g.typeConfirmed=false;g.countConfirmed=false;}remember();}));area.append(attachField(actions,actions.querySelector('button'),fieldKey(side,null,'verdict')));
   if(s.verdict==='unassessable')return area;
   if(!s.verdict)area.append(el('p',t().sidePending,'muted'));
   if(!s.groups.length)area.append(el('p',t().emptyProposal,'muted'));
   for(const [index,g] of s.groups.entries()){
    const row=el('div',null,'image-review-unit'),name=el('select');name.setAttribute('aria-label',t().unit);
+   const key=(field,fi)=>fieldKey(side,index,field,fi);
    name.append(new Option('—',''),...item.cards.map(n=>new Option(displayNames(n,getLanguage()),n)));name.value=g.name;
    name.onchange=()=>{g.name=name.value;g.typeConfirmed=false;remember();render();};
    const heading=el('div',null,'image-review-unit-head');heading.append(name,button(t().remove,()=>{s.groups.splice(index,1);remember();}));row.append(heading);
-   row.append(check(t().typeConfirm,g.typeConfirmed,v=>g.typeConfirmed=v));
-   row.append(input(t().count,g.count,v=>{g.count=v;g.countConfirmed=false;row.querySelector('[data-count-confirm]').checked=false;},'number'));
+   attachField(heading,name,key('name'));
+   row.append(check(t().typeConfirm,g.typeConfirmed,v=>g.typeConfirmed=v,key('type')));
+   if(!g.typeConfirmed)row.append(el('p',validationCopy().missing,'image-review-required-hint'));
+   row.append(input(t().count,g.count,v=>{g.count=v;g.countConfirmed=false;row.querySelector('[data-count-confirm]').checked=false;},'number',key('count')));
    const c=check(t().countConfirm,g.countConfirmed,v=>g.countConfirmed=v);c.firstChild.dataset.countConfirm='';row.append(c);
    for(const [fi,f] of (g.forms??[]).entries()){
-    const form=el('div',null,'image-review-form');form.append(input(t().form,f.label,v=>{f.label=v;f.confirmed=false;form.querySelector('input[type=checkbox]').checked=false;}),check(t().formConfirm,f.confirmed,v=>f.confirmed=v),input(t().formCount,f.count,v=>{f.count=v;f.countConfirmed=false;form.querySelectorAll('input[type=checkbox]')[1].checked=false;},'number'),check(t().countConfirm,f.countConfirmed,v=>f.countConfirmed=v),button(t().remove,()=>{g.forms.splice(fi,1);remember();}));row.append(form);
+    const form=el('div',null,'image-review-form');form.append(input(t().form,f.label,v=>{f.label=v;f.confirmed=false;form.querySelector('input[type=checkbox]').checked=false;},'text',key('formLabel',fi)),check(t().formConfirm,f.confirmed,v=>f.confirmed=v,key('formConfirm',fi)),input(t().formCount,f.count,v=>{f.count=v;f.countConfirmed=false;form.querySelectorAll('input[type=checkbox]')[1].checked=false;},'number',key('formCount',fi)),check(t().countConfirm,f.countConfirmed,v=>f.countConfirmed=v),button(t().remove,()=>{g.forms.splice(fi,1);remember();}));row.append(form);
    }
    row.append(button(t().addForm,()=>{g.forms??=[];g.forms.push({label:'',confirmed:false,count:null,countConfirmed:false});remember();}));
-   row.append(button(g.box?t().boxDone:t().box,()=>{mark={side,index};zoom=side;notice=t().marking;root.querySelector('canvas')?.scrollIntoView({block:'center',behavior:'smooth'});}));
+   const boxButton=button(g.box?t().boxDone:t().box,()=>{mark={side,index};zoom=side;notice=t().marking;root.querySelector('canvas')?.scrollIntoView({block:'center',behavior:'smooth'});}),boxField=el('div');boxField.append(boxButton);row.append(attachField(boxField,boxButton,key('box')));
    if(g.box)row.append(button('×',()=>{g.box=null;remember();}));area.append(row);
   }
   area.append(button(t().add,()=>{if(s.groups.length>=64)return;s.groups.push({name:'',typeConfirmed:false,count:null,countConfirmed:false,forms:[],box:null});if(!s.verdict)s.verdict='partial';remember();}));
-  area.append(check(t().complete,s.typesComplete,v=>s.typesComplete=v),check(t().empty,s.emptyConfirmed,v=>{s.emptyConfirmed=v;if(v)s.typesComplete=true;}));return area;
+  area.append(check(t().complete,s.typesComplete,v=>s.typesComplete=v),check(t().empty,s.emptyConfirmed,v=>{s.emptyConfirmed=v;if(v)s.typesComplete=true;},fieldKey(side,null,'empty')));return area;
  }
  function canvasImage(parent){
   const viewY=zoom==='enemy'?325:zoom==='own'?1580:0,viewHeight=zoom==='enemy'?690:zoom==='own'?510:2340;
@@ -98,6 +155,7 @@ export function createImageReviewPanel({root,getLanguage,post}){
   parent.append(canvas);const link=el('a',t().full);link.href=image.src;link.target='_blank';link.rel='noopener';parent.append(link);if(mark)parent.append(el('p',t().marking,'image-review-message'));
  }
  function render(){
+  controls.clear();if(validationAttempted&&item)issues=imageAnswerIssues(answer,item.cards);
   root.dataset.reviewOriginal='';root.replaceChildren();root.append(el('h3',t().title),el('p',t().intro,'muted'));
   root.append(el('p',`${data.counts.open??0} ${t().open} · ${data.counts.answered??0} ${t().answered}`));
   const bar=el('div',null,'image-review-actions');bar.append(button(t().start,async()=>{round=data.items.filter(q=>!q.answered).slice().sort((a,b)=>a.created-b.created).slice(0,3).map(q=>q.id);position=0;if(round.length)await open(round[0]);}),button(t().suggest,async()=>{await post('/api/image-review/suggest');await refresh();}));root.append(bar);
@@ -109,13 +167,15 @@ export function createImageReviewPanel({root,getLanguage,post}){
    root.append(el('p',item.blind?t().blind:t().proposal,'image-review-message'),el('p',t().note,'muted'));
    const layout=el('div',null,'image-review-layout'),picture=el('div',null,'image-review-picture'),editors=el('div');canvasImage(picture);editors.append(sideEditor('enemy'),sideEditor('own'),el('p',t().boxHint,'muted'),el('p',t().formHint,'muted'),el('p',t().draft,'muted'));layout.append(picture,editors);root.append(layout);
    const submit=button(t().save,async()=>{
+    validationAttempted=true;issues=imageAnswerIssues(answer,item.cards);
+    if(issues.length){remember();focusIssue=issues[0].key;return;}
     const confirmed={language:getLanguage(),sides:{}};
     for(const side of ['own','enemy']){const s=answer.sides[side];if(s?.verdict)confirmed.sides[side]=s;}
     await post('/api/image-review/answer',{id:item.id,revision:item.revision,answer:confirmed});
     try{localStorage.removeItem(key());}catch{}
     item=null;answer=null;notice=t().saved;await refresh();
     if(++position<round.length)await open(round[position]);else notice=t().done+' '+t().saved;
-   },'primary');editors.append(submit,button(t().skip,()=>{item=null;answer=null;mark=null;}));
+   },'primary');editors.append(feedback(),submit,button(t().skip,()=>{item=null;answer=null;mark=null;}));
    const e=item.evaluation;editors.append(el('p',`${t().evaluation}: ${e?.running?t().running:e?.error?e.error:!e?.eligibleCases||!e?.inventory?.trainingMatches?t().waiting:e.pending?t().stale:t().ready}. ${t().idle}`,'muted'));
   }
   const list=el('details',null,'image-review-list');list.append(el('summary',`${t().all} (${data.items.length})`));
@@ -124,6 +184,8 @@ export function createImageReviewPanel({root,getLanguage,post}){
    if(q.export_status==='done')row.append(el('small',t().exported));
    if(q.export_status==='failed')row.append(el('small',t().failed+': '+q.export_error),button(t().retry,async()=>{await post('/api/image-review/retry',{id:q.id});await refresh();}));list.append(row);}
   root.append(list);
+  paintValidation();
+  if(focusIssue){const key=focusIssue;focusIssue=null;requestAnimationFrame(()=>{const target=key==='summary'?root.querySelector('.image-review-feedback'):controls.get(key)?.control;if(target){target.scrollIntoView({block:'center',behavior:'smooth'});target.focus({preventScroll:true});}});}
  }
  return {refresh,render};
 }
