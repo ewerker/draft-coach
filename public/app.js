@@ -1297,6 +1297,16 @@ function renderReferenceCorrection(item){
   if(panel.hidden)return;
   panel.append(textEl('h3',language==='en'?'Correct a unit':'Einheit korrigieren'));
   panel.append(textEl('p',language==='en'?'Choose the card position and the correct unit. Similar unit images can use this correction; actions and spells are not learned yet.':'Wähle Position und richtige Einheit. Sehr ähnliche Figurenbilder können diese Korrektur nutzen; Aktionen und Zauber werden noch nicht gelernt.','muted'));
+  panel.append(textEl('h4',language==='en'?'Current recognition':'Aktuelle Erkennung'));
+  const results=textEl('ul','');
+  for(const offer of item.offers){
+    const labels=language==='en'?['Left','Middle','Right']:['Links','Mitte','Rechts'];
+    const detected=offer.name?displayNames(offer.name,language):(language==='en'?'Not recognized':'Nicht erkannt');
+    const learned=offer.learnedReference?(language==='en'?' · matched a correction':' · anhand einer Korrektur erkannt'):'';
+    results.append(textEl('li',(labels[offer.position]??String(offer.position+1))+': '+detected+learned));
+  }
+  panel.append(results);
+  if(item.offers.some(offer=>offer.learnedReference))panel.append(textEl('p',language==='en'?'A match on this same image confirms the saved example is used; it does not prove recognition on other images.':'Ein Treffer auf demselben Bild zeigt, dass das gespeicherte Beispiel verwendet wird. Er belegt noch nicht die Erkennung auf anderen Bildern.','muted'));
   const position=document.createElement('select');position.setAttribute('aria-label',language==='en'?'Card position':'Kartenposition');
   for(const offer of item.offers){const labels=language==='en'?['Left','Middle','Right']:['Links','Mitte','Rechts'];position.append(new Option(labels[offer.position]??String(offer.position+1),String(offer.position)));}
   const name=document.createElement('select');name.setAttribute('aria-label',language==='en'?'Correct unit':'Richtige Einheit');
@@ -1304,8 +1314,10 @@ function renderReferenceCorrection(item){
   for(const unit of config.collection.units.units)name.append(new Option(displayNames(unit.name,language),unit.name));
   const save=textEl('button',language==='en'?'Save correction':'Korrektur speichern','small');save.type='button';
   const status=textEl('p','','muted');status.setAttribute('role','status');
-  save.onclick=()=>action(async()=>{if(!name.value)throw Error(language==='en'?'Select a unit first.':'Bitte zuerst eine Einheit wählen.');await post('/api/reference/correct',{id:item.referenceId,position:Number(position.value),name:name.value});status.textContent=language==='en'?'Correction saved.':'Korrektur gespeichert.';});
-  panel.append(position,name,save,status);
+  const check=textEl('button',language==='en'?'Check image again':'Bild erneut prüfen','small');check.type='button';
+  check.onclick=()=>action(async()=>{status.textContent=language==='en'?'Checking image…':'Bild wird erneut ausgewertet …';await post('/api/reference',{file:item.referenceId});});
+  save.onclick=()=>action(async()=>{if(!name.value)throw Error(language==='en'?'Select a unit first.':'Bitte zuerst eine Einheit wählen.');await post('/api/reference/correct',{id:item.referenceId,position:Number(position.value),name:name.value});status.textContent=language==='en'?'Correction saved. Checking image…':'Korrektur gespeichert. Bild wird erneut ausgewertet …';await post('/api/reference',{file:item.referenceId});});
+  panel.append(position,name,save,check,status);
 }
 let choosingOffer=false,canTapImage=false;
 const screenshot=$('screenshot');
