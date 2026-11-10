@@ -1,5 +1,7 @@
 # Partieauswertung und Lernen – Arbeitsstand
 
+Dieser Text beschreibt bestehende Teilfunktionen. Der verbindliche Ausbauplan zur Abnahme steht unter [Gesamtplan Lernprozess](lernprozess-gesamtplan.md); der Paketstatus wird in [learning-plan.json](learning-plan.json) geführt.
+
 ## 1. Bilder und Prüffälle
 
 Aus der Partieauswertung können verfügbare Bilder in den lokalen Prüfbildspeicher übernommen werden. Die Galerie zeigt das gesamte Bild; eigene und gegnerische Figuren können getrennt markiert und optional mit einer beobachteten Anzahl und Ausbaustufe versehen werden. Die Bilder bleiben lokal. Die Anmerkungen sind menschliche Angaben, keine automatischen Messungen.

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "status": "awaiting_user_approval",
+  "baselineRelease": "v0.7.6",
+  "baselineCommit": "90f6107",
+  "plan": "lernprozess-gesamtplan.md",
+  "languages": ["de", "en"],
+  "statusValues": ["planned", "in_progress", "implemented", "verified", "accepted"],
+  "completionRequires": ["implementation_commit", "test_report", "acceptance_evidence"],
+  "workPackages": [
+    {"id":"P1","title":"Gemeinsamer Wissens- und Prüfprozess","status":"planned","dependsOn":[],"acceptance":"A1","evidence":[]},
+    {"id":"P2","title":"Dauerhafte Partiedaten und Hintergrundaufträge","status":"planned","dependsOn":["P1"],"acceptance":"A2","evidence":[]},
+    {"id":"P3","title":"Eigene und gegnerische Truppen im laufenden Spiel","status":"planned","dependsOn":["P1","P2"],"acceptance":"A3","evidence":[]},
+    {"id":"P4","title":"Gezielte Bildbestätigung durch den Spieler","status":"planned","dependsOn":["P1","P2"],"acceptance":"A4","evidence":[]},
+    {"id":"P5","title":"Allgemeine Mechaniken und Entwicklungsformen","status":"planned","dependsOn":["P1","P2"],"acceptance":"A5","evidence":[]},
+    {"id":"P6","title":"Automatische unabhängige Prüfung","status":"planned","dependsOn":["P3","P4","P5"],"acceptance":"A6","evidence":[]},
+    {"id":"P7","title":"Begleitbewertung und kontrollierte Spielversuche","status":"planned","dependsOn":["P6"],"acceptance":"A7","evidence":[]},
+    {"id":"P8","title":"Automatische Freigabe- und Überarbeitungsvorschläge","status":"planned","dependsOn":["P6","P7"],"acceptance":"A8","evidence":[]},
+    {"id":"P9","title":"Standalone-Gesamtabnahme und Übersicht","status":"planned","dependsOn":["P1","P2","P3","P4","P5","P6","P7","P8"],"acceptance":"A9","evidence":[]}
+  ]
+}
