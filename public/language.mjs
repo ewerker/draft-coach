@@ -381,6 +381,10 @@ Wahlangebote|Available choices
 Warte auf Auswahl|Waiting for a choice
 Noch keine Angebote erkannt.|No choices detected yet.
 Live-Log|Live log
+Truppenbeobachtung · Pilot|Army observation · pilot
+Was zeigt die Truppenbeobachtung?|What does army observation show?
+Der P3-Pilot untersucht eigene und gegnerische Truppen getrennt in einem zusätzlichen lokalen Prozess. Die Kartenerkennung wartet darauf nicht. Sichtbare Treffer sind zunächst Mindestzahlen; verdeckte Figuren und unbekannte Ausbauformen bleiben offen. Während des Kampfes beweist die obere oder untere Position keine Zugehörigkeit. Die letzte Aufstellung bleibt getrennt erhalten. Die Pilotdaten ändern noch keine Empfehlungen oder Klicks.|The P3 pilot examines your units and enemy units separately in an additional local process. Card recognition does not wait for it. Visible matches are initially minimum counts; hidden figures and unknown evolution forms remain unknown. During combat, upper or lower position does not prove ownership. The last formation is retained separately. Pilot data does not yet change recommendations or taps.
+Unter Vorbereitung → Lernfortschritt findest du den Vergleich der bisherigen Vorlagen mit dem neuen lokalen Kandidaten, Ergebnisse je Figur, Sprache, Geometrie und Phase sowie noch fehlende Lernbeispiele. Eine vorhandene Markierung ist kein unabhängiger Qualitätsnachweis. Anzahl und Ausbau benötigen eigene Prüfungen. Der Pilot verwendet keinen API-Key und verursacht keine API-Kosten.|Under Setup → Learning progress you can compare the previous templates with the new local candidate, inspect results by unit, language, geometry and phase, and see missing training examples. An annotation is not independent evidence of accuracy. Counts and evolution require separate evaluation. The pilot uses no API key and incurs no API costs.
 Letzte 60 Minuten · Höchstwert je Minute|Last 60 minutes · Peak per minute
 Noch keine Live-Messwerte.|No live measurements yet.
 Höchstwert|Peak

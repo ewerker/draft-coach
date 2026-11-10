@@ -68,13 +68,15 @@
     {
       "id": "P3",
       "title": "Eigene und gegnerische Truppen im laufenden Spiel",
-      "status": "planned",
+      "status": "in_progress",
       "dependsOn": [
         "P1",
         "P2"
       ],
       "acceptance": "A3",
-      "evidence": []
+      "evidence": [
+        {"type":"pilot_report","path":"docs/p3-truppenpilot.md","value":"Asynchronous observation pipeline implemented; initial CPU comparison does not meet recognition targets. Counts/evolution and actual manual choices remain unvalidated. A3 pending."}
+      ]
     },
     {
       "id": "P4",
@@ -151,6 +153,7 @@
   ],
   "approvedWorkPackages": [
     "P1",
-    "P2"
+    "P2",
+    "P3"
   ]
 }

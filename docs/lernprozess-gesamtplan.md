@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft; P3–P9 sind noch nicht begonnen.**
+**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft. Punkt 3 ist in Arbeit: Beobachtungspipeline und CPU-Vergleich sind gebaut, die Erkennungsziele sind noch nicht erreicht. P4–P9 sind noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 
@@ -56,11 +56,13 @@ Umsetzung und Prüfnachweise: [P2 Partiesicherung](p2-partiesicherung.md).
 
 Bekannte dauerhafte Kartenstufen und Sterne werden mit den beobachteten Entwicklungsformen verknüpft. Daraus entsteht ein nachvollziehbares Stärkeprofil beider Armeen; eine universelle Kampfstärkezahl wird erst verwendet, wenn ihre Berechnung belegt ist. Verdeckt oder nicht sicher ablesbar bedeutet unbekannt, nicht null.
 
-- [ ] P3.1 Bestehende Vorlagen als gemessene Basis vergleichen mit einem lokal ausführbaren Objekt-Erkennungsmodell und zeitlicher Verfolgung. Kandidat: Modell im ONNX-Format; zuerst CPU-Messung, Hardwarebeschleunigung nur bei belegtem Bedarf.
-- [ ] P3.2 Geometrie, beide Spielfeldhälften, Überlappungen, Effekte und Animationen berücksichtigen. Typ-, Mengen- und Formschätzungen getrennt liefern; Unbekannt ist ein gültiges Ergebnis.
-- [ ] P3.3 Das sichtbare Gegnerdeck der Schlacht als starken Kandidatenhinweis nutzen, mit Ausnahmen für Sonderangebote. Im Draft Gegner nicht auf das eigene Deck beschränken.
+- [x] P3.1 Pilotvergleich der bisherigen Vorlagen mit lokalem ONNX-Prototypenmodell samt räumlich-zeitlichen Spuren auf der CPU implementiert. Kein universell vortrainierter neuronaler Detektor; die bisherige Testqualität reicht nicht zur Freigabe.
+- [x] P3.2 Geometrie und beide Spielfeldhälften im Pilot berücksichtigt; Typ, sichtbare Mindestmenge, unbekannte Gesamtzahl und Formangaben getrennt. Überlappungen und Mehrdeutigkeiten begrenzen die Ausgabe. Validierung siehe offene A3-Grenzen.
+- [x] P3.3 Sichtbares Schlacht-Gegnerdeck als Kandidatenhinweis implementiert, mit höheren Anforderungen außerhalb des Pools. Im Draft keine Beschränkung der Gegner auf das eigene Deck.
 - [ ] P3.4 Eigene beobachtete Wahl und tatsächliche Aufstellung abgleichen; manuelle Eingriffe übernehmen, sobald hinreichend belegt. Nicht allein aus dem Coach-Tipp auf die tatsächlich vorhandenen Truppen schließen.
-- [ ] P3.5 Abdeckung pro Figur, Entwicklungsform, Seite, Spielphase, Geometrie und Sprache messen. Zuerst belastbare Teilabdeckung, danach schrittweiser Ausbau auf alle 27 Figuren und ihre Formen.
+- [x] P3.5 Pilotbericht nach Figur, Seite, Sprache, Geometrie und Phase sowie separaten Mengen-/Formmetriken implementiert. Fehlende Formen und Typen bleiben ausdrücklich ohne Qualitätsnachweis; die gemessene Abdeckung ist noch unzureichend.
+
+Pilot, Prüfungen und offene Grenzen: [P3 Truppenpilot](p3-truppenpilot.md). P3.4 und Abnahme A3 bleiben offen. Wiederholt betrachtete Entwicklungsbilder rechtfertigen keine Aktivierung. Die vorhandenen Regel-Bearbeitungsstände werden nicht verändert.
 
 **Abnahme A3:** Ein unabhängiger Bericht nennt für beide Seiten Typ-Präzision/Trefferquote, Zählfehler, Fehler je Entwicklungsform und Laufzeit einschließlich hoher Ausreißer. Ein durchschnittlich guter Wert darf schwache Figurentypen nicht verdecken. Pilotziel für Figurentypen: mindestens 95 % Präzision und 90 % Trefferquote auf getrennten Testpartien; Mengen/Formen erhalten vor ihrem Einsatz eigene Grenzwerte anhand des Pilotdatensatzes. Die neue Analyse soll im Pilot für mindestens 95 % der relevanten Bilder unter einer Sekunde liegen; Aufnahme, gesamte Wartezeit und Klickfrist werden zusätzlich gemessen. Wird dies verfehlt, bleibt der langsame Anteil in der Nachauswertung. Kein zu alter Spielzustand darf einen Klick auslösen.
 
@@ -146,6 +148,6 @@ Quellen zu Werkzeugoptionen: [GitHub-Aufgabenlisten und Unteraufgaben](https://d
 
 ## English summary
 
-This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified; P3–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
+This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
 
 German and English share canonical identifiers, evidence, rule versions and activation. Language-dependent recognition coverage is measured separately. Users receive concrete questions and proposals instead of mandatory technical forms. Saved notes, machine predictions, image confirmations, calculation correctness and evidence of tactical benefit remain distinguishable. No guaranteed win-rate improvement or fixed number of matches is promised. No new paid service is purchased as part of planning.

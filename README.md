@@ -8,6 +8,8 @@ On the host PC, **Matches and review → Knowledge and review tasks** now brings
 
 **Match persistence and background jobs:** ongoing matches are checkpointed and offered for explicit recovery after a restart. Completed results are committed once and queue local evidence/data checks that pause during play. A full ZIP backup includes the required runtime data, rules and review images while excluding credentials. See the [P2 implementation and restore guide](docs/p2-partiesicherung.md). These data checks do not yet prove tactical effectiveness.
 
+**Army observation pilot (P3):** a separate bounded CPU process observes both battlefield areas without blocking choice recognition. The bilingual view distinguishes candidate unit types, visible minimum counts, unknown evolution forms and stale observations. The local ONNX prototype candidate has a NumPy fallback; optional dependencies are in `requirements-army.txt`. Initial independent diagnostics do **not** meet the recognition targets, so these estimates do not drive recommendations or taps. See the [P3 pilot report and remaining acceptance criteria](docs/p3-truppenpilot.md).
+
 ## Screenshots
 
 Examples of the Android game screens the Coach works with. The first row in each collection shows the active lineup.
@@ -88,4 +90,4 @@ Optional GPT drafts require `OPENAI_API_KEY` and `COACH_REVIEW_MODEL` in the hos
 
 On the host PC, open **Admin · Archive → OpenAI API key** and save a key. The key is stored in the host runtime directory, outside Git and the SQLite backup. Alternatively, set OPENAI_API_KEY in the host process environment. Saving a new rule automatically fills a missing translation and refreshes outdated machine translations. Human-edited translations remain available for review. COACH_QUICK_MODEL optionally overrides the default gpt-5.4-mini. Choose the answer source in Quick Advice. Standalone AI sends the question, relevant local tactic text and the preceding AI turn to OpenAI. The local knowledge base remains available. For the Codex workflow, ask the question directly in the Codex chat.
 
-Proposed [end-to-end learning plan](docs/lernprozess-gesamtplan.md) with English summary and numbered acceptance criteria; [work-package status](docs/learning-plan.json). Implementation awaits approval. Existing [match-review capabilities](docs/partieauswertung-plan.md) remain documented separately.
+Proposed [end-to-end learning plan](docs/lernprozess-gesamtplan.md) with English summary and numbered acceptance criteria; [work-package status](docs/learning-plan.json). P1/P2 have been technically verified; P3 is in the recognition pilot. Later work packages remain separate. Existing [match-review capabilities](docs/partieauswertung-plan.md) remain documented separately.

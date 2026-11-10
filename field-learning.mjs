@@ -10,9 +10,9 @@ export function buildFieldEvaluation(references,imagePath,engineRevision=''){
   const testCount=testIds.size;
   const training=linked.filter(r=>!testIds.has(r.matchId));
   const testing=linked.filter(r=>testIds.has(r.matchId));
-  const examples=training.flatMap(r=>(r.corrections||[]).filter(c=>['own_field','enemy_field'].includes(c.phase)).map(c=>({...c,path:imagePath(r.id)})));
+  const examples=training.flatMap(r=>(r.corrections||[]).filter(c=>['own_field','enemy_field'].includes(c.phase)).map(c=>({...c,path:imagePath(r.id),referenceId:r.id,matchId:r.matchId,language:r.language??'unknown'})));
   const cases=testing.flatMap(r=>['own','enemy'].filter(side=>r.complete?.[side]===true).map(side=>({
-    id:r.id,matchId:r.matchId,side,path:imagePath(r.id),truth:(r.corrections||[]).filter(c=>c.phase===side+'_field')
+    id:r.id,matchId:r.matchId,side,path:imagePath(r.id),language:r.language??'unknown',phase:r.phase??'unknown',truth:(r.corrections||[]).filter(c=>c.phase===side+'_field')
   })));
   const material=references.map(r=>({id:r.id,matchId:r.matchId,corrections:r.corrections,complete:r.complete})).sort((a,b)=>a.id.localeCompare(b.id));
   const fingerprint=createHash('sha256').update(JSON.stringify({schema:1,engineRevision,material})).digest('hex');

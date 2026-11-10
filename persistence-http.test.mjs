@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import {once} from 'node:events';
+import {buildFieldEvaluation} from './field-learning.mjs';
 
 const source=fileURLToPath(new URL('.',import.meta.url));
 const python=process.env.PYTHON_PATH||(process.platform==='win32'?'python':'python3');
@@ -50,7 +51,16 @@ for line in sys.stdin:
  print(json.dumps({'id':j['id'],'geometry':g,'phase':'battle_choice','offers':offers,'enemy':[],'own':[],'visionMs':1}),flush=True)
 `;
     await writeFile(path.join(dir,'vision.py'),worker);
+    // Exercise the real asynchronous server wiring without a model or a phone.
+    const reference={id:'a'.repeat(24),at:1,language:'en',corrections:[{phase:'own_field',position:0,name:'Schnecke',box:[20,1600,100,1700]}]};
+    for(let n=0;n<100;n++){reference.matchId='training-'+n;if(buildFieldEvaluation([reference],id=>id).examples.length)break;}
+    await mkdir(path.join(dir,'runtime','referenzen'),{recursive:true});
+    await writeFile(path.join(dir,'runtime','referenzen',reference.id+'.json'),JSON.stringify(reference));
+    await writeFile(path.join(dir,'army-worker.py'),`import sys,json,time\nprint(json.dumps({'ready':True}),flush=True)\nfor line in sys.stdin:\n r=json.loads(line);time.sleep(.05)\n result={'frameId':r['id'],'matchId':r['matchId'],'capturedAt':r['capturedAt'],'phase':r['phase'],'language':r['language'],'elapsedMs':50,'sides':{'own':{'groups':[{'name':'Schnecke','visibleMinimum':9}],'instances':[]},'enemy':{'groups':[],'instances':[]}}}\n print(json.dumps({'id':r['id'],'result':result}),flush=True)\n`);
     await start();const first=await capture();const original=(await get('/api/state')).activeMatchId;assert.ok(original);
+    const army=await eventually(async()=>{const state=await get('/api/state');return state.armyObservation?.frameId===first?state.armyObservation:null;});
+    assert.equal(army.use,'observation_only');assert.equal(army.sides.own.groups[0].visibleMinimum,9);
+    assert.equal(army.sides.own.groups[0].visibleMaximum,null);
     await stop();await start();
     let state=await get('/api/state');assert.equal(state.activeMatchId,null);assert.equal(state.auto,false);assert.equal(state.recoveryMatches.length,1);assert.equal(state.recoveryMatches[0].id,original);
     await assert.rejects(post('/api/capture'),/offene Partie/);assert.equal((await get('/api/state')).capturing,false);
@@ -63,6 +73,9 @@ for line in sys.stdin:
     const report=jobs.jobs.find(j=>j.kind==='prepare_review').report;assert.equal(report.decisions,2);assert.equal(report.missingVersions,0);assert.equal(report.tacticalEffect,'not_tested');
     state=await get('/api/state');assert.equal(state.matchStats.draft.won,1);assert.equal(state.matchStats.draft.lost,0);
     const reviewed=await get('/api/admin/review/match?id='+original);assert.deepEqual(reviewed.captureIds,[first,second]);
+    const evidence=await post('/api/admin/review/frame',{matchId:original,capture:first,language:'en'});
+    assert.equal(evidence.frame.armyObservation.sides.own.groups[0].visibleMinimum,9);
+    assert.equal(evidence.frame.armyObservation.actualChoice,'not_inferred');
     const games=await get('/api/admin/review/matches');assert.equal(games.games.filter(g=>g.id===original).length,1);
     await capture();const partial=(await get('/api/state')).activeMatchId;assert.notEqual(partial,original);
     await stop();await start();state=await get('/api/state');assert.equal(state.recoveryMatches[0].id,partial);assert.equal(state.matchStats.draft.won,1);

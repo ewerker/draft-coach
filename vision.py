@@ -581,7 +581,7 @@ def normal_draft_deck_evidence(phase,is_showdown,offers,comeback):
                     ((card.get('quantity') or 0)>4 and not (card.get('name')=='Gans' and card.get('action')=='add' and card.get('quantity')==5))
                     for card in offers))
 
-def recognize(path,preferred=None,language='de',learned_banners=(),learned_references=()):
+def recognize(path,preferred=None,language='de',learned_banners=(),learned_references=(),field_analysis=True):
     start=time.perf_counter()
     caption_ms=0.0
     raw=decode(path)
@@ -700,8 +700,8 @@ def recognize(path,preferred=None,language='de',learned_banners=(),learned_refer
     enemy_started=time.perf_counter()
     enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') or (phase=='unknown' and hearts is not None) else None
     enemy_ms=(time.perf_counter()-enemy_started)*1000
-    enemy_visual=match_field_references(img,learned_references,'enemy') if phase in ('battle','battle_choice','spell_choice') else []
-    own_visual=match_field_references(img,learned_references,'own') if phase in ('battle','battle_choice','spell_choice') else []
+    enemy_visual=match_field_references(img,learned_references,'enemy') if field_analysis and phase in ('battle','battle_choice','spell_choice') else []
+    own_visual=match_field_references(img,learned_references,'own') if field_analysis and phase in ('battle','battle_choice','spell_choice') else []
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     spell_button=None
@@ -1148,7 +1148,7 @@ elif __name__ == '__main__':
             elif req.get('geometryOnly'):
                 result={'geometry':screen_geometry(decode(req['path']))}
             else:
-                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'),req.get('learnedBanners') or (),req.get('learnedReferences') or ())
+                result=recognize(req['path'],set(req.get('preferred') or []),req.get('language','de'),req.get('learnedBanners') or (),req.get('learnedReferences') or (),req.get('fieldAnalysis',True))
             result['id']=req['id']
         except Exception as exc:
             result={'id':req.get('id') if 'req' in locals() else None,'error':str(exc)}

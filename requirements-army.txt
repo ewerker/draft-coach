@@ -1,0 +1,4 @@
+# Optional local CPU pilot. Choice recognition remains available without these.
+-r requirements.txt
+onnx==1.19.1
+onnxruntime==1.23.2

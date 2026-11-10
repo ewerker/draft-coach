@@ -1,6 +1,8 @@
 # Draft Coach
 
-Ausbau: [Gesamtplan für den Lern- und Freigabeprozess](docs/lernprozess-gesamtplan.md) mit nummerierten Abnahmekriterien und [prüfbarem Paketstatus](docs/learning-plan.json). Punkt 1 ist zur Umsetzung freigegeben; weitere Pakete folgen getrennt.
+Ausbau: [Gesamtplan für den Lern- und Freigabeprozess](docs/lernprozess-gesamtplan.md) mit nummerierten Abnahmekriterien und [prüfbarem Paketstatus](docs/learning-plan.json). P1/P2 sind technisch geprüft; P3 befindet sich im Erkennungspilot. Weitere Pakete folgen getrennt.
+
+**Truppenbeobachtung P3:** Ein zusätzlicher begrenzter CPU-Prozess untersucht beide Spielfeldbereiche, ohne die Kartenerkennung abzuwarten. Die zweisprachige Anzeige trennt Typkandidaten, sichtbare Mindestzahlen, unbekannte Ausbauformen und ältere Beobachtungen. Ein lokaler ONNX-Prototypenkandidat wird mit den bisherigen Vorlagen verglichen; ohne optionale Pakete läuft dieselbe Klassifikation mit NumPy. Die erste unabhängige Messung erreicht die Erkennungsziele **nicht**. Die Schätzungen steuern deshalb noch keine Tipps oder Klicks. [Pilotbericht und offene Abnahme](docs/p3-truppenpilot.md).
 
 [English](README.md)
 

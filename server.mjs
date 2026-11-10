@@ -14,6 +14,8 @@ import {collectionLineup} from './collection-lineup.mjs';
 import {ruleEvidence} from './learning.mjs';
 import {createReferenceStore} from './reference-store.mjs';
 import {buildFieldEvaluation,fieldReadiness} from './field-learning.mjs';
+import {acceptArmyObservation,updateArmyHistory,armyPilotGate} from './army-state.mjs';
+import {createArmyService} from './army-service.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
@@ -222,7 +224,8 @@ let savedReferences=await referenceStore.list();
 let referenceSaving=false;
 function referenceExamples(){return savedReferences.flatMap(ref=>(ref.corrections||[]).map(c=>({...c,path:referenceStore.image(ref.id)})));}
 const fieldLearningFile=path.join(RUNTIME,'feld-lernstand.json');
-const fieldLearningRevision=createHash('sha256').update(await readFile(path.join(ROOT,'vision.py'))).update(await readFile(path.join(ROOT,'field-learning.py'))).digest('hex');
+const fieldLearningRevision=createHash('sha256').update(await readFile(path.join(ROOT,'vision.py'))).update(await readFile(path.join(ROOT,'field-learning.py')))
+  .update(await readFile(path.join(ROOT,'army-vision.py'))).update(await readFile(path.join(ROOT,'army-evaluation.py'))).digest('hex');
 let fieldLearning=await readFile(fieldLearningFile,'utf8').then(JSON.parse).catch(()=>null);
 let fieldLearningRunning=false,fieldLearningError=null;
 function fieldLearningStatus(){
@@ -231,7 +234,9 @@ function fieldLearningStatus(){
   const metrics=fresh?fieldLearning.metrics:null;
   return {inventory:plan.inventory,pending:!fresh,running:fieldLearningRunning,error:fieldLearningError,
     evaluatedAt:fresh?fieldLearning.at:null,metrics,
-    readiness:{own:fieldReadiness(metrics?.own),enemy:fieldReadiness(metrics?.enemy)},eligibleCases:plan.cases.length};
+    readiness:{own:fieldReadiness(metrics?.own),enemy:fieldReadiness(metrics?.enemy)},eligibleCases:plan.cases.length,
+    pilot:fresh?fieldLearning.pilot??null:null,
+    pilotGate:{own:armyPilotGate(fresh?fieldLearning?.pilot?.results?.prototype?.own:null),enemy:armyPilotGate(fresh?fieldLearning?.pilot?.results?.prototype?.enemy:null)}};
 }
 async function evaluateFieldLearning(){
   if(fieldLearningRunning||backupInProgress||state.auto||state.capturing||state.recognizing||activeMatch||queue.running)return;
@@ -240,21 +245,44 @@ async function evaluateFieldLearning(){
   fieldLearningRunning=true;fieldLearningError=null;
   try{
     const metrics=await new Promise((resolve,reject)=>{
-      const worker=spawn(PYTHON,[path.join(ROOT,'field-learning.py')],{cwd:ROOT,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8'}});
+      const worker=spawn(PYTHON,[path.join(ROOT,'army-evaluation.py')],{cwd:ROOT,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8'}});
       let out='',err='',interrupted=false;const timeout=setTimeout(()=>worker.kill(),120000);
       const guard=setInterval(()=>{if(state.auto||state.capturing||activeMatch){interrupted=true;worker.kill();}},300);
       worker.stdout.on('data',chunk=>out+=chunk);worker.stderr.on('data',chunk=>err+=chunk);
       worker.on('error',reject);worker.on('close',code=>{clearTimeout(timeout);clearInterval(guard);if(code!==0)return reject(Error(interrupted?'PLAY_STARTED':err.slice(-500)||'Prüfung abgebrochen'));try{resolve(JSON.parse(out));}catch{reject(Error('Ungültiges Prüfergebnis'));}});
-      worker.stdin.on('error',()=>{});worker.stdin.end(JSON.stringify({examples:plan.examples,cases:plan.cases}));
+      worker.stdin.on('error',()=>{});worker.stdin.end(JSON.stringify({examples:plan.examples,cases:plan.cases,unitNames:CARDS.filter(c=>c.kind==='unit').map(c=>c.name)}));
     });
     if(plan.fingerprint===buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision).fingerprint){
-      fieldLearning={fingerprint:plan.fingerprint,at:Date.now(),metrics};
-      await writeFile(fieldLearningFile,JSON.stringify(fieldLearning));
+      fieldLearning={fingerprint:plan.fingerprint,at:Date.now(),metrics:metrics.results.baseline,pilot:metrics};
+      const temporary=fieldLearningFile+'.tmp';await writeFile(temporary,JSON.stringify(fieldLearning));await rename(temporary,fieldLearningFile);
     }
   }catch(error){if(error.message!=='PLAY_STARTED'){fieldLearningError=error.message;console.error('Lernprüfung:',error.message);}}
   finally{fieldLearningRunning=false;}
 }
 setInterval(()=>{if(!fieldLearningError)void evaluateFieldLearning();},15000).unref();
+let lastArmyObservation=null,armyPlan=null;
+const armyService=createArmyService({python:PYTHON,root:ROOT,onResult:packet=>{
+  const match=activeMatch;
+  if(!match||match.id!==packet.matchId||match.device!==packet.device||backupInProgress)return;
+  const values={own:Object.fromEntries(collection.units.units.map(c=>[c.name,{level:c.bottom_badge,stars:c.blue_star}])),
+    enemy:Object.fromEntries([...match.enemyDeck.values()].map(c=>[c.name,{level:c.orange?.value,stars:c.blue?.value}]))};
+  const observation=acceptArmyObservation(packet,lastArmyObservation?.matchId===match.id?lastArmyObservation:null,
+    {matchId:match.id,device,frameId:state.latestId,values,expectedOwn:Object.fromEntries(match.ownReinforcements)});
+  if(!observation)return;
+  lastArmyObservation=observation;updateArmyHistory(match,observation);
+  const frame=match.reviewFrames.find(frame=>frame.id===packet.frameId);
+  if(frame)frame.armyObservation=match.armyObservations.at(-1);
+  scheduleCheckpoint(match);
+},onError:message=>console.error('Truppenbeobachtung:',message)});
+function observeArmies(job,result){
+  if(!activeMatch||activeMatch.id!==job.matchId||job.source==='reference'||!['battle_choice','spell_choice','battle'].includes(result.phase))return;
+  const next=buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision);
+  if(armyPlan?.fingerprint!==next.fingerprint)armyPlan=next;
+  if(!armyPlan.examples.length)return;
+  armyService.submit({id:job.id,path:job.path,matchId:job.matchId,device:job.target,capturedAt:job.started,
+    language:job.gameLanguage,phase:result.phase,mode:job.mode,revision:armyPlan.fingerprint,
+    examples:armyPlan.examples,testPaths:[...new Set(armyPlan.cases.map(c=>c.path))],enemyCandidates:[...activeMatch.enemyDeck.values()].map(c=>c.name)});
+}
 
 if(!existsSync(archiveFile)){
   const schema=await readFile(path.join(ROOT,'data','archive-schema.sql'),'utf8');
@@ -296,7 +324,7 @@ function recognize(job) {
     const timer=setTimeout(()=>{waiting.delete(job.id);reject(Error('Erkennung nach 15 Sekunden abgebrochen'));worker.kill();},15000);
     const preferred=extendedPool||state.mode==='auto'?[]:[...allowedNames(collection,state.mode)];
     waiting.set(job.id,{resolve,reject,timer});
-    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,bannerTemplate:job.bannerTemplate,reviewCrop:job.reviewCrop,language:job.gameLanguage,preferred,learnedBanners,learnedReferences:referenceExamples()})+'\n');
+    worker.stdin.write(JSON.stringify({id:job.id,path:job.path,preparation:job.preparation,geometryOnly:job.geometryOnly,bannerTemplate:job.bannerTemplate,reviewCrop:job.reviewCrop,language:job.gameLanguage,preferred,learnedBanners,learnedReferences:referenceExamples(),fieldAnalysis:job.source==='reference'})+'\n');
   });
 }
 function preparationVersion() {
@@ -644,6 +672,7 @@ function record(job,result) {
     match.reviewFrames.push(makeReviewFrame(job,rawRecognition,item,match));
   }
   if(liveMatch)scheduleCheckpoint(match);
+  if(liveMatch)observeArmies(job,rawRecognition);
   if(job.source!=='reference'&&(cardChoice||item.phase==='spell_choice'))latestRelevant=item;
   if(job.source!=='reference'&&cardChoice){
     // A newer result can arrive between displaying a frame and receiving its click.
@@ -1430,7 +1459,7 @@ async function handleRequest(req,res){
       if(url.pathname==='/api/admin/knowledge/edit'){
         await syncKnowledge();await archive.knowledge.edit(data);return json(res,200,await archive.knowledge.list());
       }
-      if(url.pathname==='/api/learning/check') {fieldLearningError=null;void evaluateFieldLearning();return json(res,202,fieldLearningStatus());}
+      if(url.pathname==='/api/learning/check') {fieldLearningError=null;armyService.reset();void evaluateFieldLearning();return json(res,202,fieldLearningStatus());}
       if(url.pathname==='/api/learning/suggest') {
         if(state.auto||state.capturing||state.recognizing||activeMatch||queue.running)throw Error('Bitte zuerst den Automodus nach der Partie stoppen.');
         let added=0;
@@ -1788,6 +1817,8 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
+      state.armyObservation=lastArmyObservation&&lastArmyObservation.matchId===(activeMatch??stoppedMatch)?.id&&lastArmyObservation.device===device?lastArmyObservation:null;
+      state.armyStatus=armyService.status();
       return json(res,200,{...state,recoveryMatches,backgroundWorking:backgroundRunner.working,savedReferences,stopAfterLosses,lossStreak,lossStopEvent,activeMatchId:activeMatch?.id??null,ownCardValueChanges:activeMatch?.cardValueChanges.slice(-3)??[],recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
@@ -1837,7 +1868,7 @@ async function handleRequest(req,res){
     else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
     const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));
@@ -1886,7 +1917,7 @@ server.listen(PORT,'127.0.0.1',()=>console.log('Draft Coach: http://127.0.0.1:'+
 const lanServer=lanAddress?http.createServer(handleRequest):null;
 lanServer?.on('error',error=>console.error('LAN-Zugriff:',error.message));
 lanServer?.listen(PORT,lanAddress,()=>console.log('Draft Coach LAN: http://'+lanAddress+':'+PORT));
-function shutdown(){setAuto(false);for(const timer of checkpointTimers.values())clearTimeout(timer);worker.kill();server.close();lanServer?.close();}
+function shutdown(){setAuto(false);for(const timer of checkpointTimers.values())clearTimeout(timer);armyService.close();worker.kill();server.close();lanServer?.close();}
 async function stopSignal(){
   setAuto(false);setAutoTap(false);
   try{if(activeMatch)await checkpointNow(activeMatch,'paused');if(stoppedMatch)await checkpointNow(stoppedMatch,'paused');}

@@ -1,6 +1,7 @@
 import {tacticText,reviewMessage,reviewTapReason,displayNames,translate} from './language.mjs';
 import {createKnowledgePanel} from './knowledge.mjs';
 import {createPersistencePanel} from './persistence.mjs';
+import {renderArmy} from './army.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -18,7 +19,7 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
-for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel']){
+for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel','army-panel']){
   const panel=$(id);
   const saved=preferences.panelOpen?.[id];
   if(typeof saved==='boolean')panel.open=saved;
@@ -1614,6 +1615,23 @@ async function refreshFieldLearning(force=false){
       if(m&&Object.keys(m.types||{}).length){const breakdown=document.createElement('details');breakdown.append(textEl('summary',en?'Results by unit type':'Ergebnisse je Figur'));for(const [name,t] of Object.entries(m.types).sort(([a],[b])=>a.localeCompare(b)))breakdown.append(textEl('p',`${displayNames(name,language)}: ${en?'recognized':'erkannt'} ${t.tp}, ${en?'missed':'übersehen'} ${t.fn}, ${en?'false detections':'falsch erkannt'} ${t.fp}`,'muted'));box.append(breakdown);}
     }
     box.append(textEl('p',en?'Test matches are separate from training matches. Provisional target for each side: 30 complete images from 5 test matches, 3 unit types, 95% precision and 90% recall. Unassigned images cannot validate independence.':'Testpartien sind von den Lernpartien getrennt. Vorläufiges Ziel je Seite: 30 vollständige Bilder aus 5 Testpartien, 3 Figurentypen, 95 % Präzision und 90 % Trefferquote. Bilder ohne Partienzuordnung zählen nicht für den unabhängigen Test.','muted'));
+    if(data.pilot){
+      const pilot=data.pilot,details=document.createElement('details');
+      details.open=preferences.panelOpen?.['army-pilot-details']??false;
+      details.addEventListener('toggle',()=>rememberPreferences({panelOpen:{...preferences.panelOpen,'army-pilot-details':details.open}}));
+      details.append(textEl('summary',en?'P3: local detector comparison and coverage':'P3: Lokaler Erkennungsvergleich und Abdeckung'));
+      details.append(textEl('p',en?`Prototype classifier: ${pilot.backend} on CPU · ${pilot.trainingExamples} labelled examples. No general-purpose neural detector.`:`Prototypen-Klassifikation: ${pilot.backend} auf der CPU · ${pilot.trainingExamples} beschriftete Beispiele. Kein universell trainierter neuronaler Detektor.`,'muted'));
+      for(const engine of ['baseline','prototype'])for(const side of ['own','enemy']){
+        const m=pilot.results[engine][side],label=(side==='own'?(en?'Own':'Eigene'):(en?'Enemy':'Gegner'))+' · '+(engine==='baseline'?(en?'previous templates':'bisherige Vorlagen'):(en?'new candidate':'neuer Kandidat'));
+        details.append(textEl('p',`${label}: ${en?'correct / false / missed':'richtig / falsch / übersehen'} ${m.tp}/${m.fp}/${m.fn} · P95 ${m.latency.p95??'—'} ms · ${en?'count mean error':'mittlerer Zählfehler'} ${m.countMAE?.toFixed(1)??'—'} · ${en?'labelled evolutions':'beschriftete Ausbauformen'} ${m.stageEligible}`));
+        const per=document.createElement('details');per.append(textEl('summary',en?'By type, language, geometry and phase':'Nach Figur, Sprache, Geometrie und Phase'));
+        for(const [key,r] of Object.entries(m.strata))per.append(textEl('p',`${displayNames(key.split('|')[0],language)} · ${key.split('|').slice(1).join(' · ')}: ${r.tp}/${r.fp}/${r.fn}`,'muted'));
+        details.append(per);
+      }
+      details.append(textEl('p',(en?'No training examples yet: ':'Noch keine Lernbeispiele: ')+displayNames(pilot.missingTypes.join(', '),language),'muted'));
+      details.append(textEl('p',en?'Repeated pilot measurements are development diagnostics. A fresh held-out match set is required before release. Own and enemy counts and evolution forms remain unapproved.':'Wiederholte Pilotmessungen dienen der Entwicklung. Vor einer Freigabe ist ein neuer, getrennt bestätigter Testbestand nötig. Eigene und gegnerische Anzahlen und Ausbauformen sind noch nicht freigegeben.','muted'));
+      box.append(details);
+    }
     box.append(textEl('p',data.error?(en?'Evaluation error: ':'Fehler bei der Prüfung: ')+data.error:data.running?(en?'Evaluation is running.':'Prüfung läuft.'):data.pending?(en?'Evaluation is pending; it runs after play stops when sufficient data is available.':'Prüfung ausstehend; sie läuft nach dem Spiel, sobald ausreichend Daten vorliegen.'):(en?'Evaluation is up to date.':'Prüfung ist aktuell.'),'muted'));
     box.append(textEl('p',en?'Recognition is observational only; it does not change recommendations or automatic taps. Count and upgrade require separate validation.':'Die Erkennung dient der Beobachtung und verändert weder Tipps noch automatische Klicks. Anzahl und Ausbau benötigen eine eigene Prüfung.','muted'));
   }catch{ $('field-learning-status').textContent=language==='en'?'Learning status unavailable.':'Lernstand derzeit nicht verfügbar.'; }
@@ -1969,6 +1987,8 @@ async function refresh(){
   if(coachView==='review')void persistencePanel.refreshJobs();
   if(request<renderedRequest)return;
   renderedRequest=request;
+  const armyKey=JSON.stringify([language,state.armyObservation,state.armyStatus?.error,Boolean(state.armyObservation&&Date.now()-state.armyObservation.capturedAt>6000)]);
+  if($('army-observation').dataset.key!==armyKey){$('army-observation').dataset.key=armyKey;renderArmy($('army-observation'),state.armyObservation,state.armyStatus,language);}
   const prep=state.mode==='prep', conn=state.connection||{status:'checking'};
   $('setup').hidden=!prep;
   if(!setupPath&&conn.transport)showSetupPath(conn.transport==='wifi'?'pair':'usb');
