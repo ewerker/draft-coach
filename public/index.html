@@ -50,7 +50,7 @@
   <details><summary>Wie verwende ich Prüfbilder und Regelbelege?</summary><p>In der Partieauswertung kannst du ein verfügbares Bild als Prüfbild übernehmen. Unter Vorbereitung siehst du es vollständig und kannst eigene sowie gegnerische Figuren getrennt markieren. Anzahl und Ausbau lassen sich als eigene Beobachtung ergänzen. Bei Taktikregeln zeigen zugeordnete, gesendete Entscheidungen ihre Partieergebnisse; Siege und Niederlagen beweisen keine Regelwirkung. Regeln bleiben bis zur eigenen Änderung in ihrem bisherigen Status.</p></details>
   <details><summary>Wie sicher sind Bildtreffer und Truppenzahlen?</summary><p>Vorläufige Bildtreffer suchen ähnliche markierte Ausschnitte. Überlappungen, andere Posen oder fehlende Vorlagen können zu fehlenden oder falschen Treffern führen. Die angezeigten Trefferzahlen sind keine sichere Zählung oder Ausbaustufe und verändern die Tipps noch nicht.</p></details>
   <details><summary>Wie lernt die Spielfelderkennung?</summary><p>Unter Vorbereitung zeigt Lernfortschritt die verfügbaren Prüfbilder und die unabhängige Auswertung. Nach dem Spiel kannst du bis zu drei Bilder aus verschiedenen Partien vorschlagen lassen. Öffne ein Prüfbild, markiere die sichtbaren Figurentypen und bestätige nur vollständige Angaben. Ganze Partien bleiben für den Test getrennt. Die Prüfung läuft außerhalb des Spiels. Ergebnisse zu Anzahl und Ausbau sind getrennt; die Bildtreffer beeinflussen Tipps noch nicht.</p></details>
-  <details><summary>Was enthält die Sicherung?</summary><p>Unter Admin · Archiv übernimmst du abgeschlossene Partien und lädst die SQLite-Sicherung herunter. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek wird separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
+  <details><summary>Was enthält die Sicherung?</summary><p>Abgeschlossene Partien werden automatisch archiviert. Unter Admin · Archiv kannst du die SQLite-Sicherung herunterladen. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek und die Prüfbilder aus der Vorbereitung werden separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.</p></details>
 </section>
 <section id="review-panel" class="panel" hidden>
   <div class="panel-head"><h2>Partie auswerten</h2><button id="close-review" type="button" class="small">Zurück zum Spiel</button></div>
@@ -105,14 +105,14 @@
 </section>
 <section id="admin-panel" class="panel" aria-labelledby="admin-title" hidden>
   <div class="panel-head"><h2 id="admin-title">Admin · Archiv</h2><button id="close-admin" type="button" class="small">Zurück zum Spiel</button></div>
-  <p>Abgeschlossene Partien werden automatisch ins SQLite-Archiv übernommen. Pro Partie sichert der Coach bis zu 80 ausgewählte, noch vorhandene Bilder. Die früheren Erkenntnisse sind ein separater Bestand und zählen nicht automatisch nach jeder Partie hoch.</p>
-  <p id="archive-summary" role="status"></p>
+  <p>Abgeschlossene Partien werden automatisch gespeichert. Das Archiv bewahrt ihren Verlauf und ausgewählte Bilder für die spätere Auswertung auf.</p>
+  <div id="archive-summary" class="archive-summary" role="status"></div>
   <div class="tactics-actions">
-    <button id="archive-import" type="button" class="primary" disabled>Neue Partien übernehmen</button>
+    <button id="archive-import" type="button" hidden disabled>Ausstehende Partien nachholen</button>
     <button id="archive-refresh" type="button">Stand aktualisieren</button>
     <a id="archive-backup" href="/api/admin/archiv/sicherung" download>SQLite-Sicherung herunterladen</a>
   </div>
-  <p class="muted">Die Sicherung enthält das SQLite-Archiv samt eingebetteten Belegbildern. Die bearbeitbaren Taktikregeln werden separat gespeichert.</p>
+  <p class="muted">Die Sicherung enthält das SQLite-Archiv samt eingebetteten Belegbildern und Prüffällen. Die aktiven Taktikregeln und die Prüfbilder aus der Vorbereitung werden separat gespeichert.</p>
   <p id="archive-message" role="status"></p>
   <form id="ai-key-form" autocomplete="off">
     <h3>OpenAI-API-Key</h3>
@@ -126,7 +126,7 @@
   </form>
   <h3>Zuletzt archivierte Partien</h3>
   <ul id="archive-games"></ul>
-  <details><summary>Frühere Erkenntnisse im Archiv</summary><ul id="archive-findings"></ul></details>
+  <details><summary id="archive-findings-label">Frühere Analysen</summary><p>Diese älteren Beobachtungen wurden mit Belegbildern aufbewahrt. Sie sind keine aktiven Taktikregeln und ändern die Empfehlungen nicht automatisch.</p><ul id="archive-findings"></ul></details>
 </section>
 <section id="quick-panel" class="panel quick" aria-labelledby="quick-title" hidden>
   <div class="quick-header">

@@ -98,6 +98,7 @@ $('language').onchange=()=>{
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
   }
   if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);}
+  if(coachView==='admin'&&lastArchiveData)renderArchive(lastArchiveData);
   void refreshFieldLearning(true);
   void action(()=>post('/api/settings',{gameLanguage:language}));
 };
@@ -280,7 +281,7 @@ $('capture').onclick=async()=>{
 };
 let coachView='game';
 let gameMode=$('mode').value;
-const viewHints={review:'Partie auswerten',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Partien archivieren und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
+const viewHints={review:'Partie auswerten',quick:'Fragen aus dem lokalen Taktiklexikon beantworten.',tactics:'Regeln, Testvorschauen und Notizen bearbeiten.',admin:'Gespeicherte Partien ansehen und SQLite-Sicherungen herunterladen.',help:'Anleitung und Antworten auf häufige Fragen.'};
 function showCoachView(view){
   if(view!=='quick')stopQuickDictation();
   coachView=view;
@@ -844,10 +845,19 @@ function renderReviewCases(cases){
     panel.append(article);
   }
 }
-let archiveBusy=false;
+let archiveBusy=false,lastArchiveData=null;
 function renderArchive(data){
-  const size=new Intl.NumberFormat('de',{maximumFractionDigits:1}).format(data.bytes/1024/1024);
-  $('archive-summary').textContent=language==='en'?`${data.games} archived matches · ${data.pending} awaiting archiving · ${data.evidence} evidence images · ${data.insights} earlier notes · ${size} MiB`:`${data.games} gesicherte Partien · ${data.pending} noch nicht gesichert · ${data.evidence} Belegbilder · ${data.insights} frühere Erkenntnisse · ${size} MiB`;
+  lastArchiveData=data;
+  const en=language==='en',locale=en?'en-GB':'de-DE';
+  const size=new Intl.NumberFormat(locale,{maximumFractionDigits:1}).format(data.bytes/1024/1024);
+  const latest=data.recent?.[0];
+  const date=latest?new Date(latest.ende_ms).toLocaleString(locale):null;
+  const summary=$('archive-summary');summary.replaceChildren();
+  summary.append(textEl('p',en?`${data.games} matches saved · ${data.evidence} evidence images · ${size} MiB`:`${data.games} Partien gespeichert · ${data.evidence} Belegbilder · ${size} MiB`));
+  summary.append(textEl('p',date?(en?`Latest archived match: ${date}`:`Zuletzt archivierte Partie: ${date}`):(en?'No match has been archived yet.':'Noch keine Partie archiviert.'),'muted'));
+  summary.append(textEl('p',data.pending?(en?`${data.pending} matches still need archiving. Use the button below to retry.`:`${data.pending} Partien warten noch. Mit dem Knopf unten kannst du die Übernahme nachholen.`):(en?'Everything saved so far is archived. No manual action is needed.':'Alle bisher gespeicherten Partien sind archiviert. Du musst nichts von Hand übernehmen.'),'muted'));
+  $('archive-findings-label').textContent=en?`Earlier analyses · ${data.insights}`:`Frühere Analysen · ${data.insights}`;
+  $('archive-import').hidden=!data.pending;
   $('archive-import').disabled=!data.pending;
   const recent=$('archive-games');
   recent.replaceChildren(...data.recent.map(game=>{

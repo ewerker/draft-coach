@@ -300,6 +300,13 @@ Aufnahmen auswerten|Analyse captures
 Geprüfte Sammlung übernehmen|Save reviewed collection
 Referenzbilder und Korrekturen|Reference images and corrections
 Lernfortschritt|Learning progress
+Gespeicherte Partien ansehen und SQLite-Sicherungen herunterladen.|View saved matches and download SQLite backups.
+Abgeschlossene Partien werden automatisch archiviert. Unter Admin · Archiv kannst du die SQLite-Sicherung herunterladen. Sie enthält archivierte Partien, Klickprotokolle, Belegbilder und Prüffälle samt Regelhistorie. Die laufende Taktikbibliothek und die Prüfbilder aus der Vorbereitung werden separat gespeichert. Ältere Bilder lassen sich erneut auswerten, solange sie noch vorhanden oder als Beleg gesichert sind.|Completed matches are archived automatically. Under Admin · Archive you can download the SQLite backup. It contains archived matches, tap logs, evidence images and review cases with rule history. The active tactics library and setup review images are stored separately. Older images can be reviewed while they are available or saved as evidence.
+Abgeschlossene Partien werden automatisch gespeichert. Das Archiv bewahrt ihren Verlauf und ausgewählte Bilder für die spätere Auswertung auf.|Completed matches are saved automatically. The archive retains their history and selected images for later review.
+Ausstehende Partien nachholen|Retry pending matches
+Die Sicherung enthält das SQLite-Archiv samt eingebetteten Belegbildern und Prüffällen. Die aktiven Taktikregeln und die Prüfbilder aus der Vorbereitung werden separat gespeichert.|The backup contains the SQLite archive with its embedded evidence images and review cases. Active tactical rules and the setup review images are stored separately.
+Frühere Analysen|Earlier analyses
+Diese älteren Beobachtungen wurden mit Belegbildern aufbewahrt. Sie sind keine aktiven Taktikregeln und ändern die Empfehlungen nicht automatisch.|These older observations were retained with evidence images. They are not active tactical rules and do not automatically change recommendations.
 Prüfung anstoßen|Run evaluation
 Bilder aus Partien vorschlagen|Suggest match images
 Wie lernt die Spielfelderkennung?|How does field recognition learn?
