@@ -14,6 +14,7 @@ import {collectionLineup} from './collection-lineup.mjs';
 import {ruleEvidence} from './learning.mjs';
 import {createReferenceStore} from './reference-store.mjs';
 import {buildFieldEvaluation,fieldReadiness} from './field-learning.mjs';
+import {selectImageQuestions} from './image-review.mjs';
 import {acceptArmyObservation,updateArmyHistory,armyPilotGate} from './army-state.mjs';
 import {createArmyService} from './army-service.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
@@ -115,7 +116,7 @@ async function captureVersions(){
 function backgroundBusy(ignoreArchive=false){return !persistenceReady||backupInProgress||state.auto||state.capturing||state.recognizing||Boolean(activeMatch)||queue.running||manualTapPending||importing||savingTactics||referenceSaving||fieldLearningRunning||lossGuardSaving||Boolean(stoppedMatch?.saving)||!ignoreArchive&&archive.busy;}
 const backgroundRunner=createJobRunner(archive.runs,{busy:backgroundBusy,playing:()=>backgroundBusy(true),handlers:{
   archive:async(job,guard)=>{const result=await archive.archiveGames(job.match_id,guard);setMatchArchiveStatus(job.match_id,'archived');return {kind:'archive',images:result.images,skipped:result.skipped};},
-  prepare_review:async(job,guard)=>{guard();await syncKnowledge();guard();return archive.runs.report(job.match_id);}
+  prepare_review:async(job,guard)=>{guard();await syncKnowledge();guard();await proposeImageQuestions(job.match_id,guard);return archive.runs.report(job.match_id);}
 }});
 setInterval(()=>void backgroundRunner.tick().catch(error=>console.error('Hintergrundauftrag:',error.message)),1500).unref();
 let recentMatchResults=[];
@@ -222,7 +223,47 @@ await mkdir(PREPARATION,{recursive:true});
 const referenceStore=await createReferenceStore(path.join(RUNTIME,'referenzen'));
 let savedReferences=await referenceStore.list();
 let referenceSaving=false;
-function referenceExamples(){return savedReferences.flatMap(ref=>(ref.corrections||[]).map(c=>({...c,path:referenceStore.image(ref.id)})));}
+function referenceExamples(){return [...savedReferences.flatMap(ref=>(ref.corrections||[]).filter(c=>!c.phase.endsWith('_field')).map(c=>({...c,path:referenceStore.image(ref.id)}))),...buildFieldEvaluation(savedReferences,referenceStore.image).examples];}
+let projectingImageAnswer=false;
+const fieldUnitNames=()=>[...new Set([...CARDS.filter(c=>c.kind==='unit').map(c=>c.name),...collection.units.units.map(c=>c.name)].map(n=>n==='Verwüster'?'Zerstörer':n==='Bientank'?'Bienenkorb':n))];
+async function proposeImageQuestions(matchId,guard=()=>{}){
+  const listed=await archive.imageReview.list();
+  if(listed.counts.open>=36)return {added:0};
+  const games=matchId?[await archive.review.match(matchId)]:(await archive.review.matches()).slice(0,40);
+  let added=0;
+  for(const game of games){
+    guard();if(!game||!['gewonnen','verloren','abgebrochen','unbekannt'].includes(game.outcome)||listed.items.some(q=>q.match_id===game.id))continue;
+    for(const {frame,purpose} of selectImageQuestions(game)){
+      guard();
+      if(savedReferences.some(r=>r.matchId===game.id&&r.captureId===frame.id&&(r.complete?.own||r.complete?.enemy)))continue;
+      const png=await archive.review.image(game,frame.id);if(!png)continue;
+      if(await archive.imageReview.add(game,frame,png,purpose))added++;
+    }
+    if(added>=3)break;
+  }
+  return {added};
+}
+async function projectImageAnswer(){
+  if(projectingImageAnswer||backgroundBusy()||backgroundRunner.working)return;
+  projectingImageAnswer=true;
+  try{
+    const id=await archive.imageReview.pending();if(!id)return;
+    const question=await archive.imageReview.get(id,false);
+    referenceSaving=true;
+    try{
+      let ref=savedReferences.find(r=>r.guidedQuestionId===id||r.matchId===question.match_id&&r.captureId===question.capture_id);
+      if(!ref){ref=await referenceStore.add(await archive.imageReview.image(id),{source:'match',matchId:question.match_id,captureId:question.capture_id,phase:question.context.phase,language:question.context.language});savedReferences.unshift(ref);}
+      const updated=await referenceStore.confirmField(ref.id,question);
+      savedReferences=savedReferences.map(r=>r.id===ref.id?updated:r);
+      await archive.imageReview.projected(id,question.revision,ref.id);
+      fieldLearningError=null;fieldLearning=null;armyPlan=null;
+    }catch(error){await archive.imageReview.projected(id,question.revision,null,error.message);}
+    finally{referenceSaving=false;}
+    await syncKnowledge();void evaluateFieldLearning();
+  }catch(error){console.error('Bildbestätigung:',error.message);}
+  finally{projectingImageAnswer=false;}
+}
+setInterval(()=>void projectImageAnswer(),2000).unref();
 const fieldLearningFile=path.join(RUNTIME,'feld-lernstand.json');
 const fieldLearningRevision=createHash('sha256').update(await readFile(path.join(ROOT,'vision.py'))).update(await readFile(path.join(ROOT,'field-learning.py')))
   .update(await readFile(path.join(ROOT,'army-vision.py'))).update(await readFile(path.join(ROOT,'army-evaluation.py'))).digest('hex');
@@ -1432,6 +1473,15 @@ async function handleRequest(req,res){
       if(req.headers['x-coach-token']!==token)return json(res,403,{error:'Anfrage nicht freigegeben'});
       const data=await body(req);
       if(backupInProgress&&url.pathname!=='/api/browser/leave')throw Error('Bitte warten, bis die vollständige Sicherung beendet ist.');
+      if(url.pathname==='/api/image-review/suggest'){
+        if(backgroundBusy()||projectingImageAnswer)throw Error('IMAGE_REVIEW_BUSY');
+        return json(res,200,await proposeImageQuestions(null,()=>{if(state.auto||activeMatch)throw Error('IMAGE_REVIEW_BUSY');}));
+      }
+      if(url.pathname==='/api/image-review/answer'){
+        if(projectingImageAnswer||backupInProgress)throw Error('IMAGE_REVIEW_BUSY');
+        return json(res,200,await archive.imageReview.answer(data.id,data.revision,data.answer,new Set(fieldUnitNames())));
+      }
+      if(url.pathname==='/api/image-review/retry'){await archive.imageReview.retry(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/admin/jobs/retry'){await archive.runs.retry(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/matches/recover'){
         if(state.auto||state.capturing||state.recognizing||activeMatch||queue.running)throw Error('Bitte zuerst die Aufnahme stoppen.');
@@ -1792,6 +1842,18 @@ async function handleRequest(req,res){
       return json(res,404,{error:'Nicht gefunden'});
     }
     if(req.method!=='GET')return json(res,405,{error:'Nicht unterstützt'});
+    if(url.pathname==='/api/image-review')return json(res,200,await archive.imageReview.list());
+    if(url.pathname==='/api/image-review/item'){
+      const question=await archive.imageReview.get(url.searchParams.get('id'));
+      if(!question)return json(res,404,{error:'IMAGE_QUESTION_NOT_FOUND'});
+      return json(res,200,{...question,cards:fieldUnitNames(),evaluation:fieldLearningStatus()});
+    }
+    if(url.pathname==='/api/image-review/image'){
+      const id=url.searchParams.get('id');let png=await archive.imageReview.image(id);
+      if(!png){const q=await archive.imageReview.get(id);if(q?.reference_id)png=await readFile(referenceStore.image(q.reference_id)).catch(()=>null);}
+      if(!png)return json(res,404,{error:'IMAGE_QUESTION_NOT_FOUND'});
+      res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'private, no-store'});return res.end(png);
+    }
     if(url.pathname==='/api/admin/jobs')return json(res,200,{jobs:await archive.runs.jobs(),recoveries:recoveryMatches,paused:backgroundBusy(),images:await archive.runs.imageStatus()});
     if(url.pathname==='/api/admin/knowledge'){
       await syncKnowledge();return json(res,200,await archive.knowledge.list());
@@ -1868,7 +1930,7 @@ async function handleRequest(req,res){
     else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
     const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));

@@ -25,6 +25,7 @@ export async function createReferenceStore(root){
     const item=JSON.parse(await readFile(meta(id),'utf8'));
     item.corrections=(item.corrections||[]).filter(c=>c.position!==correction.position||c.phase!==correction.phase);
     item.corrections.push(correction);
+    if(correction.phase.endsWith('_field')&&item.fieldConfirmations)delete item.fieldConfirmations[correction.phase.slice(0,-6)];
     if(correction.phase.endsWith('_field')&&item.complete) item.complete[correction.phase.slice(0,-6)]=false;
     const temporary=meta(id)+'.tmp';
     await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));
@@ -34,6 +35,7 @@ export async function createReferenceStore(root){
     if(!valid(id)||!['own','enemy'].includes(side)||typeof complete!=='boolean')throw Error('Ungültige Prüfangabe.');
     const item=JSON.parse(await readFile(meta(id),'utf8'));
     item.complete={...item.complete,[side]:complete};
+    if(item.fieldConfirmations)delete item.fieldConfirmations[side];
     const temporary=meta(id)+'.tmp';await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));
     return item;
   }
@@ -42,10 +44,27 @@ export async function createReferenceStore(root){
     const item=JSON.parse(await readFile(meta(id),'utf8'));
     item.corrections=(item.corrections||[]).filter(c=>c.phase!==side+'_field'||positions.includes(c.position));
     item.complete={...item.complete,[side]:false};
+    if(item.fieldConfirmations)delete item.fieldConfirmations[side];
     const temporary=meta(id)+'.tmp';await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));
     return item;
   }
   async function renameSafe(from,to){const {rename}=await import('node:fs/promises');await rename(from,to);}
+  async function confirmField(id,question){
+    if(!valid(id))throw Error('Ungültige Referenz.');
+    const item=JSON.parse(await readFile(meta(id),'utf8'));
+    item.fieldConfirmations??={};
+    for(const [side,value] of Object.entries(question.answer.sides)){
+      // "Cannot assess" withdraws only this question's earlier answer, never a
+      // separate player's existing annotations.
+      if(value.verdict==='unassessable'){
+        if(item.fieldConfirmations[side]?.questionId===question.id)delete item.fieldConfirmations[side];
+        continue;
+      }
+      item.fieldConfirmations[side]={...value,questionId:question.id,revision:question.revision,actor:'player',confirmedAt:Date.now()};
+    }
+    item.guidedQuestionId=question.id;item.imageHash=question.image_hash;item.reviewPurpose=question.purpose;
+    const temporary=meta(id)+'.tmp';await writeFile(temporary,JSON.stringify(item));await renameSafe(temporary,meta(id));return item;
+  }
   async function remove(id){if(!valid(id))throw Error('Ungültige Referenz.');await unlink(meta(id));await unlink(image(id)).catch(()=>{});}
-  return {list,add,correct,setComplete,keepFieldPositions,remove,image,valid};
+  return {list,add,correct,setComplete,keepFieldPositions,confirmField,remove,image,valid};
 }

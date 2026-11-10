@@ -75,19 +75,29 @@
       ],
       "acceptance": "A3",
       "evidence": [
-        {"type":"pilot_report","path":"docs/p3-truppenpilot.md","value":"Asynchronous observation pipeline implemented; initial CPU comparison does not meet recognition targets. Counts/evolution and actual manual choices remain unvalidated. A3 pending."}
+        {
+          "type": "pilot_report",
+          "path": "docs/p3-truppenpilot.md",
+          "value": "Asynchronous observation pipeline implemented; initial CPU comparison does not meet recognition targets. Counts/evolution and actual manual choices remain unvalidated. A3 pending."
+        }
       ]
     },
     {
       "id": "P4",
       "title": "Gezielte Bildbestätigung durch den Spieler",
-      "status": "planned",
+      "status": "implemented",
       "dependsOn": [
         "P1",
         "P2"
       ],
       "acceptance": "A4",
-      "evidence": []
+      "evidence": [
+        {
+          "type": "test_report",
+          "path": "docs/p4-bildbestaetigung.md",
+          "value": "Persistent player confirmations, independent match split and blind controls; user acceptance pending."
+        }
+      ]
     },
     {
       "id": "P5",

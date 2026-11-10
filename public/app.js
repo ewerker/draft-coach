@@ -2,6 +2,7 @@ import {tacticText,reviewMessage,reviewTapReason,displayNames,translate} from '.
 import {createKnowledgePanel} from './knowledge.mjs';
 import {createPersistencePanel} from './persistence.mjs';
 import {renderArmy} from './army.mjs';
+import {createImageReviewPanel} from './image-review.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -19,7 +20,7 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
-for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel','army-panel']){
+for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel','army-panel','image-review-panel']){
   const panel=$(id);
   const saved=preferences.panelOpen?.[id];
   if(typeof saved==='boolean')panel.open=saved;
@@ -59,6 +60,7 @@ function localizeNode(node){
     return;
   }
   if(node.nodeType!==Node.ELEMENT_NODE)return;
+  if(node.closest('[data-review-original]'))return;
   const saved=originalAttributes.get(node)??{};
   for(const name of translatedAttributes){
     const value=node.getAttribute(name);
@@ -100,7 +102,7 @@ $('language').onchange=()=>{
     renderTactics(tacticsData);
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
   }
-  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);knowledgePanel.render();}
+  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);knowledgePanel.render();imageReviewPanel.render();}
   persistencePanel.renderRecovery();persistencePanel.renderJobs();
   if(coachView==='admin'&&lastArchiveData)renderArchive(lastArchiveData);
   void refreshFieldLearning(true);
@@ -549,7 +551,7 @@ document.addEventListener('keydown',e=>{if(e.code==='Space'&&coachView==='game'&
 const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung',gewonnen:'Gewonnen',verloren:'Verloren'};
 const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
-if(config.localAdmin)$('organization-options').append(new Option('Partien und Auswertung','review'));
+$('organization-options').append(new Option('Partien und Auswertung','review'));
 let reviewedFrame=null,reviewGptEnabled=false,reviewData=null,reviewCases=[],reviewGames=[],reviewGame=null;
 let reviewArchiveKey=null,reviewListBusy=false;
 const reviewForm=$('review-form');
@@ -689,6 +691,11 @@ async function refreshReviewMatchList(){
 async function openReview(){
   await reviewAction(async()=>{
     clearReviewFrame();
+    await imageReviewPanel.refresh();
+    if(!config.localAdmin){
+      for(const child of $('review-panel').children)if(child.id!=='image-review-panel'&&!child.classList.contains('panel-head'))child.hidden=true;
+      return;
+    }
     await knowledgePanel.load();
     await persistencePanel.refreshJobs(true);
     const {games,cards,gpt}=await reviewGet('matches');
@@ -944,6 +951,8 @@ const knowledgePanel=createKnowledgePanel({root:$('knowledge-panel'),getLanguage
     }
   }});
 const persistencePanel=createPersistencePanel({jobsRoot:$('persistence-jobs'),recoveryRoot:$('recovery-panel'),getLanguage:()=>language,post,onChanged:()=>refresh()});
+const imageReviewPanel=createImageReviewPanel({root:$('image-review-content'),getLanguage:()=>language,post});
+$('image-review-shortcut').onclick=()=>action(async()=>{showCoachView('review');await openReview();$('image-review-panel').open=true;$('image-review-panel').scrollIntoView({block:'start',behavior:'smooth'});});
 let archiveBusy=false,lastArchiveData=null;
 function renderArchive(data){
   lastArchiveData=data;

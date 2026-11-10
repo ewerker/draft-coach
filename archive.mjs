@@ -1,5 +1,6 @@
 import {reviewQueries,reviewSchema,selectEvidenceIds} from './review.mjs';
 import {createKnowledgeStore,knowledgeSchema} from './knowledge.mjs';
+import {createImageReviewStore,imageReviewSchema} from './image-review.mjs';
 import {createMatchStore,matchStoreSchema,imageLimits,plainGame} from './match-store.mjs';
 import {sendFullBackup} from './full-backup.mjs';
 import {DatabaseSync,backup} from 'node:sqlite';
@@ -41,7 +42,7 @@ export function createArchive(file,runtime){
     await withDatabase(false,db=>{
       db.exec('BEGIN IMMEDIATE');
       try{
-        db.exec(knowledgeSchema+matchStoreSchema);
+        db.exec(knowledgeSchema+matchStoreSchema+imageReviewSchema);
         if(db.prepare('PRAGMA user_version').get().user_version<2)db.exec('PRAGMA user_version=2');
         db.exec('COMMIT');
       }
@@ -130,7 +131,7 @@ export function createArchive(file,runtime){
   const sendBundle=(response,python)=>exclusive(()=>sendFullBackup(response,{runtime,databaseFile:file,python,
     copyDatabase:destination=>withDatabase(true,db=>backup(db,destination))}));
   return {status,archiveGames,sendBackup,sendBundle,initializeReview,runs,preserveRunImages,
-    review:reviewQueries(journal,withDatabase,runtime,runs),knowledge:createKnowledgeStore(withDatabase),get busy(){return busy;}};
+    review:reviewQueries(journal,withDatabase,runtime,runs),knowledge:createKnowledgeStore(withDatabase),imageReview:createImageReviewStore(withDatabase),get busy(){return busy;}};
 }
 
 async function pickEvidence(runtime,game,ids){

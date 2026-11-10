@@ -81,6 +81,7 @@ def evaluate(data):
     detector = army.PrototypeDetector(examples, vision.load, backend)
     build_ms = round((time.perf_counter()-build_started)*1000, 2)
     results = {engine: {side: empty() for side in ('own', 'enemy')} for engine in ('baseline', 'prototype')}
+    controls = {engine: {side: empty() for side in ('own', 'enemy')} for engine in results}
     cases = []
     for case in data['cases']:
         geometry = None
@@ -99,15 +100,20 @@ def evaluate(data):
                     prediction, truncated = detected['groups'], detected['truncated']
                 elapsed = round((time.perf_counter()-begin)*1000, 2)
                 score(results[engine][case['side']], case, prediction, elapsed, geometry, truncated)
+                if case.get('reviewPurpose') == 'control':
+                    score(controls[engine][case['side']], case, prediction, elapsed, geometry, truncated)
                 record['predictions'][engine] = dict(groups=prediction, elapsedMs=elapsed, truncated=truncated)
         except Exception as error:
             record['error'] = str(error)
             for engine in results:
                 results[engine][case['side']]['errors'] += 1
+                if case.get('reviewPurpose') == 'control':
+                    controls[engine][case['side']]['errors'] += 1
         cases.append(record)
     for engine in results:
         for side in results[engine]:
             results[engine][side] = finish(results[engine][side])
+            controls[engine][side] = finish(controls[engine][side])
     covered = {army.canonical(entry['name']) for entry in examples}
     return dict(schemaVersion=1, method=army.VERSION, backend=backend, selection='fixed_before_test',
         modelBuildMs=build_ms, elapsedMs=round((time.perf_counter()-started)*1000, 2),
@@ -115,7 +121,7 @@ def evaluate(data):
         trainingTypes=sorted(covered), missingTypes=sorted(set(data.get('unitNames', []))-covered),
         independentTestMatches=sorted({case['matchId'] for case in data['cases']}),
         thresholds=dict(correlation=.80, descriptor=.89, outsidePoolDescriptor=.94, classMargin=.055),
-        results=results, cases=cases,
+        results=results, controlResults=controls, cases=cases,
         limits=['Type scores are not probabilities.', 'Counts are visible minima, not total army sizes.',
             'No learned evolution label when the player left stage blank.', 'Combat positions do not prove army ownership.',
             'No automatic rule activation or tactical efficacy claim.'])

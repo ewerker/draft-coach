@@ -77,6 +77,18 @@ for line in sys.stdin:
     assert.equal(evidence.frame.armyObservation.sides.own.groups[0].visibleMinimum,9);
     assert.equal(evidence.frame.armyObservation.actualChoice,'not_inferred');
     const games=await get('/api/admin/review/matches');assert.equal(games.games.filter(g=>g.id===original).length,1);
+    // P4 uses the real completed-match hook, durable answers and idle export.
+    const questions=await get('/api/image-review');assert.equal(questions.items.length,1);
+    const q=await get('/api/image-review/item?id='+questions.items[0].id);assert.equal(q.blind,true);assert.deepEqual(q.context.proposals,{});
+    const verified={language:'en',sides:{own:{verdict:'partial',typesComplete:false,groups:[{name:'Schnecke',typeConfirmed:true,count:6,countConfirmed:true,forms:[],box:[20,1600,100,1700]}]},enemy:{verdict:'unassessable',groups:[]}}};
+    await post('/api/image-review/answer',{id:q.id,revision:q.revision,answer:verified});
+    await eventually(async()=>{const list=await get('/api/image-review');return list.items[0].export_status==='done';});
+    const linked=(await get('/api/image-review')).items[0].reference_id;assert.ok(linked);
+    const annotation=JSON.parse(await readFile(path.join(dir,'runtime','referenzen',linked+'.json'),'utf8'));
+    assert.equal(annotation.fieldConfirmations.own.groups[0].count,6);assert.equal(annotation.fieldConfirmations.enemy,undefined);
+    await stop();await start();const restored=await get('/api/image-review/item?id='+q.id);
+    assert.equal(restored.answer.sides.own.groups[0].count,6);assert.equal(restored.revision,1);assert.equal(restored.export_status,'done');
+    await assert.rejects(post('/api/image-review/answer',{id:q.id,revision:0,answer:verified}),/IMAGE_QUESTION_CHANGED/);
     await capture();const partial=(await get('/api/state')).activeMatchId;assert.notEqual(partial,original);
     await stop();await start();state=await get('/api/state');assert.equal(state.recoveryMatches[0].id,partial);assert.equal(state.matchStats.draft.won,1);
     await post('/api/matches/recover',{id:partial,action:'unbekannt'});state=await get('/api/state');assert.equal(state.recoveryMatches.length,0);assert.equal(state.matchStats.draft.won,1);assert.equal(state.matchStats.draft.lost,0);

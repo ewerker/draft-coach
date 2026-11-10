@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft. Punkt 3 ist in Arbeit: Beobachtungspipeline und CPU-Vergleich sind gebaut, die Erkennungsziele sind noch nicht erreicht. P4–P9 sind noch nicht begonnen.**
+**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist ebenfalls umgesetzt und technisch geprüft. Punkt 3 ist in Arbeit: Beobachtungspipeline und CPU-Vergleich sind gebaut, die Erkennungsziele sind noch nicht erreicht. P4 ist umgesetzt und wird technisch geprüft. P5–P9 sind noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 
@@ -70,10 +70,10 @@ Pilot, Prüfungen und offene Grenzen: [P3 Truppenpilot](p3-truppenpilot.md). P3.
 
 **Umfang:** Der Coach wählt nach der Partie wenige nützliche, unterschiedliche Bilder aus und fragt konkret: „Gegner: 3 Schnecken, davon 2 entwickelt – stimmt das?“ Markierte Bereiche und die vollständige Aufnahme sind gemeinsam sichtbar. Bestätigen, stimmt teilweise, stimmt nicht und nicht beurteilbar sind möglich; kurze Sprachkorrektur oder Mengenanpassung reicht.
 
-- [ ] P4.1 Unsichere Figuren, Mengen/Formen, neue Geometrien, Konflikte mit gesendeten Klicks und manuelle Eingriffe gezielt vorlegen. Pro Prüfrunde wenige Fälle, Rest sichtbar in der Warteschlange.
-- [ ] P4.2 Figurentyp, Anzahl und Form einzeln bestätigen. Nur tatsächlich bestätigte Angaben werden Prüf-Wahrheit; unbekannte oder KI-erzeugte Beschriftungen bleiben Vorschläge.
-- [ ] P4.3 Teilbestätigungen, leere Seiten und Überlappungen unterstützen. Keine vier Formularzeilen als starre Grenze für die tatsächliche Zahl sichtbarer Entwicklungsformen.
-- [ ] P4.4 Einen unabhängigen, nach ganzen Partien getrennten Testbestand reservieren. Zusätzlich zufällig geschichtete Kontrollbilder vorlegen, damit die Auswahl nur schwieriger Fälle die Messung nicht verzerrt.
+- [x] P4.1 Unsichere Figuren, Mengen/Formen, neue Geometrien, Konflikte mit gesendeten Klicks und manuelle Eingriffe gezielt vorlegen. Pro Prüfrunde wenige Fälle, Rest sichtbar in der Warteschlange.
+- [x] P4.2 Figurentyp, Anzahl und Form einzeln bestätigen. Nur tatsächlich bestätigte Angaben werden Prüf-Wahrheit; unbekannte oder KI-erzeugte Beschriftungen bleiben Vorschläge.
+- [x] P4.3 Teilbestätigungen, leere Seiten und Überlappungen unterstützen. Keine vier Formularzeilen als starre Grenze für die tatsächliche Zahl sichtbarer Entwicklungsformen.
+- [x] P4.4 Einen unabhängigen, nach ganzen Partien getrennten Testbestand reservieren. Zusätzlich zufällig geschichtete Kontrollbilder vorlegen, damit die Auswahl nur schwieriger Fälle die Messung nicht verzerrt.
 
 **Abnahme A4:** Ein Benutzer kann mehrere vorgeschlagene Bilder mit kurzen Antworten abarbeiten. Die Korrektur überlebt einen Neustart und löst automatisch einen neuen Prüfauftrag aus. Dieselbe Aufnahme dient niemals zugleich als Lernvorlage und unabhängiger Test. Unbestätigte Angaben zählen nicht als Bestätigung.
 
@@ -148,6 +148,6 @@ Quellen zu Werkzeugoptionen: [GitHub-Aufgabenlisten und Unteraufgaben](https://d
 
 ## English summary
 
-This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
+This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4 targeted image confirmation is implemented and undergoing technical verification. P5–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
 
 German and English share canonical identifiers, evidence, rule versions and activation. Language-dependent recognition coverage is measured separately. Users receive concrete questions and proposals instead of mandatory technical forms. Saved notes, machine predictions, image confirmations, calculation correctness and evidence of tactical benefit remain distinguishable. No guaranteed win-rate improvement or fixed number of matches is promised. No new paid service is purchased as part of planning.
