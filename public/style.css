@@ -219,3 +219,25 @@
 #review-availability{margin:10px 0 0}
 @media(max-width:1050px){.review-select-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.review-card{padding:12px}.review-select-grid{grid-template-columns:minmax(0,1fr)}.review-search-row span{padding:0}.review-select-grid button{width:100%}}
+
+/* Match observations: one clear composer and grouped actions. */
+#review-form:not([hidden]){margin-top:24px;border-top:1px solid var(--line);padding-top:20px}
+#review-form>h3{margin:0;font-size:1.1rem}
+#review-form>h3+p{margin:6px 0 18px;color:var(--muted);font-size:.9rem}
+.review-observation{display:grid;gap:8px;font-size:.9rem;font-weight:600}
+.review-observation textarea{display:block;width:100%;min-width:0;min-height:110px;resize:vertical;font:inherit;font-weight:400;line-height:1.5;color:inherit;background:#263248;border:1px solid #43506b;border-radius:8px;padding:12px}
+.review-dictation{margin-top:10px}
+#review-mic-status:empty,#review-gpt-status:empty,#review-ai-result:empty{display:none}
+#review-gpt{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:10px}
+#review-gpt>p:first-child{margin:0 0 12px}
+.review-ai-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.review-ai-actions label{display:flex;align-items:flex-start;gap:8px;font-size:.85rem}
+.review-ai-actions input{flex:none;margin-top:.2em}
+#review-ai-result:not(:empty){padding:14px;margin:0 0 16px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent);overflow-wrap:anywhere}
+#review-ai-result h4{margin:0 0 6px}#review-ai-result p{margin:6px 0}
+#review-form>button[type=submit]+p{margin:8px 0 18px}
+#review-advanced,#review-banner,#admin-panel{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
+#review-advanced>summary,#review-banner>summary,#admin-panel>summary{margin-bottom:0}
+#review-advanced[open]>summary,#review-banner[open]>summary,#admin-panel[open]>summary{margin-bottom:14px}
+[data-theme=light] .review-observation textarea{background:#edf3fb;color:#182336;border-color:#8396b0}
+@media(max-width:560px){.review-dictation button,.review-ai-actions button,#review-form>button[type=submit]{width:100%}.review-ai-actions{align-items:stretch}.review-ai-actions label{width:100%}}

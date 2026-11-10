@@ -85,17 +85,17 @@
   <form id="review-form" hidden>
     <h3>Was ist dir aufgefallen?</h3>
     <p>Erzähle oder schreibe, was du anders gemacht hättest. Die KI kann daraus einen Vorschlag zur Prüfung machen.</p>
-    <label>Deine Beobachtung <textarea name="observation" maxlength="1500" rows="3" placeholder="Zum Beispiel: Gegen die Schnecke hätte ich Agent B früher aufgebaut."></textarea></label>
-    <div class="tactics-actions"><button id="review-mic" type="button" aria-pressed="false">Beobachtung diktieren</button></div>
+    <label class="review-observation">Deine Beobachtung <textarea name="observation" maxlength="1500" rows="4" placeholder="Zum Beispiel: Gegen die Schnecke hätte ich Agent B früher aufgebaut."></textarea></label>
+    <div class="review-dictation"><button id="review-mic" type="button" aria-pressed="false">Beobachtung diktieren</button></div>
     <p id="review-mic-status" class="muted" role="status"></p>
     <div id="review-gpt">
       <p class="muted">Für den KI-Vorschlag werden deine Beobachtung und die erfassten Angaben zur gewählten Aufnahme an OpenAI gesendet. Die Browser-Spracherkennung kann einen externen Dienst nutzen.</p>
-      <label><input id="review-gpt-image" type="checkbox"> Kartenausschnitt zusätzlich an OpenAI senden</label>
-      <button id="review-gpt-run" type="button">KI-Vorschlag erstellen</button>
+      <div class="review-ai-actions"><label><input id="review-gpt-image" type="checkbox"> Kartenausschnitt zusätzlich an OpenAI senden</label>
+      <button id="review-gpt-run" type="button">KI-Vorschlag erstellen</button></div>
       <p id="review-gpt-status" class="muted" role="status"></p>
     </div>
     <div id="review-ai-result" aria-live="polite"></div>
-    <button type="submit">Als Prüffall speichern</button>
+    <button type="submit" class="primary">Als Prüffall speichern</button>
     <p class="muted">Gespeicherte Vorschläge wirken nicht automatisch auf die Spieltipps.</p>
     <details id="review-advanced"><summary>Details und Regel manuell bearbeiten</summary>
     <div class="tactics-fields">
