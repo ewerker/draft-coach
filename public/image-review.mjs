@@ -186,7 +186,7 @@ export function createImageReviewPanel({root,getLanguage,post}){
   if(!data.items.length)root.append(el('p',t().none,'muted'));
   if(item){
    root.append(el('h4',`${t().progress} ${position+1} ${t().of} ${Math.max(round.length,1)} · #${item.match_id.slice(0,8)} / ${item.capture_id}`));
-   root.append(el('p',`${t()[item.partition==='test'?'test':'training']} · ${item.context.language?.toUpperCase()} · ${({de:{battle_choice:'Wahl im Kampf',spell_choice:'Zauberwahl'},en:{battle_choice:'Battle choice',spell_choice:'Spell choice'}})[getLanguage()]?.[item.context.phase]??item.context.phase}`,'muted'));
+   root.append(el('p',`${item.context.assisted?(getLanguage()==='en'?'Assisted review · excluded from independent metrics':'Unterstützte Prüfung · nicht in unabhängiger Messung'):t()[item.partition==='test'?'test':'training']} · ${item.context.language?.toUpperCase()} · ${({de:{battle_choice:'Wahl im Kampf',spell_choice:'Zauberwahl'},en:{battle_choice:'Battle choice',spell_choice:'Spell choice'}})[getLanguage()]?.[item.context.phase]??item.context.phase}`,'muted'));
    root.append(el('p',item.blind?t().blind:t().proposal,'image-review-message'),el('p',t().note,'muted'));
    if(item.blind)root.append(button(getLanguage()==='en'?'Show suggestions (assisted review)':'Vorschläge einblenden (unterstützte Prüfung)',async()=>{
     await post('/api/image-review/reveal',{id:item.id});item=await read('/api/image-review/item?id='+encodeURIComponent(item.id));

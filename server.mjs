@@ -16,6 +16,7 @@ import {createReferenceStore} from './reference-store.mjs';
 import {buildFieldEvaluation,fieldReadiness} from './field-learning.mjs';
 import {selectImageQuestions} from './image-review.mjs';
 import {calculateFormEffect} from './form-mechanics.mjs';
+import {replayAudit,replayFingerprint} from './replay-checks.mjs';
 import {acceptArmyObservation,updateArmyHistory,armyPilotGate} from './army-state.mjs';
 import {createArmyService} from './army-service.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
@@ -114,7 +115,7 @@ async function captureVersions(){
   if(hash!==runCollectionHash){runVersionSet={...runVersionSet,collection:await archive.runs.version('collection',collection)};runCollectionHash=hash;}
   return {...runVersionSet};
 }
-function backgroundBusy(ignoreArchive=false){return !persistenceReady||backupInProgress||state.auto||state.capturing||state.recognizing||Boolean(activeMatch)||queue.running||manualTapPending||importing||savingTactics||referenceSaving||fieldLearningRunning||formSyncRunning||lossGuardSaving||Boolean(stoppedMatch?.saving)||!ignoreArchive&&archive.busy;}
+function backgroundBusy(ignoreArchive=false){return !persistenceReady||backupInProgress||state.auto||state.capturing||state.recognizing||Boolean(activeMatch)||queue.running||manualTapPending||importing||savingTactics||referenceSaving||fieldLearningRunning||formSyncRunning||replayRunning||lossGuardSaving||Boolean(stoppedMatch?.saving)||!ignoreArchive&&archive.busy;}
 const backgroundRunner=createJobRunner(archive.runs,{busy:backgroundBusy,playing:()=>backgroundBusy(true),handlers:{
   archive:async(job,guard)=>{const result=await archive.archiveGames(job.match_id,guard);setMatchArchiveStatus(job.match_id,'archived');return {kind:'archive',images:result.images,skipped:result.skipped};},
   prepare_review:async(job,guard)=>{guard();await syncKnowledge();guard();await proposeImageQuestions(job.match_id,guard);return archive.runs.report(job.match_id);}
@@ -225,6 +226,34 @@ const referenceStore=await createReferenceStore(path.join(RUNTIME,'referenzen'))
 let savedReferences=await referenceStore.list();
 let referenceSaving=false;
 let formsDirty=true,formSyncRunning=false;
+let replayRunning=false,replayError=null,replayLastAttempt=null;
+function replayWaiting(){return Object.entries({initializing:!persistenceReady,game:state.auto||Boolean(activeMatch),capture:state.capturing||state.recognizing||queue.running,backup:backupInProgress,archive:archive.busy||backgroundRunner.working,corrections:referenceSaving||projectingImageAnswer,recognitionCheck:fieldLearningRunning,forms:formSyncRunning,tap:manualTapPending}).filter(([,v])=>v).map(([k])=>k);}
+const replayEngine=replayFingerprint(await Promise.all(['advice.mjs','form-mechanics.mjs','replay-checks.mjs','data/coach-engine.mjs','data/matchups.json'].map(file=>readFile(path.join(ROOT,file),'utf8'))));
+async function runNextReplay(){
+  replayLastAttempt=Date.now();
+  if(backgroundBusy()||backgroundRunner.working||projectingImageAnswer)return;
+  await syncFormCatalog();if(backgroundBusy())return;
+  replayRunning=true;
+  const guard=()=>{if(state.auto||state.capturing||state.recognizing||activeMatch||queue.running||backupInProgress)throw Object.assign(Error('PLAY_STARTED'),{code:'PLAY_STARTED'});};
+  try{
+    const knowledge=await archive.knowledge.list();
+    const allowed=new Set(knowledge.items.filter(i=>i.kind==='tactic').flatMap(i=>i.sources.filter(s=>s.type==='rule'&&s.available).map(s=>s.id)));
+    const rules=tactics.filter(r=>allowed.has(r.id));
+    const catalog=await archive.forms.list();
+    const extra=[...new Set(savedReferences.filter(r=>r.fieldConfirmations).map(r=>r.matchId))];
+    for(const row of await archive.replayChecks.candidates(extra)){
+      guard();const refs=savedReferences.filter(r=>r.matchId===row.id);
+      const fingerprint=replayFingerprint({schema:1,engine:replayEngine,updated:row.updated,rules,references:refs.map(({id,at,fieldConfirmations,reviewAssisted})=>({id,at,fieldConfirmations,reviewAssisted})),forms:catalog.forms,mechanisms:catalog.mechanisms,
+        formRevision:catalog.revision});
+      if(await archive.replayChecks.has(fingerprint))continue;
+      const report=await replayAudit({game:row.match,rules,matchups:db,referenceData:refs,engine:replayEngine,
+        collectionFor:hash=>archive.replayChecks.version(hash),contextFor:(id,capture)=>archive.forms.context(id,capture),guard});
+      guard();await archive.replayChecks.save(fingerprint,report);replayError=null;break;
+    }
+  }catch(error){if(error.code!=='PLAY_STARTED'){replayError=error.message;console.error('Replay-Prüfung:',error.message);}}
+  finally{replayRunning=false;}
+}
+setInterval(()=>void runNextReplay(),10000).unref();
 async function syncFormCatalog(){
   if(!formsDirty||formSyncRunning||backgroundBusy())return;
   formSyncRunning=true;
@@ -290,7 +319,7 @@ function fieldLearningStatus(){
     pilotGate:{own:armyPilotGate(fresh?fieldLearning?.pilot?.results?.prototype?.own:null),enemy:armyPilotGate(fresh?fieldLearning?.pilot?.results?.prototype?.enemy:null)}};
 }
 async function evaluateFieldLearning(){
-  if(fieldLearningRunning||backupInProgress||state.auto||state.capturing||state.recognizing||activeMatch||queue.running)return;
+  if(fieldLearningRunning||replayRunning||backupInProgress||state.auto||state.capturing||state.recognizing||activeMatch||queue.running)return;
   const plan=buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision);
   if(fieldLearning?.fingerprint===plan.fingerprint||!plan.cases.length||!plan.examples.length)return;
   fieldLearningRunning=true;fieldLearningError=null;
@@ -1880,6 +1909,7 @@ async function handleRequest(req,res){
     }
     if(req.method!=='GET')return json(res,405,{error:'Nicht unterstützt'});
     if(url.pathname==='/api/admin/forms'){await syncFormCatalog();return json(res,200,await archive.forms.list());}
+    if(url.pathname==='/api/admin/replay-checks')return json(res,200,{running:replayRunning,error:replayError,lastAttempt:replayLastAttempt,waiting:replayWaiting(),reports:await archive.replayChecks.list()});
     if(url.pathname==='/api/image-review')return json(res,200,await archive.imageReview.list());
     if(url.pathname==='/api/image-review/item'){
       const question=await archive.imageReview.get(url.searchParams.get('id'));
@@ -1968,7 +1998,7 @@ async function handleRequest(req,res){
     else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs','/mechanics.mjs':'mechanics.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs','/mechanics.mjs':'mechanics.mjs'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs','/mechanics.mjs':'mechanics.mjs','/replay-checks.mjs':'replay-checks.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs','/army.mjs':'army.mjs','/image-review.mjs':'image-review.mjs','/mechanics.mjs':'mechanics.mjs','/replay-checks.mjs':'replay-checks.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
     const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));

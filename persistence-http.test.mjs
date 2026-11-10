@@ -12,7 +12,7 @@ import {buildFieldEvaluation} from './field-learning.mjs';
 const source=fileURLToPath(new URL('.',import.meta.url));
 const python=process.env.PYTHON_PATH||(process.platform==='win32'?'python':'python3');
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function eventually(fn){let error;for(let i=0;i<100;i++){try{const value=await fn();if(value)return value;}catch(e){error=e;}await delay(80);}throw error??Error('Condition not reached');}
+async function eventually(fn,attempts=100){let error;for(let i=0;i<attempts;i++){try{const value=await fn();if(value)return value;}catch(e){error=e;}await delay(80);}throw error??Error('Condition not reached');}
 
 test('HTTP lifecycle: capture, stop/restart, explicit resume, one result, background report and second-restart recovery',async()=>{
   const dir=await mkdtemp(path.join(tmpdir(),'coach-http-p2-'));
@@ -105,6 +105,9 @@ for line in sys.stdin:
     await capture();const partial=(await get('/api/state')).activeMatchId;assert.notEqual(partial,original);
     await stop();await start();state=await get('/api/state');assert.equal(state.recoveryMatches[0].id,partial);assert.equal(state.matchStats.draft.won,1);
     await post('/api/matches/recover',{id:partial,action:'unbekannt'});state=await get('/api/state');assert.equal(state.recoveryMatches.length,0);assert.equal(state.matchStats.draft.won,1);assert.equal(state.matchStats.draft.lost,0);
+    let lastAudit;const audit=await eventually(async()=>{const v=await get('/api/admin/replay-checks');lastAudit=v;return v.reports.find(r=>r.data.matchId===original)?.data;},400).catch(error=>{throw Error(error.message+JSON.stringify({waiting:lastAudit?.waiting,reports:lastAudit?.reports.map(r=>r.match_id),error:lastAudit?.error}));});
+    assert.equal(audit.mechanics.filter(c=>c.status==='passed').length,5);assert.equal(audit.automaticActivation,false);assert.equal(audit.tacticalEffect,'not_established');
+    assert.ok(audit.recognition.some(r=>r.capture===q.capture_id&&r.side==='own'));
   }catch(error){throw Error(error.message+'\n'+logs,{cause:error});}
   finally{
     if(child){try{await stop();}catch{const process=child;if(process.exitCode===null){const exited=once(process,'exit');process.kill();await exited;}}}

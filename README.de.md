@@ -103,3 +103,7 @@ Unter **Partien und Auswertung → Gezielte Bildfragen** prüfst du bis zu drei 
 
 ### Formbezogene Aufwertung und Verdopplung
 P5 speichert Entwicklungsformen und bestätigte Mengen getrennt von Kartenstufe und Sternen. Das optionale Prüfwerkzeug berechnet nur die zugeordnete Ausgangsform; Unbekanntes und Widersprüche bleiben offen. Ein gesendeter Klick ersetzt keinen bestätigten Truppenbestand. [Modell, Prüfungen und Grenzen](docs/p5-entwicklungsformen.md).
+
+
+### Automatische Nachprüfung (P6, erster Baustein)
+In Spielpausen entstehen automatisch dauerhafte Berichte zu Mechanik-Rechenfällen, bestätigten Truppenbildern und strukturierten Regelwirkungen auf gespeicherte Entscheidungen. Fehlende Belege bleiben sichtbar; Regeln werden nicht automatisch aktiviert. Freitext-Erwartungen und die Gesamtabnahme sind noch offen. [Umfang und Grenzen](docs/p6-replaypruefung.md).

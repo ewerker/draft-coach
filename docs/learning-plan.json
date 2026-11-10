@@ -134,14 +134,20 @@
     {
       "id": "P6",
       "title": "Automatische unabhängige Prüfung",
-      "status": "planned",
+      "status": "in_progress",
       "dependsOn": [
         "P3",
         "P4",
         "P5"
       ],
       "acceptance": "A6",
-      "evidence": []
+      "evidence": [
+        {
+          "type": "implementation_report",
+          "path": "docs/p6-replaypruefung.md",
+          "value": "Idle-time automatic replay reports, independent mechanic fixtures and player-image comparisons. Free-text expectation proposals and full A6 acceptance remain open."
+        }
+      ]
     },
     {
       "id": "P7",
@@ -185,6 +191,9 @@
   "approvedWorkPackages": [
     "P1",
     "P2",
-    "P3"
+    "P3",
+    "P4",
+    "P5",
+    "P6"
   ]
 }

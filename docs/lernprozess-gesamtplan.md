@@ -89,6 +89,8 @@ Pilot, Prüfungen und offene Grenzen: [P3 Truppenpilot](p3-truppenpilot.md). P3.
 
 ## 6. Automatische Prüfung an gespeicherten Situationen
 
+**Stand:** Erster ausführbarer Baustein in Arbeit: [P6 Nachprüfung](p6-replaypruefung.md). Automatische Rechen-/Bild-/Regelberichte sind vorhanden; Freitext-Erwartungen und A6-Gesamtabnahme sind noch offen.
+
 **Umfang:** Nach jeder Partie und nach jeder bestätigten Korrektur prüft der Coach relevante Mechaniken und taktische Vorschläge erneut. Er protokolliert das erwartete und tatsächliche Ergebnis. Die Auswahl geeigneter Fälle, der Testlauf und die Zusammenfassung geschehen automatisch.
 
 - [ ] P6.1 Aus Beobachtungen prüfbare Erwartungen vorschlagen; eine vom selben KI-Lauf erzeugte Behauptung und Antwort sind kein unabhängiger Beweis.
@@ -148,6 +150,6 @@ Quellen zu Werkzeugoptionen: [GitHub-Aufgabenlisten und Unteraufgaben](https://d
 
 ## English summary
 
-This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4 targeted image confirmation is implemented and technically verified; user acceptance is pending. P5 is implemented and technically verified; user acceptance is pending. P6–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
+This plan is based on release v0.7.6. P1 and P2 have been implemented and technically verified. P3 now has an asynchronous observation pipeline and local CPU pilot comparison; recognition acceptance targets are not met. P4 targeted image confirmation is implemented and technically verified; user acceptance is pending. P5 is implemented and technically verified; user acceptance is pending. P6 has an initial automatic replay/report implementation; free-text expectations and full A6 acceptance remain open. P7–P9 have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
 
 German and English share canonical identifiers, evidence, rule versions and activation. Language-dependent recognition coverage is measured separately. Users receive concrete questions and proposals instead of mandatory technical forms. Saved notes, machine predictions, image confirmations, calculation correctness and evidence of tactical benefit remain distinguishable. No guaranteed win-rate improvement or fixed number of matches is promised. No new paid service is purchased as part of planning.

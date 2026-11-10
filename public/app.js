@@ -4,6 +4,7 @@ import {createPersistencePanel} from './persistence.mjs';
 import {renderArmy} from './army.mjs';
 import {createImageReviewPanel} from './image-review.mjs';
 import {createMechanicsPanel} from './mechanics.mjs';
+import {createReplayChecksPanel} from './replay-checks.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -21,7 +22,7 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
-for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel','army-panel','image-review-panel','form-mechanics-panel']){
+for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel','army-panel','image-review-panel','form-mechanics-panel','replay-checks-panel']){
   const panel=$(id);
   const saved=preferences.panelOpen?.[id];
   if(typeof saved==='boolean')panel.open=saved;
@@ -103,7 +104,7 @@ $('language').onchange=()=>{
     renderTactics(tacticsData);
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
   }
-  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);knowledgePanel.render();imageReviewPanel.render();}
+  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);knowledgePanel.render();imageReviewPanel.render();replayChecksPanel.render();}
   persistencePanel.renderRecovery();persistencePanel.renderJobs();mechanicsPanel.render();
   if(coachView==='admin'&&lastArchiveData)renderArchive(lastArchiveData);
   void refreshFieldLearning(true);
@@ -699,6 +700,7 @@ async function openReview(){
     }
     await knowledgePanel.load();
     await mechanicsPanel.refresh();
+    await replayChecksPanel.refresh();
     await persistencePanel.refreshJobs(true);
     const {games,cards,gpt}=await reviewGet('matches');
     reviewGptEnabled=gpt;
@@ -954,6 +956,8 @@ const knowledgePanel=createKnowledgePanel({root:$('knowledge-panel'),getLanguage
   }});
 const persistencePanel=createPersistencePanel({jobsRoot:$('persistence-jobs'),recoveryRoot:$('recovery-panel'),getLanguage:()=>language,post,onChanged:()=>refresh()});
 const imageReviewPanel=createImageReviewPanel({root:$('image-review-content'),getLanguage:()=>language,post});
+const replayChecksPanel=createReplayChecksPanel({root:$('replay-checks-content'),getLanguage:()=>language});
+setInterval(()=>{if(coachView==='review'&&$('replay-checks-panel').open)void replayChecksPanel.refresh();},15000);
 const mechanicsPanel=createMechanicsPanel({root:$('form-mechanics-content'),getLanguage:()=>language,post});
 $('image-review-shortcut').onclick=()=>action(async()=>{showCoachView('review');await openReview();$('image-review-panel').open=true;$('image-review-panel').scrollIntoView({block:'start',behavior:'smooth'});});
 let archiveBusy=false,lastArchiveData=null;

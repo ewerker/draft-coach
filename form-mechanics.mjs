@@ -107,7 +107,7 @@ export function createFormMechanicsStore(withDatabase){
    db.exec('COMMIT');return {added,snapshots};
   }catch(e){db.exec('ROLLBACK');throw e;}
  });}
- async function list(){return withDatabase(true,db=>({forms:formsFrom(db),mechanisms:mechanismsFrom(db),inventories:db.prepare('SELECT id,match_id,capture,side,data FROM evolution_inventory ORDER BY capture DESC LIMIT 100').all().map(r=>({...r,data:JSON.parse(r.data)}))}));}
+ async function list(){return withDatabase(true,db=>({revision:db.prepare('SELECT coalesce(max(id),0) n FROM evolution_history').get().n,forms:formsFrom(db),mechanisms:mechanismsFrom(db),inventories:db.prepare('SELECT id,match_id,capture,side,data FROM evolution_inventory ORDER BY capture DESC LIMIT 100').all().map(r=>({...r,data:JSON.parse(r.data)}))}));}
  async function updateForm({id,revision,labels}){return withDatabase(false,db=>{
   const row=db.prepare('SELECT * FROM evolution_forms WHERE id=?').get(id);if(!row||row.revision!==revision)throw Error('FORM_CHANGED');
   if(!labels||Object.keys(labels).some(k=>!['de','en'].includes(k))||Object.values(labels).some(s=>typeof s!=='string'||s.length>100)||!Object.values(labels).some(s=>s.trim()))throw Error('INVALID_FORM_LABEL');

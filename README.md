@@ -97,3 +97,7 @@ Review up to three battlefield images at a time in **Matches and review → Targ
 
 ### Form-specific upgrade calculations
 P5 stores bilingual evolution-form identities and confirmed counts separately from card levels/stars. The optional review tool calculates source-form-only additions, upgrades and doubles; unknown or contradictory effects remain unknown. Logged taps never replace confirmed armies. [Model, checks and limits](docs/p5-entwicklungsformen.md).
+
+
+### Automatic replay reports (P6 initial stage)
+While play is stopped, the coach automatically checks mechanic arithmetic, confirmed army images and structured rule effects on saved decisions. Reports persist and show missing evidence; no rule is activated automatically. Free-text expectation generation and full acceptance remain open. [Scope and limits](docs/p6-replaypruefung.md).
