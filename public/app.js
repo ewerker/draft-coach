@@ -590,6 +590,7 @@ function clearReviewFrame(){
   $('review-banner').hidden=true;
   $('review-gpt').hidden=true;
   $('review-image').hidden=true;
+  $('review-reference').hidden=true;
   $('review-before-heading').hidden=true;
   $('review-variant').hidden=true;
   $('review-variant').replaceChildren();
@@ -659,7 +660,8 @@ async function loadReviewFrame(){
   const image=$('review-image');
   image.src=reviewRoot+'image?id='+encodeURIComponent(matchId)+'&capture='+capture;
   image.hidden=false;
-  image.onerror=()=>{image.hidden=true;};
+  $('review-reference').hidden=false;
+  image.onerror=()=>{image.hidden=true;$('review-reference').hidden=true;};
   if(data.variantEvidence){
     $('review-before-heading').hidden=false;
     const panel=$('review-variant');
@@ -684,6 +686,7 @@ async function loadReviewFrame(){
   showReviewComparison(replay,[]);
 }
 $('review-load').onclick=()=>reviewAction(loadReviewFrame);
+$('review-reference').onclick=()=>reviewAction(async()=>{if(!reviewedFrame)return;const result=await post(reviewRoot+'reference',{matchId:reviewedFrame.matchId,capture:reviewedFrame.capture});$('review-message').textContent=language==='en'?(result.existing?'Already in review images.':'Saved to review images.'):result.existing?'Bereits als Prüfbild vorhanden.':'Als Prüfbild gespeichert.';});
 function renderPreferredOffers(){
   if(!reviewData)return;
   const field=reviewForm.elements.namedItem('preferredOffer'),selected=field.value;
@@ -714,6 +717,15 @@ function renderReviewFacts(){
     reviewLine('enemies',reviewList((frame.enemy??[]).map(reviewCard))),
     reviewLine('original',[tip?.name??'—']),
     reviewLine('clicks',reviewList(clicks)));
+  if(tip?.reason)$('review-facts').append(textEl('p',(language==='en'?'Reason at the time: ':'Damals angegebene Begründung: ')+translate(tip.reason,language),'muted'));
+  for(const click of frame.clicks.filter(entry=>entry.ergebnis==='gesendet'&&entry.karte)){
+    const choice=(frame.advice?.evaluated??[]).find(entry=>entry.name===click.karte&&(!Number.isInteger(click.position)||entry.index===click.position-1));
+    if(choice?.rules?.length)$('review-facts').append(textEl('p',(language==='en'?'Rules on sent choice: ':'Regeln zur gesendeten Wahl: ')+choice.rules.map(rule=>tacticText(rule,language)?.title??rule.title).join(' · '),'muted'));
+  }
+  for(const [key,de,en] of [['enemyVisual','Gegnerische Bildtreffer','Enemy visual matches'],['ownVisual','Eigene Bildtreffer','Own visual matches']]){
+    const rows=frame.observedInFrame?.[key]??[];
+    if(rows.length)$('review-facts').append(textEl('p',(language==='en'?en:de)+' · '+rows.map(row=>displayNames(row.name,language)+' ('+row.visualMatches+')').join(', ')+(language==='en'?' · experimental, not a verified count':' · experimentell, keine sichere Anzahl'),'muted'));
+  }
 }
 $('review-banner-save').onclick=()=>reviewAction(async()=>{
   if(!reviewedFrame)return;
@@ -834,13 +846,19 @@ function renderReviewCases(cases){
 let archiveBusy=false;
 function renderArchive(data){
   const size=new Intl.NumberFormat('de',{maximumFractionDigits:1}).format(data.bytes/1024/1024);
-  $('archive-summary').textContent=`${data.games} Partien im Archiv · ${data.pending} zur Übernahme · ${data.evidence} Belegbilder · ${data.insights} archivierte Erkenntnisse · ${size} MiB`;
+  $('archive-summary').textContent=language==='en'?`${data.games} archived matches · ${data.pending} awaiting archiving · ${data.evidence} evidence images · ${data.insights} earlier notes · ${size} MiB`:`${data.games} gesicherte Partien · ${data.pending} noch nicht gesichert · ${data.evidence} Belegbilder · ${data.insights} frühere Erkenntnisse · ${size} MiB`;
   $('archive-import').disabled=!data.pending;
   const recent=$('archive-games');
   recent.replaceChildren(...data.recent.map(game=>{
     const date=new Date(game.ende_ms).toLocaleString(language==='en'?'en-GB':'de-DE');
     const mode=game.modus==='arena'?'Schlacht':game.modus==='draft'?'Draft':game.modus;
-    return textEl('li',`${date} · ${mode} · ${game.ergebnis} · ${game.aufnahmezahl} Aufnahmen · ${game.bilder} Belegbilder`);
+    const row=textEl('li',`${date} · ${mode} · ${game.ergebnis} · ${game.aufnahmezahl} Aufnahmen · ${game.bilder} Belegbilder `);
+    const view=textEl('button',language==='en'?'Review':'Auswerten','small');view.type='button';view.onclick=()=>reviewAction(async()=>{
+      showCoachView('review');await openReview();$('review-match').value=game.id;await loadReviewCaptures();
+    });row.append(view);return row;
+  }));
+  $('archive-findings').replaceChildren(...(data.findings??[]).map(finding=>{
+    const row=textEl('li','');row.append(textEl('strong',finding.titel),textEl('p',finding.beobachtung,'muted'));return row;
   }));
 }
 async function updateArchive(importGames=false){
@@ -1110,10 +1128,46 @@ for(const button of document.querySelectorAll('#quick-examples button')){
 const tacticsForm=$('tactics-form');
 const tacticStatuses={notiz:'Notiz',test:'Testvorschau',aktiv:'Aktiv'};
 let editingTactic=null;
-let listedTactics=[],tacticsData=null;
+let listedTactics=[],tacticsData=null,ruleEvidenceData=null;
 let changingTactic=false;
+function renderRuleEvidence(rule){
+  const panel=$('tactics-evidence');panel.replaceChildren();
+  if(!rule)return;
+  const title=textEl('h4',language==='en'?'Observed match evidence':'Beobachtete Partien');panel.append(title);
+  if(!ruleEvidenceData){panel.append(textEl('p',language==='en'?'Evidence is available on the host computer.':'Belege sind am Host-PC verfügbar.','muted'));return;}
+  const stats=ruleEvidenceData.find(entry=>entry.id===rule.id);
+  if(!stats||!(stats.wins+stats.losses+stats.other)){
+    panel.append(textEl('p',language==='en'?'No linked, sent choices found.':'Keine zugeordneten, gesendeten Entscheidungen gefunden.','muted'));return;
+  }
+  panel.append(textEl('p',language==='en'?`${stats.wins} won · ${stats.losses} lost · ${stats.other} without a result · ${stats.decisions} choices`:`${stats.wins} gewonnen · ${stats.losses} verloren · ${stats.other} ohne Ergebnis · ${stats.decisions} Entscheidungen`));
+  if(stats.signal==='review')panel.append(textEl('p',language==='en'?'Review suggested: more losses than wins in at least three matches.':'Prüfung vorgeschlagen: mehr Niederlagen als Siege in mindestens drei Partien.'));
+  if(stats.signal==='positive')panel.append(textEl('p',language==='en'?'More wins observed; this is only an indication.':'Mehr Siege beobachtet; das ist lediglich ein Hinweis.'));
+  panel.append(textEl('p',language==='en'?'These are match outcomes, not proof that this rule caused them. Only linked sent choices are counted.':'Dies sind Partieergebnisse, kein Beweis für die Wirkung der Regel. Gezählt werden nur zugeordnete, gesendete Entscheidungen.','muted'));
+  for(const example of stats.examples){
+    const button=textEl('button',(language==='en'?'Review match ':'Partie ansehen ')+example.matchId.slice(0,8)+' · '+example.capture,'small');button.type='button';
+    button.onclick=()=>reviewAction(async()=>{
+      showCoachView('review');await openReview();
+      const match=$('review-match');match.value=example.matchId;
+      if(match.value!==example.matchId)throw Error(language==='en'?'Match not available.':'Partie nicht verfügbar.');
+      await loadReviewCaptures();$('review-capture').value=String(example.capture);await loadReviewFrame();
+    });panel.append(button);
+  }
+}
+function renderRuleWatchlist(){
+  const panel=$('tactics-watchlist');panel.replaceChildren();
+  if(!ruleEvidenceData)return;
+  const candidates=ruleEvidenceData.filter(item=>item.signal==='review').sort((a,b)=>b.losses-a.losses).slice(0,10);
+  if(!candidates.length)return;
+  panel.append(textEl('h3',language==='en'?'Rules to review':'Regeln zum Prüfen'));
+  panel.append(textEl('p',language==='en'?'Selection is based on associated match results, not proof of causation.':'Auswahl anhand zugeordneter Partieergebnisse, kein Nachweis einer Ursache.','muted'));
+  for(const entry of candidates){const rule=listedTactics.find(item=>item.id===entry.id);if(!rule)continue;
+    const button=textEl('button',(tacticText(rule,language)?.title??rule.title)+` · ${entry.wins}:${entry.losses}`,'small');button.type='button';
+    button.onclick=()=>editTactic(rule);panel.append(button);
+  }
+}
 function editTactic(rule){
   editingTactic=rule?.id??null;
+  renderRuleEvidence(rule);
   $('tactics-form-title').textContent=rule?'Erkenntnis bearbeiten':'Neue Erkenntnis';
   tacticsForm.reset();
   const text=rule?tacticText(rule,language):null;
@@ -1193,6 +1247,9 @@ async function openTactics(){
     const response=await fetch('/api/taktikregeln');
     if(!response.ok)throw Error('Taktikregeln konnten nicht geladen werden.');
     renderTactics(await response.json());
+    ruleEvidenceData=null;
+    try{const evidence=await fetch('/api/admin/taktik-evidenz');if(evidence.ok)ruleEvidenceData=(await evidence.json()).rules;}catch{}
+    renderRuleWatchlist();
     editTactic();
   }catch(error){$('tactics-message').textContent=error.message;}
 }
@@ -1287,7 +1344,7 @@ function renderSavedReferences(references){
     const card=textEl('div','','reference prep-card');
     const run=textEl('button','','reference-run');run.type='button';
     const image=new Image();image.src='/saved-reference/'+ref.id;image.loading='lazy';image.alt=language==='en'?'Reference image':'Referenzbild';
-    const title=(ref.source==='automatic'?(language==='en'?'Unrecognized offer':'Nicht erkannt'):(language==='en'?'Manual capture':'Eigene Aufnahme'))+' · '+new Date(ref.at).toLocaleString(language);
+    const title=(ref.source==='automatic'?(language==='en'?'Unrecognized offer':'Nicht erkannt'):ref.source==='match'?(language==='en'?'Match image':'Partieaufnahme'):(language==='en'?'Manual capture':'Eigene Aufnahme'))+' · '+new Date(ref.at).toLocaleString(language);
     run.append(image,textEl('span',title));run.onclick=()=>action(()=>post('/api/reference',{file:ref.id}));
     const count=(ref.corrections||[]).length;
     if(count)card.append(textEl('span',(language==='en'?'Corrections: ':'Korrekturen: ')+count,'muted'));
@@ -1335,48 +1392,51 @@ function renderReferenceCorrection(item){
   });
   panel.append(save,check,status);
 }
-function renderEnemyReferenceCorrection(item,references){
-  const panel=$('enemy-reference-correction');panel.replaceChildren();
+function renderFieldReferenceCorrection(item,references,side){
+  const isOwn=side==='own',top=isOwn?1170:250;
+  const panel=$(isOwn?'own-reference-correction':'enemy-reference-correction');panel.replaceChildren();
   panel.hidden=!(item?.source==='reference'&&item.referenceId&&item.geometry?.content);
   if(panel.hidden)return;
   const reference=references.find(ref=>ref.id===item.referenceId);
-  const saved=(reference?.corrections||[]).filter(c=>c.phase==='enemy_field');
-  const detections=item.enemyVisual||[];
-  panel.append(textEl('h3',language==='en'?'Enemy units on the field':'Gegnerische Einheiten auf dem Spielfeld'));
-  panel.append(textEl('p',language==='en'?'For each row, select a unit and press Mark. Then drag a box around one clearly visible enemy of that type, or tap two opposite corners. Left, middle or right does not matter. Avoid overlapping figures and include the whole figure.':'Wähle in jeder Zeile eine Einheit und drücke Markieren. Ziehe dann einen Rahmen um eine gut sichtbare gegnerische Figur dieses Typs oder tippe auf zwei gegenüberliegende Ecken. Ob links, mittig oder rechts, ist egal. Möglichst die ganze Figur ohne Überlappung erfassen.','muted'));
+  const saved=(reference?.corrections||[]).filter(c=>c.phase===side+'_field');
+  const detections=isOwn?(item.ownVisual||[]):(item.enemyVisual||[]);
+  panel.append(textEl('h3',isOwn?(language==='en'?'Your units on the field':'Eigene Einheiten auf dem Spielfeld'):(language==='en'?'Enemy units on the field':'Gegnerische Einheiten auf dem Spielfeld')));
+  panel.append(textEl('p',isOwn?(language==='en'?'Choose an own unit, press Mark and mark one visible figure in the lower image.':'Wähle eine eigene Einheit, drücke Markieren und markiere eine sichtbare Figur im unteren Bild.'):(language==='en'?'For each row, select a unit and press Mark. Then drag a box around one clearly visible enemy of that type, or tap two opposite corners. Left, middle or right does not matter. Avoid overlapping figures and include the whole figure.':'Wähle in jeder Zeile eine Einheit und drücke Markieren. Ziehe dann einen Rahmen um eine gut sichtbare gegnerische Figur dieses Typs oder tippe auf zwei gegenüberliegende Ecken. Ob links, mittig oder rechts, ist egal. Möglichst die ganze Figur ohne Überlappung erfassen.'),'muted'));
   const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=920;canvas.className='enemy-reference-canvas';
-  canvas.setAttribute('aria-label',language==='en'?'Mark an enemy unit on the screenshot':'Gegnerische Figur im Bild markieren');
+  canvas.setAttribute('aria-label',isOwn?(language==='en'?'Mark your unit':'Eigene Figur markieren'):(language==='en'?'Mark an enemy unit':'Gegnerische Figur markieren'));
   const ctx=canvas.getContext('2d'),img=new Image();img.src=item.image;
   const fields=[],rows=textEl('div','','enemy-reference-rows');let active=null,start=null;
   const status=textEl('p',language==='en'?'Choose Mark in the desired row first.':'Zuerst in der gewünschten Zeile auf Markieren drücken.','enemy-mark-status');status.setAttribute('role','status');
   function paint(){
     if(!img.complete||!img.naturalWidth)return;
-    const [x,y,w,h]=item.geometry.content;ctx.drawImage(img,x,y+h*250/2340,w,h*920/2340,0,0,1080,920);
-    fields.forEach((field,index)=>{if(!field.box)return;const [x1,y1,x2,y2]=field.box;const color=['#ffff00','#00ffff','#ff80e8','#ffad4a'][index];ctx.strokeStyle='#000';ctx.lineWidth=15;ctx.strokeRect(x1,y1-250,x2-x1,y2-y1);ctx.strokeStyle=color;ctx.lineWidth=8;ctx.strokeRect(x1,y1-250,x2-x1,y2-y1);ctx.fillStyle='#000';ctx.fillRect(x1,y1-250,46,46);ctx.fillStyle=color;ctx.font='bold 36px sans-serif';ctx.fillText(String(index+1),x1+12,y1-216);});
+    const [x,y,w,h]=item.geometry.content;ctx.drawImage(img,x,y+h*top/2340,w,h*920/2340,0,0,1080,920);
+    fields.forEach((field,index)=>{if(!field.box)return;const [x1,y1,x2,y2]=field.box;const color=['#ffff00','#00ffff','#ff80e8','#ffad4a'][index];ctx.strokeStyle='#000';ctx.lineWidth=15;ctx.strokeRect(x1,y1-top,x2-x1,y2-y1);ctx.strokeStyle=color;ctx.lineWidth=8;ctx.strokeRect(x1,y1-top,x2-x1,y2-y1);ctx.fillStyle='#000';ctx.fillRect(x1,y1-top,46,46);ctx.fillStyle=color;ctx.font='bold 36px sans-serif';ctx.fillText(String(index+1),x1+12,y1-top+34);});
   }
   img.onload=paint;
   const names=config.unitNames||config.collection.units.units.map(unit=>unit.name);
   for(let i=0;i<4;i++){
     const previous=saved.find(row=>row.position===i),detected=detections[i];
     const row=textEl('div','','enemy-reference-row');
-    row.append(textEl('strong',(language==='en'?'Enemy ':'Gegner ')+(i+1)));
-    const select=document.createElement('select');select.setAttribute('aria-label',(language==='en'?'Enemy unit ':'Gegnerische Einheit ')+(i+1));
+    row.append(textEl('strong',(isOwn?(language==='en'?'Your unit ':'Eigene Einheit '):(language==='en'?'Enemy ':'Gegner '))+(i+1)));
+    const select=document.createElement('select');select.setAttribute('aria-label',(isOwn?(language==='en'?'Your unit ':'Eigene Einheit '):(language==='en'?'Enemy unit ':'Gegnerische Einheit '))+(i+1));
     select.append(new Option(language==='en'?'Select unit':'Einheit wählen',''));
     for(const name of names)select.append(new Option(displayNames(name,language),name));
     select.value=previous?.name||detected?.name||'';
     const mark=textEl('button',language==='en'?'Mark':'Markieren','small');mark.type='button';
     const info=textEl('span',previous?(language==='en'?'Saved':'Gespeichert'):(detected?(language==='en'?'Detected · verify':'Erkannt · bitte prüfen'):''),'muted');
-    const field={name:select,box:previous?.box||detected?.box||null,info};fields.push(field);
-    mark.onclick=()=>{active=i;start=null;fields.forEach((entry,index)=>entry.mark.setAttribute('aria-pressed',String(index===i)));status.textContent=(language==='en'?'Mark the figure for enemy ':'Figur für Gegner ')+(i+1)+(language==='en'?' in the image below.':' im Bild darunter markieren.');canvas.scrollIntoView({block:'nearest',behavior:'smooth'});paint();};field.mark=mark;mark.setAttribute('aria-pressed','false');select.onchange=()=>{info.textContent=field.box?(language==='en'?'Area assigned to '+(select.selectedOptions[0]?.text||'this row'):'Rahmen zugeordnet: '+(select.selectedOptions[0]?.text||'diese Zeile')):'';};
-    row.append(select,mark,info);rows.append(row);
+    const count=document.createElement('input');count.type='number';count.min='1';count.max='500';count.placeholder=language==='en'?'Count (optional)':'Anzahl (optional)';count.setAttribute('aria-label',count.placeholder);if(previous?.count!=null)count.value=String(previous.count);
+    const stage=document.createElement('input');stage.type='number';stage.min='0';stage.max='10';stage.placeholder=language==='en'?'Upgrade (optional)':'Ausbau (optional)';stage.setAttribute('aria-label',stage.placeholder);if(previous?.stage!=null)stage.value=String(previous.stage);
+    const field={name:select,count,stage,box:previous?.box||detected?.box||null,info};fields.push(field);
+    mark.onclick=()=>{active=i;start=null;fields.forEach((entry,index)=>entry.mark.setAttribute('aria-pressed',String(index===i)));status.textContent=(isOwn?(language==='en'?'Mark your unit ':'Eigene Einheit '):(language==='en'?'Mark the figure for enemy ':'Figur für Gegner '))+(i+1)+(language==='en'?' in the image below.':' im Bild darunter markieren.');canvas.scrollIntoView({block:'nearest',behavior:'smooth'});paint();};field.mark=mark;mark.setAttribute('aria-pressed','false');select.onchange=()=>{info.textContent=field.box?(language==='en'?'Area assigned to '+(select.selectedOptions[0]?.text||'this row'):'Rahmen zugeordnet: '+(select.selectedOptions[0]?.text||'diese Zeile')):'';};
+    row.append(select,mark,count,stage,info);rows.append(row);
   }
-  function point(event){const rect=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1080,Math.round((event.clientX-rect.left)*1080/rect.width))),250+Math.max(0,Math.min(920,Math.round((event.clientY-rect.top)*920/rect.height)))];}
+  function point(event){const rect=canvas.getBoundingClientRect();return [Math.max(0,Math.min(1080,Math.round((event.clientX-rect.left)*1080/rect.width))),top+Math.max(0,Math.min(920,Math.round((event.clientY-rect.top)*920/rect.height)))];}
   function finish(end){
     const box=[Math.min(start[0],end[0]),Math.min(start[1],end[1]),Math.max(start[0],end[0]),Math.max(start[1],end[1])];start=null;
     if(box[2]-box[0]<20||box[3]-box[1]<20||box[2]-box[0]>400||box[3]-box[1]>400){status.textContent=language==='en'?'The box is too small or large. Please mark a single figure.':'Der Rahmen ist zu klein oder zu groß. Bitte eine einzelne Figur markieren.';return;}
     fields[active].box=box;const label=fields[active].name.selectedOptions[0]?.text||'';
     fields[active].info.textContent=(language==='en'?'Area assigned: ':'Rahmen zugeordnet: ')+(fields[active].name.value?label:(language==='en'?'select unit':'Einheit wählen'));
-    status.textContent=(language==='en'?'Area saved in row ':'Rahmen für Gegner ')+(active+1)+(language==='en'?'. Confirm with Save enemy examples.':' markiert. Danach Gegnerbeispiele speichern.');paint();
+    status.textContent=(language==='en'?'Area marked for row ':'Rahmen für Zeile ')+(active+1)+(language==='en'?'. Save the examples below.':' markiert. Danach Beispiele speichern.');paint();
   }
   canvas.onpointerdown=event=>{
     if(active===null){status.textContent=language==='en'?'First press Mark in the desired row.':'Bitte zuerst in der gewünschten Zeile auf Markieren drücken.';return;}
@@ -1386,10 +1446,10 @@ function renderEnemyReferenceCorrection(item,references){
   };
   canvas.onpointerup=event=>{if(!start||active===null)return;const end=point(event);if(Math.abs(end[0]-start[0])>=20||Math.abs(end[1]-start[1])>=20)finish(end);else status.textContent=language==='en'?'Tap the opposite corner.':'Jetzt die gegenüberliegende Ecke antippen.';};
   canvas.onpointercancel=()=>{start=null;status.textContent=language==='en'?'Marking cancelled. Try again.':'Markierung abgebrochen. Bitte erneut versuchen.';};
-  const save=textEl('button',language==='en'?'Save enemy examples':'Gegnerbeispiele speichern','small');save.type='button';
+  const save=textEl('button',isOwn?(language==='en'?'Save own examples':'Eigene Beispiele speichern'):(language==='en'?'Save enemy examples':'Gegnerbeispiele speichern'),'small');save.type='button';
   const check=textEl('button',language==='en'?'Check image again':'Bild erneut prüfen','small');check.type='button';
-  save.onclick=()=>action(async()=>{const selected=fields.map((field,position)=>({...field,position})).filter(field=>field.name.value&&field.box);if(!selected.length)throw Error(language==='en'?'Select and mark at least one enemy.':'Bitte mindestens eine gegnerische Einheit auswählen und markieren.');save.disabled=true;try{
-    for(const field of selected)await post('/api/reference/enemy',{id:item.referenceId,position:field.position,name:field.name.value,box:field.box});
+  save.onclick=()=>action(async()=>{const selected=fields.map((field,position)=>({...field,position})).filter(field=>field.name.value&&field.box);if(!selected.length)throw Error(language==='en'?'Select and mark at least one unit.':'Bitte mindestens eine Einheit auswählen und markieren.');save.disabled=true;try{
+    for(const field of selected)await post('/api/reference/field',{id:item.referenceId,side,position:field.position,name:field.name.value,box:field.box,count:field.count.value===''?null:Number(field.count.value),stage:field.stage.value===''?null:Number(field.stage.value)});
     status.textContent=language==='en'?'Saved. Checking image…':'Gespeichert. Bild wird erneut ausgewertet …';await post('/api/reference',{file:item.referenceId});
   }finally{save.disabled=false;}});
   check.onclick=()=>action(()=>post('/api/reference',{file:item.referenceId}));
@@ -1507,6 +1567,10 @@ function renderOffers(result){
     const cards=(result[key]??[]).filter(card=>card.name&&Number.isInteger(card.position));
     if(cards.length)$('board').append(textEl('p',translate(label,language)+' · '+cards.map(card=>
       displayCardNames(card.name)+(card.orange?.value!=null?` (${card.orange.value})`:'')).join(', ')));
+  }
+  for(const [key,de,en] of [['enemyVisual','Gegnerische Bildtreffer','Enemy visual matches'],['ownVisual','Eigene Bildtreffer','Own visual matches']]){
+    const rows=result[key]??[];
+    if(rows.length)$('board').append(textEl('p',(language==='en'?en:de)+' · '+rows.map(row=>displayNames(row.name,language)+' ('+row.visualMatches+')').join(', ')+(language==='en'?' · experimental, not a verified unit count':' · experimentell, keine sichere Truppenzahl'),'muted'));
   }
   $('notes').replaceChildren();for(const note of result.notes||[])$('notes').append(textEl('p',note));
 }
@@ -1902,7 +1966,7 @@ async function refresh(){
     $('advice').classList.add('wait');
     renderOffers({offers:[]});
   }
-  if(c&&c.id!==lastId){renderReferenceCorrection(c);renderEnemyReferenceCorrection(c,state.savedReferences||[]);}
+  if(c&&c.id!==lastId){renderReferenceCorrection(c);renderFieldReferenceCorrection(c,state.savedReferences||[],'enemy');renderFieldReferenceCorrection(c,state.savedReferences||[],'own');}
   if(c){current=c;const pending=state.latestId>c.id;const a=JSON.stringify([c.phase,c.advice,c.sentChoice,c.expired,pending,filterImages]);if(c.id!==lastId){lastId=c.id;$('image-empty').hidden=true;document.querySelector('.image-wrap').hidden=false;$('screenshot').src=c.image;$('phase').textContent=phaseNames[c.phase]||c.phase;$('image-caption').textContent=c.source==='reference'?c.title+' · Gespeichertes Testbild':c.title;$('capture-time').textContent=(c.captureMs/1000).toFixed(2)+' s';$('vision-time').textContent=Math.round(c.visionMs)+' ms';$('total-time').textContent=(c.ageMs/1000).toFixed(2)+' s';renderOffers(c);}else if(a!==lastAdvice&&c.sentChoice)renderOffers(c);draw(c,state.lastCardTap);
     if(a!==lastAdvice){
       lastAdvice=a;

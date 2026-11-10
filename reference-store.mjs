@@ -15,7 +15,7 @@ export async function createReferenceStore(root){
   }
   async function add(png,details={}){
     const id=randomBytes(12).toString('hex');
-    const item={id,at:Date.now(),source:details.source||'manual',phase:details.phase||null,language:details.language||'de',issues:details.issues||[],corrections:[]};
+    const item={id,at:Date.now(),source:details.source||'manual',phase:details.phase||null,language:details.language||'de',issues:details.issues||[],matchId:details.matchId??null,captureId:details.captureId??null,corrections:[]};
     await writeFile(image(id),png,{flag:'wx'});
     try{await writeFile(meta(id),JSON.stringify(item),{flag:'wx'});}catch(e){await unlink(image(id)).catch(()=>{});throw e;}
     return item;

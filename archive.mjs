@@ -49,7 +49,8 @@ export function createArchive(file,runtime){
         games:archived.size,pending:new Set(games.filter(game=>!archived.has(game.id)).map(game=>game.id)).size,
         evidence:database.prepare('SELECT COUNT(*) AS count FROM belege').get().count,
         insights:database.prepare('SELECT COUNT(*) AS count FROM erkenntnisse').get().count,
-        bytes:size.size,recent:database.prepare(`SELECT modus,ergebnis,ende_ms,aufnahmezahl,
+        findings:database.prepare('SELECT id,titel,beobachtung FROM erkenntnisse ORDER BY rowid DESC LIMIT 100').all(),
+        bytes:size.size,recent:database.prepare(`SELECT id,modus,ergebnis,ende_ms,aufnahmezahl,
           (SELECT COUNT(*) FROM belege WHERE partie_id=partien.id) AS bilder
           FROM partien ORDER BY ende_ms DESC LIMIT 20`).all()
       };

@@ -85,3 +85,5 @@ Optionale GPT-Entwürfe brauchen `OPENAI_API_KEY` und `COACH_REVIEW_MODEL` in de
 ### Standalone-KI für die Schnellauskunft
 
 Öffne am Host-PC **Admin · Archiv → OpenAI-API-Key** und speichere einen Schlüssel. Der Coach legt ihn im lokalen Laufzeitordner außerhalb von Git und SQLite-Sicherung ab. Alternativ kannst du OPENAI_API_KEY in der Umgebung des Host-Prozesses setzen. Beim Speichern einer Regel ergänzt der Coach fehlende Übersetzungen und aktualisiert veraltete maschinelle Fassungen. Handbearbeitete Übersetzungen bleiben zur Prüfung erhalten. Über COACH_QUICK_MODEL kannst du das Standardmodell gpt-5.4-mini ändern. In der Schnellauskunft lässt sich die Antwortquelle wählen. Die Standalone-KI sendet die Frage, passende lokale Taktiktexte und den vorherigen KI-Dialogschritt an OpenAI. Das lokale Lexikon bleibt verfügbar. Im Codex-Ablauf stellst du die Frage direkt im Codex-Chat.
+
+Entwicklungsstand zur [Partieauswertung und zum Lernen](docs/partieauswertung-plan.md).

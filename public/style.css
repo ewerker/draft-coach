@@ -191,3 +191,8 @@
 .enemy-reference-rows{display:grid;gap:8px;margin:12px 0}.enemy-reference-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.enemy-reference-row select{min-width:180px}.enemy-reference-canvas{display:block;width:min(100%,350px);height:auto;touch-action:none;border:1px solid var(--line);border-radius:8px;margin:12px 0;cursor:crosshair}
 
 .enemy-reference-canvas{width:min(100%,700px)}.enemy-mark-status{padding:10px 12px;border:1px solid var(--line);border-radius:8px}.enemy-reference-row button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+
+/* Show full screenshots in the review gallery. */
+#saved-references .reference img,#references .reference img{object-fit:contain;object-position:center;background:#10151f;height:180px}
+
+.enemy-reference-row input[type=number]{width:150px;max-width:100%}

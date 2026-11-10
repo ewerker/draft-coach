@@ -66,7 +66,7 @@ export function makeReviewFrame(job,raw,item,match){
   const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
   return structuredClone({id:item.id,capturedAt:job.started,language:job.gameLanguage,mode:job.mode,phase,offers,enemy,own,ownDeckPicks,
     ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice,
-    observedInFrame:{enemy:raw.enemy??[],own:raw.own??[],enemyEvent:raw.enemyEvent??null},
+    observedInFrame:{enemy:raw.enemy??[],own:raw.own??[],enemyVisual:raw.enemyVisual??[],ownVisual:raw.ownVisual??[],enemyEvent:raw.enemyEvent??null},
     knownState:{enemyDeck:[...match.enemyDeck.values()],enemyEvents:[...match.enemyEvents.values()],
       ownDeckPicks:[...match.ownDeckPicks],enemyAdditions:Object.fromEntries(match.enemyAdditions),ownReinforcements:Object.fromEntries(match.ownReinforcements)},
     timings:{captureMs:job.captureMs??null,visionMs:raw.visionMs??null,ageMs:item.ageMs},expired:item.expired});
@@ -91,6 +91,11 @@ export function reviewQueries(journal,withDatabase,runtime){
       if(!merged.has(game.id))merged.set(game.id,game);
     }
     return [...merged.values()].sort((a,b)=>b.ended-a.ended);
+  }
+  async function clicks(){
+    const live=await journal('antippen.jsonl');
+    const saved=await withDatabase(true,db=>db.prepare('SELECT details_json FROM klickprotokoll').all().map(row=>JSON.parse(row.details_json)));
+    return [...new Map([...saved,...live].map(click=>[JSON.stringify([click.aufnahme,click.zeit,click.art,click.position,click.karte]),click])).values()];
   }
   async function match(id){
     const game=(await matches()).find(game=>game.id===id);
@@ -142,5 +147,5 @@ export function reviewQueries(journal,withDatabase,runtime){
     await withDatabase(false,db=>db.prepare("UPDATE review_cases SET data=json_set(data,'$.template.enabled',json(?)) WHERE id=? AND json_extract(data,'$.template') IS NOT NULL")
       .run(JSON.stringify(enabled),id));
   }
-  return {matches,match,image,save,list,templates,revise,toggleTemplate};
+  return {matches,match,image,save,list,templates,revise,toggleTemplate,clicks};
 }

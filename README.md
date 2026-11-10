@@ -81,3 +81,5 @@ Optional GPT drafts require `OPENAI_API_KEY` and `COACH_REVIEW_MODEL` in the hos
 ### Standalone AI Quick Advice
 
 On the host PC, open **Admin · Archive → OpenAI API key** and save a key. The key is stored in the host runtime directory, outside Git and the SQLite backup. Alternatively, set OPENAI_API_KEY in the host process environment. Saving a new rule automatically fills a missing translation and refreshes outdated machine translations. Human-edited translations remain available for review. COACH_QUICK_MODEL optionally overrides the default gpt-5.4-mini. Choose the answer source in Quick Advice. Standalone AI sends the question, relevant local tactic text and the preceding AI turn to OpenAI. The local knowledge base remains available. For the Codex workflow, ask the question directly in the Codex chat.
+
+Development status for [match review and learning](docs/partieauswertung-plan.md) (German).

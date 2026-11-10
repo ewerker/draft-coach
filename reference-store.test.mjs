@@ -8,12 +8,14 @@ test('references and corrections persist across store restarts and can be remove
   const root=await mkdtemp(path.join(tmpdir(),'coach-references-'));
   try{
     let store=await createReferenceStore(root);
-    const ref=await store.add(Buffer.from('image'),{source:'automatic',phase:'battle_choice',issues:[{position:0}]});
+    const ref=await store.add(Buffer.from('image'),{source:'match',matchId:'game1',captureId:42,phase:'battle_choice',issues:[{position:0}]});
     await store.correct(ref.id,{phase:'battle_choice',position:0,name:'Agent B',box:[1,2,3,4]});
     await store.correct(ref.id,{phase:'enemy_field',position:0,name:'Sniper',box:[10,300,70,380]});
     store=await createReferenceStore(root);
     assert.equal((await store.list())[0].corrections[0].name,'Agent B');
     assert.equal((await store.list())[0].corrections[1].name,'Sniper');
+    assert.equal((await store.list())[0].matchId,'game1');
+    assert.equal((await store.list())[0].captureId,42);
     assert.equal((await readFile(store.image(ref.id))).toString(),'image');
     await store.remove(ref.id);assert.deepEqual(await store.list(),[]);
     await assert.rejects(store.remove('../secret'));
