@@ -183,3 +183,7 @@
 .collapsible-section > summary h2{display:inline;font-size:1em}
 .collapsible-section > summary .pill,.collapsible-section > summary .muted{margin-inline-start:.6rem;vertical-align:middle}
 .collapsible-section:not([open]) > summary{margin-bottom:0}
+
+.reference-correction-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.reference-correction-row{display:grid;gap:6px;min-width:0}.reference-correction-row select{width:100%;min-width:0}
+#reference-correction button+button{margin-inline-start:8px}
