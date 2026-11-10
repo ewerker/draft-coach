@@ -30,3 +30,5 @@ SQLite `replay_checks` speichert Bericht, Fingerabdruck, Zeit, Regel-Snapshots u
 
 ## English summary
 P6 has an executable first stage: idle-time, restart-safe reports for completed matches and confirmed image changes. Independent arithmetic fixtures, comparisons against player-confirmed images, and structured-rule ablation replays are separate. Reports retain rule/data/engine fingerprints and per-language coverage. Missing evidence remains unclear; no tactical benefit or automatic activation is claimed. Free-text expectation proposals, independent tactical counterexamples and full A6 acceptance remain open. P7/P8 prospective trials and activation proposals are not implemented here.
+
+Produktionsprüfung: Die installierte Fassung besteht auch den isolierten HTTP-Neustarttest. Echte Berichte entstanden automatisch in beiden Sprachen. Für a6ea869f: 26 Entscheidungen ohne vollständige Bild-/Formgrundlage, drei veränderte Regelvergleichs-Tipps; noch keine Spielerbestätigung dieser neuen Schlüsselbilder. Deutsch/Englisch wurden im Browser geprüft.
