@@ -289,4 +289,11 @@
 
 #image-review-content button { margin:.2rem .35rem .2rem 0; }
 .image-review-canvas { width:auto; max-width:100%; max-height:calc(100dvh - 250px); margin:.5rem auto; }
-@media(max-width:760px) { .image-review-canvas { max-height:500px; } }
+@media(max-width:760px) {
+  .image-review-layout { display:block; }
+  .image-review-picture { position:sticky; top:.4rem; z-index:2; max-width:none; margin:0 0 1rem; padding:.4rem; background:var(--panel,#192232); border:1px solid var(--border,#40516a); border-radius:12px; }
+  .image-review-picture .image-review-actions { gap:.15rem; }
+  .image-review-picture button { padding:.4rem; font-size:.75rem; }
+  .image-review-picture a { margin:.2rem 0; font-size:.8rem; }
+  .image-review-canvas { max-height:min(30dvh,240px); margin:.25rem auto; }
+}

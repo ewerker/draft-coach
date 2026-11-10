@@ -95,7 +95,7 @@ export function createImageReviewPanel({root,getLanguage,post}){
    if(box[1]<min||box[3]>max||box[2]-box[0]<12||box[3]-box[1]<12||box[2]-box[0]>450||box[3]-box[1]>450){notice=t().errors.INVALID_EXAMPLE_BOX;render();return;}
    answer.sides[mark.side].groups[mark.index].box=box;mark=null;notice=t().boxDone;remember();render();
   };canvas.onpointercancel=()=>start=null;
-  parent.append(canvas);const link=el('a',t().full);link.href=image.src;link.target='_blank';link.rel='noopener';parent.append(link,el('p',t().boxHint,'muted'));if(mark)parent.append(el('p',t().marking,'image-review-message'));
+  parent.append(canvas);const link=el('a',t().full);link.href=image.src;link.target='_blank';link.rel='noopener';parent.append(link);if(mark)parent.append(el('p',t().marking,'image-review-message'));
  }
  function render(){
   root.dataset.reviewOriginal='';root.replaceChildren();root.append(el('h3',t().title),el('p',t().intro,'muted'));
@@ -107,7 +107,7 @@ export function createImageReviewPanel({root,getLanguage,post}){
    root.append(el('h4',`${t().progress} ${position+1} ${t().of} ${Math.max(round.length,1)} · #${item.match_id.slice(0,8)} / ${item.capture_id}`));
    root.append(el('p',`${t()[item.partition==='test'?'test':'training']} · ${item.context.language?.toUpperCase()} · ${({de:{battle_choice:'Wahl im Kampf',spell_choice:'Zauberwahl'},en:{battle_choice:'Battle choice',spell_choice:'Spell choice'}})[getLanguage()]?.[item.context.phase]??item.context.phase}`,'muted'));
    root.append(el('p',item.blind?t().blind:t().proposal,'image-review-message'),el('p',t().note,'muted'));
-   const layout=el('div',null,'image-review-layout'),picture=el('div',null,'image-review-picture'),editors=el('div');canvasImage(picture);editors.append(sideEditor('enemy'),sideEditor('own'));layout.append(picture,editors);root.append(layout,el('p',t().formHint,'muted'),el('p',t().draft,'muted'));
+   const layout=el('div',null,'image-review-layout'),picture=el('div',null,'image-review-picture'),editors=el('div');canvasImage(picture);editors.append(sideEditor('enemy'),sideEditor('own'),el('p',t().boxHint,'muted'),el('p',t().formHint,'muted'),el('p',t().draft,'muted'));layout.append(picture,editors);root.append(layout);
    const submit=button(t().save,async()=>{
     const confirmed={language:getLanguage(),sides:{}};
     for(const side of ['own','enemy']){const s=answer.sides[side];if(s?.verdict)confirmed.sides[side]=s;}
@@ -115,8 +115,8 @@ export function createImageReviewPanel({root,getLanguage,post}){
     try{localStorage.removeItem(key());}catch{}
     item=null;answer=null;notice=t().saved;await refresh();
     if(++position<round.length)await open(round[position]);else notice=t().done+' '+t().saved;
-   },'primary');root.append(submit,button(t().skip,()=>{item=null;answer=null;mark=null;}));
-   const e=item.evaluation;root.append(el('p',`${t().evaluation}: ${e?.running?t().running:e?.error?e.error:!e?.eligibleCases||!e?.inventory?.trainingMatches?t().waiting:e.pending?t().stale:t().ready}. ${t().idle}`,'muted'));
+   },'primary');editors.append(submit,button(t().skip,()=>{item=null;answer=null;mark=null;}));
+   const e=item.evaluation;editors.append(el('p',`${t().evaluation}: ${e?.running?t().running:e?.error?e.error:!e?.eligibleCases||!e?.inventory?.trainingMatches?t().waiting:e.pending?t().stale:t().ready}. ${t().idle}`,'muted'));
   }
   const list=el('details',null,'image-review-list');list.append(el('summary',`${t().all} (${data.items.length})`));
   for(const q of data.items){const row=el('div',null,'image-review-list-row');row.append(el('span',`${new Date(q.created).toLocaleString(getLanguage()==='en'?'en-GB':'de-DE')} · #${q.match_id.slice(0,8)} · ${q.capture_id} · ${q.answered?t().answered:t().open}`),button(t().edit,async()=>{round=[q.id];position=0;await open(q.id);}));
