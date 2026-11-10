@@ -1,0 +1,31 @@
+import unittest
+from pathlib import Path
+import cv2
+import vision
+
+class NewGermanResultTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-result-de.png')
+
+    def test_loss_and_continue_are_recognized(self):
+        self.assertEqual(vision.match_outcome_small(self.image),'verloren')
+        nav=vision.game_navigation(self.image,'verloren')
+        self.assertEqual(nav['step'],'result')
+        self.assertTrue(.4<nav['point'][0]<.6 and .85<nav['point'][1]<.98)
+
+    def test_missing_heading_or_button_does_not_confirm_result(self):
+        for box in [(25,67,16,152),(300,355,25,143)]:
+            image=self.image.copy();y1,y2,x1,x2=box;image[y1:y2,x1:x2]=0
+            self.assertIsNone(vision.new_loss_navigation(image))
+            self.assertIsNone(vision.match_outcome_small(image))
+
+    def test_replay_requires_both_buttons(self):
+        image=vision.decode(Path(__file__).resolve().parent/'data'/'test-new-replay-de.png')
+        nav=vision.game_navigation(image,None)
+        self.assertEqual((nav['step'],nav['mode']),('replay','draft'))
+        self.assertTrue(.1<nav['point'][0]<.5 and .8<nav['point'][1]<.95)
+        image[291:340,83:163]=0
+        self.assertIsNone(vision.game_navigation(image,None))
+
+if __name__=='__main__':unittest.main()

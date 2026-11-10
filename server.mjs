@@ -943,6 +943,7 @@ async function probeDevice(){
 function matchesContinuation(result,run){
   const navigation=result.navigation;
   if(!navigation)return false;
+  if(navigation.step==='replay')return run.mode==='draft'&&navigation.mode==='draft'&&['recap','home'].includes(run.step);
   if(navigation.step==='claim')return run.step==='home'&&navigation.mode===run.mode&&!run.claimSent;
   if(navigation.step==='reward')return run.step!=='saving'&&run.rewardStep!==run.step;
   if(run.step==='result')return navigation.step==='result'&&result.matchOutcome===run.outcome;
@@ -977,7 +978,7 @@ async function tapContinuation(job,run,step){
       run.claimSent=true;
     }else if(step==='reward'){
       run.rewardStep=run.step;
-    }else if(step==='home'){
+    }else if(step==='home'||step==='replay'){
       if(autoMode)nextModeHint=run.mode;
       continuation=null;
     }

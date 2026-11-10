@@ -415,6 +415,22 @@ with np.load(ROOT/'data'/'match-results.npz',allow_pickle=False) as result_data:
                    for mask in (result_data[key],) for scale in (.94,1,1.06)]
 
 
+with np.load(ROOT/'data'/'new-result-de.npz',allow_pickle=False) as data:
+    new_loss_de=data['loss'].copy()
+    new_continue_de=data['continue_button'].copy()
+    new_replay_de=data['replay'].copy()
+    new_home_de=data['home'].copy()
+
+def new_loss_navigation(small):
+    gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
+    heading=gray[25:67,16:152]
+    button=gray[300:355,25:143]
+    if cv2.minMaxLoc(cv2.matchTemplate(heading,new_loss_de,cv2.TM_CCOEFF_NORMED))[1]<.94:return None
+    _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(button,new_continue_de,cv2.TM_CCOEFF_NORMED))
+    if score<.94:return None
+    x+=25+new_continue_de.shape[1]/2;y+=300+new_continue_de.shape[0]/2
+    return {'step':'result','mode':None,'point':[x/168,y/364]}
+
 with np.load(ROOT/'data'/'battle-navigation.npz',allow_pickle=False) as navigation_data:
     navigation_labels={name:navigation_data[name] for name in navigation_data.files}
 
@@ -433,8 +449,17 @@ def navigation_button(gray,name,area,step,mode=None):
 def game_navigation(small,outcome):
     gray=cv2.cvtColor(small,cv2.COLOR_BGR2GRAY)
     if outcome:
+        if outcome=='verloren':
+            new_result=new_loss_navigation(small)
+            if new_result:return new_result
         area=(25,283,143,347)
         return navigation_button(gray,'result',area,'result') or navigation_button(gray,'result_de',area,'result')
+    # The new Draft end screen offers a direct replay and a home button.
+    left=gray[291:340,5:85];right=gray[291:340,83:163]
+    if (cv2.minMaxLoc(cv2.matchTemplate(left,new_replay_de,cv2.TM_CCOEFF_NORMED))[1]>=.94 and
+        cv2.minMaxLoc(cv2.matchTemplate(right,new_home_de,cv2.TM_CCOEFF_NORMED))[1]>=.94):
+        _,_,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(left,new_replay_de,cv2.TM_CCOEFF_NORMED))
+        return {'step':'replay','mode':'draft','point':[(5+x+new_replay_de.shape[1]/2)/168,(291+y+new_replay_de.shape[0]/2)/364]}
     if cv2.minMaxLoc(cv2.matchTemplate(gray[78:119,16:153],
                                       navigation_labels['mastery_title'],cv2.TM_CCOEFF_NORMED))[1]>=.89:
         return navigation_button(gray,'mastery_continue',(25,289,143,356),'reward')
@@ -493,6 +518,7 @@ def match_outcome(img):
 
 
 def match_outcome_small(small):
+    if new_loss_navigation(small):return 'verloren'
     # Reward screens have a blue backdrop around the animated heading.
     sides=small[85:220,[2,3,4,163,164,165]]
     if np.mean((sides[:,:,0].astype(int)-sides[:,:,2])>35)<.68:
