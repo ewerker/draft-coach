@@ -55,22 +55,23 @@
 </section>
 <section id="review-panel" class="panel" hidden>
   <div class="panel-head"><h2>Partien und Auswertung</h2><button id="close-review" type="button" class="small">Zurück zum Spiel</button></div>
-  <p>Wähle eine Partie und Aufnahme. Vergleiche Erkennung, Tipp und gesendeten Klick; übernimm wichtige Aufnahmen als Prüfbild oder prüfe einen Regelvorschlag.</p>
-  <details id="review-queue" open><summary>Prüffälle</summary>
-    <p>Hier stehen alle gespeicherten Prüffälle zusammen. Öffne einen Fall und markiere ihn nach der Bearbeitung als erledigt.</p>
-    <p id="review-queue-count" role="status"></p>
-    <label>Anzeige <select id="review-queue-filter"><option value="open">Offen</option><option value="all">Alle</option><option value="done">Erledigt</option></select></label>
+  <p class="review-intro">Wähle eine Partie und Aufnahme, um die Erkennung und den damaligen Tipp zu prüfen.</p>
+  <details id="review-queue" class="review-card" open><summary>Prüffälle <span id="review-queue-count" class="muted" role="status"></span></summary>
+    <div class="review-queue-bar"><p class="muted">Gespeicherte Prüffälle öffnen und nach der Bearbeitung als erledigt markieren.</p>
+    <label>Anzeige <select id="review-queue-filter"><option value="open">Offen</option><option value="all">Alle</option><option value="done">Erledigt</option></select></label></div>
     <div id="review-cases"></div>
   </details>
-  <label>Partie suchen <input id="review-search" type="search" placeholder="Datum, Modus, Ergebnis oder Partiekennung"></label>
-  <p id="review-match-count" class="muted" role="status"></p>
-  <div class="tactics-actions">
+  <div class="review-card review-selection">
+  <div class="review-search-row"><label>Partie suchen <input id="review-search" type="search" placeholder="Datum, Modus, Ergebnis oder Partiekennung"></label>
+  <span id="review-match-count" class="muted" role="status"></span></div>
+  <div class="review-select-grid">
     <label>Partie <select id="review-match"></select></label>
     <label>Wahlfenster <select id="review-capture"></select></label>
     <label>Sprache älterer Bilder <select id="review-language"><option value="de">Deutsch</option><option value="en">English</option></select></label>
     <button id="review-load" type="button">Bild und Auswertung laden</button>
   </div>
   <p id="review-availability" class="muted" role="status"></p>
+  </div>
   <p id="review-message" role="status"></p>
   <div class="review-images">
     <div>

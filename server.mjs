@@ -119,9 +119,10 @@ async function resetActivityLog(){
     return {ok:true,resetAt:next};
   }finally{logResetting=false;await unlink(temporary).catch(()=>{});}
 }
-function matchLogEntry({id,mode,ended,outcome,language,reviewFrames}){
-  return {id,mode,ended,outcome,language:language??reviewFrames?.at(-1)?.language??null};
+function matchLogEntry({id,mode,ended,outcome,language,reviewFrames,archived}){
+  return {id,mode,ended,outcome,language:language??reviewFrames?.at(-1)?.language??null,archiveStatus:archived===true?'archived':'pending'};
 }
+function setMatchArchiveStatus(id,status){const entry=recentMatchResults.find(game=>game.id===id);if(entry)entry.archiveStatus=status;}
 let continuum=false, continuation=null;
 const lossGuardFile=path.join(RUNTIME,'loss-guard.json');
 let stopAfterLosses=true,lossStreak=0,lossStopEvent=null,lossGuardSaving=false;
@@ -1173,7 +1174,9 @@ async function saveMatchOutcome({matchId,outcome}){
       addMatchStats(game);
     }
     if(stoppedMatch===match)stoppedMatch=null;
-    void archive.archiveGames(id).catch(error=>console.error('Partiebelege:',error.message));
+    void archive.archiveGames(id).then(()=>setMatchArchiveStatus(id,'archived')).catch(error=>{
+      setMatchArchiveStatus(id,'failed');console.error('Partiebelege:',error.message);
+    });
     return {ok:true};
   } finally {match.saving=false;}
 }
@@ -1396,7 +1399,9 @@ async function handleRequest(req,res){
       if(url.pathname==='/api/admin/review/rule')return json(res,200,await updateReviewRule(data));
       if(url.pathname==='/api/admin/archiv/uebernehmen'){
         if(state.auto||state.capturing||queue.running)throw Error('Für den Archivimport zuerst die Aufnahme stoppen.');
-        return json(res,200,await archive.archiveGames());
+        const result=await archive.archiveGames();
+        if(!result.status.pending)for(const entry of recentMatchResults)entry.archiveStatus='archived';
+        return json(res,200,result);
       }
       if(url.pathname==='/api/taktikregeln/recherche'){
         if(!openAiKey())throw Error('Für die Internetrecherche zuerst den OpenAI-API-Key einrichten.');

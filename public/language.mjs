@@ -54,6 +54,8 @@ Spielfeld nach der Variantenwahl|Field after the variant choice
 Folgeaufnahme nicht verfügbar.|Follow-up capture unavailable.
 Partie auswerten|Review match
 Partien und Auswertung|Matches and review
+Wähle eine Partie und Aufnahme, um die Erkennung und den damaligen Tipp zu prüfen.|Choose a match and capture to review recognition and the recommendation made at the time.
+Gespeicherte Prüffälle öffnen und nach der Bearbeitung als erledigt markieren.|Open saved review cases and mark them done after reviewing them.
 Kurze Überschrift der Regel|Short rule heading
 Neue Regel speichern|Save new rule
 Hinzufügen|Add

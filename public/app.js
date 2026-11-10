@@ -548,6 +548,7 @@ const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
 if(config.localAdmin)$('organization-options').append(new Option('Partien und Auswertung','review'));
 let reviewedFrame=null,reviewGptEnabled=false,reviewData=null,reviewCases=[],reviewGames=[],reviewGame=null;
+let reviewArchiveKey=null,reviewListBusy=false;
 const reviewForm=$('review-form');
 const reviewRoot='/api/admin/review/';
 let reviewRecognition=null,reviewAiObservation='',reviewHasAiRule=false;
@@ -645,8 +646,9 @@ async function loadReviewCaptures(){
 function renderReviewCaptures(){
   if(!reviewGame||reviewGame.id!==$('review-match').value)return;
   const captures=$('review-capture'), selected=captures.value;
-  const {frames,captureIds,availableCaptureIds=[],hasDetails}=reviewGame;
-  const available=new Set(availableCaptureIds);
+  const {frames,captureIds,availableCaptureIds,hasDetails}=reviewGame;
+  const availabilityKnown=Array.isArray(availableCaptureIds);
+  const available=new Set(availabilityKnown?availableCaptureIds:captureIds);
   captures.replaceChildren();
   const recorded=new Set(frames.map(frame=>frame.id));
   for(const frame of frames){
@@ -661,7 +663,7 @@ function renderReviewCaptures(){
   if([...captures.options].some(option=>option.value===selected&&!option.disabled))captures.value=selected;
   $('review-load').disabled=!available.size||!captures.value;
   const count=available.size,total=captureIds.length;
-  $('review-availability').textContent=(language==='en'?`${count} of ${total} images available.`:`${count} von ${total} Bildern verfügbar.`)+(hasDetails?'':(language==='en'?' Older match: detailed decision logs are unavailable.':' Ältere Partie: Ausführliche Entscheidungsdaten fehlen.'));
+  $('review-availability').textContent=(availabilityKnown?(language==='en'?`${count} of ${total} images available.`:`${count} von ${total} Bildern verfügbar.`):(language==='en'?'Image availability is unknown. Refresh the coach server.':'Bildverfügbarkeit unbekannt. Bitte den Coach aktualisieren.'))+(hasDetails===false?(language==='en'?' Older match: detailed decision logs are unavailable.':' Ältere Partie: Ausführliche Entscheidungsdaten fehlen.'):'');
 }
 function renderReviewMatches(){
   const matches=$('review-match'),selected=matches.value;
@@ -669,12 +671,18 @@ function renderReviewMatches(){
   const visible=reviewGames.filter(game=>[game.id,new Date(game.ended).toLocaleString(language),game.mode,game.outcome,reviewMessage(game.mode,language),reviewMessage(game.outcome,language)].join(' ').toLocaleLowerCase().includes(term));
   matches.replaceChildren(...visible.map(game=>new Option(
     [new Date(game.ended).toLocaleString(language),reviewMessage(game.mode,language),reviewMessage(game.outcome,language),'#'+game.id.slice(0,8),
-      game.archived?(language==='en'?`archived · ${game.evidenceCount} images`:`archiviert · ${game.evidenceCount} Bilder`):(language==='en'?'not yet archived':'noch nicht archiviert'),
-      !game.hasDetails?(language==='en'?'limited details':'wenig Details'):''].filter(Boolean).join(' · '),game.id)));
+      game.archived===true?(language==='en'?`archived · ${game.evidenceCount} images`:`archiviert · ${game.evidenceCount} Bilder`):game.archived===false?(language==='en'?'not yet archived':'noch nicht archiviert'):(language==='en'?'archive status unknown':'Archivstatus unbekannt'),
+      game.hasDetails===false?(language==='en'?'limited details':'wenig Details'):''].filter(Boolean).join(' · '),game.id)));
   if([...matches.options].some(option=>option.value===selected))matches.value=selected;
   $('review-match-count').textContent=language==='en'?`${visible.length} of ${reviewGames.length} matches`:`${visible.length} von ${reviewGames.length} Partien`;
 }
 $('review-search').oninput=()=>{const previous=$('review-match').value;renderReviewMatches();if(previous!==$('review-match').value)void reviewAction(loadReviewCaptures);};
+async function refreshReviewMatchList(){
+  if(reviewListBusy)return;reviewListBusy=true;
+  try{const {games}=await reviewGet('matches');const previous=$('review-match').value;reviewGames=games;renderReviewMatches();if(previous!==$('review-match').value)await loadReviewCaptures();}
+  catch(error){$('review-message').textContent=error.message;}
+  finally{reviewListBusy=false;}
+}
 async function openReview(){
   await reviewAction(async()=>{
     clearReviewFrame();
@@ -1804,6 +1812,7 @@ function renderActivityLog(){
       row.append(reviewText(game.mode),' · ',
         gameLanguage?.[language==='en'?1:0]??translate('Spielsprache offen',language),' · ',reviewText(game.outcome),
         ...(game.id?[' · ',translate('Partie',language),' #',game.id.slice(0,8)]:[]));
+      if(game.archiveStatus){const status=game.archiveStatus==='archived'?(language==='en'?'archived':'archiviert'):game.archiveStatus==='failed'?(language==='en'?'archiving failed · retry in archive':'Archivierung fehlgeschlagen · im Archiv nachholen'):(language==='en'?'archiving pending':'Archivierung läuft oder steht aus');row.append(' · ',status);}
       if(game.id){
         const copy=textEl('button','Kopieren','small copy-match-id');
         copy.type='button'; copy.title=translate('Partiekennung kopieren',language);
@@ -2135,6 +2144,11 @@ async function refresh(){
   valueUpdate.textContent=changes.length?translate('Vorrat aktualisiert',language)+' · '+changes.map(change=>displayNames(change.name,language)+' '+translate(change.field==='blue_star'?'Sternwert':'Stufe',language)+' '+change.to).join(' · '):'';
   renderMatchStatistics(state.matchStats,state.matchHours??[],state.logResetAt);
   loggedMatches=state.recentMatchResults??[];
+  if(coachView==='review'){
+    const nextKey=JSON.stringify(loggedMatches.map(game=>[game.id,game.archiveStatus]));
+    if(reviewArchiveKey!==null&&reviewArchiveKey!==nextKey){void updateArchive();void refreshReviewMatchList();}
+    reviewArchiveKey=nextKey;
+  }else reviewArchiveKey=null;
   loggedTimings=state.history??[];
   loggedRecognitionIssues=state.recognitionIssues??[];
   renderActivityLog();
