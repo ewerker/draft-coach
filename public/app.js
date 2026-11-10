@@ -1,5 +1,6 @@
 import {tacticText,reviewMessage,reviewTapReason,displayNames,translate} from './language.mjs';
 import {createKnowledgePanel} from './knowledge.mjs';
+import {createPersistencePanel} from './persistence.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -17,7 +18,7 @@ function rememberPreferences(changes){
   preferences={...preferences,...changes};
   try{localStorage.setItem(preferencesKey,JSON.stringify(preferences));}catch{}
 }
-for(const id of ['preparation','reference-panel','learning-panel','log-panel']){
+for(const id of ['preparation','reference-panel','learning-panel','log-panel','persistence-panel']){
   const panel=$(id);
   const saved=preferences.panelOpen?.[id];
   if(typeof saved==='boolean')panel.open=saved;
@@ -99,6 +100,7 @@ $('language').onchange=()=>{
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
   }
   if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);knowledgePanel.render();}
+  persistencePanel.renderRecovery();persistencePanel.renderJobs();
   if(coachView==='admin'&&lastArchiveData)renderArchive(lastArchiveData);
   void refreshFieldLearning(true);
   void action(()=>post('/api/settings',{gameLanguage:language}));
@@ -513,7 +515,6 @@ $('stop').onclick=async()=>{
 matchDialog.addEventListener('cancel',event=>{if(savingOutcome)event.preventDefault();});
 matchForm.onsubmit=async event=>{
   const outcome=event.submitter?.value;
-  if(!savingOutcome&&outcome==='skip')return;
   event.preventDefault();
   if(savingOutcome||!outcome)return;
   savingOutcome=true;
@@ -521,7 +522,7 @@ matchForm.onsubmit=async event=>{
   buttons.forEach(button=>button.disabled=true);
   matchError.hidden=true;
   try {
-    await post('/api/partie/ergebnis',{matchId:matchDialog.dataset.matchId,outcome});
+    await post('/api/partie/ergebnis',{matchId:matchDialog.dataset.matchId,outcome:outcome==='skip'?'unbekannt':outcome});
     matchDialog.close();
   } catch(e){
     matchError.textContent=e.message;
@@ -672,7 +673,7 @@ function renderReviewMatches(){
   const visible=reviewGames.filter(game=>[game.id,new Date(game.ended).toLocaleString(language),game.mode,game.outcome,reviewMessage(game.mode,language),reviewMessage(game.outcome,language)].join(' ').toLocaleLowerCase().includes(term));
   matches.replaceChildren(...visible.map(game=>new Option(
     [new Date(game.ended).toLocaleString(language),reviewMessage(game.mode,language),reviewMessage(game.outcome,language),'#'+game.id.slice(0,8),
-      game.archived===true?(language==='en'?`archived · ${game.evidenceCount} images`:`archiviert · ${game.evidenceCount} Bilder`):game.archived===false?(language==='en'?'not yet archived':'noch nicht archiviert'):(language==='en'?'archive status unknown':'Archivstatus unbekannt'),
+      game.archiveStatus==='pending'?(language==='en'?'saved; evidence pending':'gesichert; Belege warten'):game.archived===true?(language==='en'?`archived · ${game.evidenceCount} images`:`archiviert · ${game.evidenceCount} Bilder`):game.archived===false?(language==='en'?'not yet archived':'noch nicht archiviert'):(language==='en'?'archive status unknown':'Archivstatus unbekannt'),
       game.hasDetails===false?(language==='en'?'limited details':'wenig Details'):''].filter(Boolean).join(' · '),game.id)));
   if([...matches.options].some(option=>option.value===selected))matches.value=selected;
   $('review-match-count').textContent=language==='en'?`${visible.length} of ${reviewGames.length} matches`:`${visible.length} von ${reviewGames.length} Partien`;
@@ -688,6 +689,7 @@ async function openReview(){
   await reviewAction(async()=>{
     clearReviewFrame();
     await knowledgePanel.load();
+    await persistencePanel.refreshJobs(true);
     const {games,cards,gpt}=await reviewGet('matches');
     reviewGptEnabled=gpt;
     $('review-banner-name').replaceChildren(...cards.map(card=>new Option(displayCardNames(card),card)));
@@ -764,6 +766,9 @@ function renderReviewFacts(){
     const detail=document.createElement('span');
     if(click.karte)detail.append(click.karte,' · ');
     detail.append(reviewText(click.ergebnis));
+    if(click.evidenceStatus)detail.append(' · ',language==='en'?
+      (click.evidenceStatus==='transition_observed'?'screen changed afterwards; actual choice unverified':'actual choice unverified'):
+      (click.evidenceStatus==='transition_observed'?'Bildwechsel danach; tatsächliche Wahl unbestätigt':'tatsächliche Wahl unbestätigt'));
     if(click.grund){
       const reason=document.createElement('span');
       reason.dataset.reviewOriginal='';
@@ -937,6 +942,7 @@ const knowledgePanel=createKnowledgePanel({root:$('knowledge-panel'),getLanguage
       const button=$('review-cases').querySelector('button');button?.click();
     }
   }});
+const persistencePanel=createPersistencePanel({jobsRoot:$('persistence-jobs'),recoveryRoot:$('recovery-panel'),getLanguage:()=>language,post,onChanged:()=>refresh()});
 let archiveBusy=false,lastArchiveData=null;
 function renderArchive(data){
   lastArchiveData=data;
@@ -1938,6 +1944,8 @@ function renderMatchStatistics(stats,hours,resetAt){
 async function refresh(){
   const request=++refreshRequest;
   const r=await fetchState();if(!r.ok)throw Error('Server nicht erreichbar');const state=await r.json();
+  persistencePanel.renderRecovery(state.recoveryMatches??[]);
+  if(coachView==='review')void persistencePanel.refreshJobs();
   if(request<renderedRequest)return;
   renderedRequest=request;
   const prep=state.mode==='prep', conn=state.connection||{status:'checking'};

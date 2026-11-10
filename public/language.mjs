@@ -55,6 +55,21 @@ Folgeaufnahme nicht verfügbar.|Follow-up capture unavailable.
 Partie auswerten|Review match
 Partien und Auswertung|Matches and review
 Wissen und Prüfaufträge|Knowledge and review tasks
+Partiesicherung und Hintergrundaufträge|Match persistence and background jobs
+Vollständige Sicherung herunterladen|Download full backup
+Bitte zuerst die offene Partie fortsetzen oder mit unbekanntem Ergebnis abschließen.|First resume the unfinished match or close it with an unknown result.
+Bitte warten, bis die vollständige Sicherung beendet ist.|Wait until the full backup is finished.
+Keine offene Partie mit dieser Kennung.|There is no unfinished match with this ID.
+Ungültige Wiederaufnahme.|Invalid recovery request.
+Für die vollständige Sicherung zuerst die Partie und Aufnahme stoppen.|Stop the match and capture before creating a full backup.
+Bitte zuerst das Spielgerät verbinden.|Connect the game device first.
+Was passiert nach einem Programmneustart?|What happens after a program restart?
+Der Coach sichert laufende Partien regelmäßig. Nach einem Neustart erscheint die offene Partie mit ihrer Kennung. Setze sie nur fort, wenn auf dem Gerät dieselbe Partie läuft. Alternativ kannst du sie mit unbekanntem Ergebnis oder als abgebrochen abschließen. Unbekannte Ergebnisse zählen weder als Sieg noch als Niederlage. Aufnahme und automatische Klicks starten nicht von selbst.|The Coach regularly saves ongoing matches. After a restart, the unfinished match appears with its ID. Resume only if the same match is still on the device. Alternatively, close it with an unknown result or as abandoned. Unknown results count as neither wins nor losses. Capture and automatic taps do not start by themselves.
+Was prüfen die Hintergrundaufträge?|What do background jobs check?
+Neue abgeschlossene Partien erzeugen automatisch Aufträge für Belegbilder und Datenvollständigkeit. Unter Partien und Auswertung siehst du Wartestatus, Versuche, Fehler und Ergebnisse. Die Aufträge pausieren während des Spiels. Nach drei erfolglosen Versuchen kannst du sie erneut anstoßen. Diese Datenprüfung aktiviert keine Regeln und beweist keine taktische Wirksamkeit.|Newly completed matches automatically create jobs for evidence images and data completeness. Matches and review shows waiting states, attempts, errors and results. Jobs pause during play. After three unsuccessful attempts, you can retry them. This data check does not activate rules or prove tactical effectiveness.
+Was enthält die vollständige Sicherung?|What does a full backup contain?
+Unter Archivverwaltung und API-Key kannst du eine vollständige ZIP-Sicherung herunterladen. Sie enthält die Datenbank, Regeln, Sammlung, gespeicherte Prüfbilder, Vorbereitung und Prüfberichte. API-Key und WLAN-Passwort bleiben ausgeschlossen. Stoppe die Partie und Aufnahme vor der Sicherung. Zur Wiederherstellung in ein neues Verzeichnis dient backup-files.py; bestehende Daten werden dabei nicht überschrieben.|Download a full ZIP backup under Archive settings and API key. It includes the database, rules, collection, saved review images, preparation and reports. The API key and Wi-Fi password are excluded. Stop the match and capture before backing up. Use backup-files.py to restore into a new directory; existing data is never overwritten.
+Die SQLite-Sicherung enthält die Datenbank. Die vollständige ZIP-Sicherung enthält zusätzlich Regeln, Sammlung, Prüfbilder und Vorbereitung. API-Key und WLAN-Passwort sind nicht enthalten.|The SQLite backup contains the database. The full ZIP backup also contains rules, collection, review images and preparation. The API key and Wi-Fi password are not included.
 Details zum gewählten Prüffall|Details of the selected review case
 Wo finde ich Wissen und Prüfaufträge?|Where can I find knowledge and review tasks?
 Öffne am Host-PC Partien und Auswertung. Wissen und Prüfaufträge vereint Taktikregeln, Partie-Prüffälle, Prüfbilder und frühere Archivbeobachtungen. Du kannst nach Art, Prüfstand und Bearbeitung filtern. Herkunft und Originale zeigt die Quellen und ihren Verlauf.|On the host PC, open Matches and review. Knowledge and review tasks brings together tactical rules, match review cases, review images and earlier archived observations. Filter by type, review stage and work status. Sources and originals shows provenance and history.
@@ -649,7 +664,7 @@ const reviewMessages={
   baseline:['Replay bisher','Baseline replay'], proposed:['Replay mit Regel','Replay with proposed rule'],
   reason:['Begründung im Original','Reason in original language'],
   gesendet:['Gesendet','Sent'], abgebrochen:['Abgebrochen','Cancelled'], fehler:['Fehler','Failed'],
-  gewonnen:['Gewonnen','Won'], verloren:['Verloren','Lost'],
+  gewonnen:['Gewonnen','Won'], verloren:['Verloren','Lost'], unbekannt:['Ergebnis unbekannt','Result unknown'], auto:['Spielmodus offen','Game mode unknown'],
   arena:['Schlacht','Battle'], draft:['Draft','Draft'],
   deck_choice:['Deckwahl','Deck choice'], battle_choice:['Kampfwahl','Battle choice'],
   spell_choice:['Zauberauswahl','Spell choice'], unknown:['Unbekannt','Unknown'],

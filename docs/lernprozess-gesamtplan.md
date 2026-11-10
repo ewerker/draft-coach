@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Die übrigen Pakete sind geplant und noch nicht begonnen.**
+**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Punkt 2 ist freigegeben und wird umgesetzt; P3–P9 sind noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 
@@ -41,12 +41,14 @@ Umsetzung und Prüfnachweise: [P1 Wissensablage](p1-wissensablage.md). Der Statu
 
 **Umfang:** Eine Partie wird vom Beginn bis zum Ende nachvollziehbar. Noch nicht abgeschlossene Partien werden als unvollständig gesichert. Ergebnis unbekannt, abgebrochen, gewonnen und verloren bleiben unterscheidbar. Ein Neustart darf einen laufenden oder wartenden Prüfauftrag nicht verlieren.
 
-- [ ] P2.1 Dauerhafte Partiekennung, regelmäßiger Zwischenstand und Wiederaufnahme nach Neustart; Archivimport eindeutig und wiederholbar.
-- [ ] P2.2 Für jede Entscheidung speichern: sichtbares Angebot, Bild-Erkennung, damals angenommener Bestand, Empfehlung, Regel-/Modellversion, gesendete Aktion und tatsächlich bestätigte Folge. Manuelle Eingriffe und unbestätigte Aktionen kennzeichnen.
-- [ ] P2.3 Nach Partieabschluss automatisch Hintergrundaufträge anlegen; begrenzte Wiederholungen bei Fehlern, sichtbarer Fortschritt, geringe Priorität während des Spiels.
-- [ ] P2.4 Begrenztes Bildbudget, Duplikaterkennung und aufschlussreiche Belegbilder. Bestätigte Prüfbelege erhalten; Aufräumen und Sicherung umfassen auch Prüfbilder, Regelversionen und Prüfberichte. Kosten- und Größenlimits anzeigen.
+- [x] P2.1 Dauerhafte Partiekennung, regelmäßiger Zwischenstand und Wiederaufnahme nach Neustart; Archivimport eindeutig und wiederholbar.
+- [x] P2.2 Für jede Entscheidung speichern: sichtbares Angebot, Bild-Erkennung, damals angenommener Bestand, Empfehlung, Regel-/Modellversion, gesendete Aktion und tatsächlich bestätigte Folge. Manuelle Eingriffe und unbestätigte Aktionen kennzeichnen.
+- [x] P2.3 Nach Partieabschluss automatisch Hintergrundaufträge anlegen; begrenzte Wiederholungen bei Fehlern, sichtbarer Fortschritt, geringe Priorität während des Spiels.
+- [x] P2.4 Begrenztes Bildbudget, Duplikaterkennung und aufschlussreiche Belegbilder. Bestätigte Prüfbelege erhalten; Aufräumen und Sicherung umfassen auch Prüfbilder, Regelversionen und Prüfberichte. Kosten- und Größenlimits anzeigen.
 
 **Abnahme A2:** Eine vollständige Testpartie wird genau einmal gespeichert und startet ihre Nachprüfung. Eine unterbrochene Partie überlebt einen Neustart ohne erfundenes Ergebnis. Ein fehlgeschlagener Auftrag lässt sich nachholen. Unvollständige Partien verfälschen Gewinnquote und Verlustserie nicht.
+
+Umsetzung und Prüfnachweise: [P2 Partiesicherung](p2-partiesicherung.md).
 
 ## 3. Eigene und gegnerische Truppen im laufenden Spiel erkennen
 

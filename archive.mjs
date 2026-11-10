@@ -1,5 +1,7 @@
 import {reviewQueries,reviewSchema,selectEvidenceIds} from './review.mjs';
 import {createKnowledgeStore,knowledgeSchema} from './knowledge.mjs';
+import {createMatchStore,matchStoreSchema,imageLimits,plainGame} from './match-store.mjs';
+import {sendFullBackup} from './full-backup.mjs';
 import {DatabaseSync,backup} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {createReadStream,existsSync} from 'node:fs';
@@ -26,6 +28,7 @@ export function createArchive(file,runtime){
     const database=open(readOnly);
     return Promise.resolve().then(()=>operation(database)).finally(()=>database.close());
   }
+  const runs=createMatchStore(withDatabase);
   async function initializeReview(){
     if(!existsSync(file)){
       await mkdir(path.dirname(file),{recursive:true});
@@ -38,8 +41,8 @@ export function createArchive(file,runtime){
     await withDatabase(false,db=>{
       db.exec('BEGIN IMMEDIATE');
       try{
-        db.exec(knowledgeSchema);
-        if(db.prepare('PRAGMA user_version').get().user_version<1)db.exec('PRAGMA user_version=1');
+        db.exec(knowledgeSchema+matchStoreSchema);
+        if(db.prepare('PRAGMA user_version').get().user_version<2)db.exec('PRAGMA user_version=2');
         db.exec('COMMIT');
       }
       catch(error){db.exec('ROLLBACK');throw error;}
@@ -56,7 +59,8 @@ export function createArchive(file,runtime){
     return withDatabase(true,database=>{
       const archived=new Set(database.prepare('SELECT id FROM partien').all().map(row=>row.id));
       return {
-        games:archived.size,pending:new Set(games.filter(game=>!archived.has(game.id)).map(game=>game.id)).size,
+        games:archived.size,pending:new Set([...games.filter(game=>!archived.has(game.id)).map(game=>game.id),
+          ...database.prepare("SELECT match_id FROM background_jobs WHERE kind='archive' AND status!='done'").all().map(row=>row.match_id)]).size,
         evidence:database.prepare('SELECT COUNT(*) AS count FROM belege').get().count,
         insights:database.prepare('SELECT COUNT(*) AS count FROM erkenntnisse').get().count,
         findings:database.prepare('SELECT id,titel,beobachtung FROM erkenntnisse ORDER BY rowid DESC LIMIT 100').all(),
@@ -66,55 +70,43 @@ export function createArchive(file,runtime){
       };
     });
   }
-  function archiveGames(matchId){
+  function archiveGames(matchId,guard=()=>{}){
     return exclusive(async()=>{
-      const [games,clicks]=await Promise.all([journal('partien.jsonl'),journal('antippen.jsonl')]);
-      const counts=await withDatabase(false,async database=>{
-        database.exec(`CREATE TABLE IF NOT EXISTS partie_protokoll (
-          partie_id TEXT PRIMARY KEY REFERENCES partien(id), details_json TEXT NOT NULL
-        )`);
-        const exists=database.prepare('SELECT 1 FROM partien WHERE id=?');
-        const addGame=database.prepare(`INSERT INTO partien
-          (id,modus,coach_modus,ergebnis,beginn_ms,ende_ms,aufnahmezahl,aufnahme_ids_json,quelle,notiz)
-          VALUES (?,?,?,?,?,?,?,?,?,?)`);
-        const addDetails=database.prepare('INSERT INTO partie_protokoll VALUES (?,?)');
-        const addClick=database.prepare(`INSERT INTO klickprotokoll
-          (partie_id,aufnahme,zeit,art,karte,ergebnis,details_json) VALUES (?,?,?,?,?,?,?)`);
-        const addImage=database.prepare(`INSERT INTO belege
-          (aufnahme,partie_id,titel,quellbild,ausschnitt_json,breite,hoehe,mime,sha256,bild)
-          VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(aufnahme) DO NOTHING`);
-        let imported=0,images=0;
-        for(const game of games){
-          if((matchId&&game.id!==matchId)||exists.get(game.id))continue;
-          const ids=new Set(game.captureIds.filter(Number.isSafeInteger));
-          const evidence=await pickEvidence(runtime,game,ids);
-          let addedImages=0;
-          database.exec('BEGIN IMMEDIATE');
+      const single=matchId?await runs.read(matchId):null;
+      const [legacy,clicks,durable]=await Promise.all([
+        single?[]:journal('partien.jsonl'),
+        single?.match.versions?runs.actions(matchId):journal('antippen.jsonl'),
+        single?[{...plainGame(single.match,single.outcome),runStatus:single.status}]:runs.games()
+      ]);
+      const games=[...new Map([...legacy,...durable.filter(game=>game.runStatus==='completed')].map(game=>[game.id,game])).values()];
+      let imported=0,images=0,skipped=0;
+      for(const game of games){
+        guard();
+        if(matchId&&game.id!==matchId)continue;
+        const previous=await withDatabase(true,db=>({archived:!!db.prepare('SELECT 1 FROM partien WHERE id=?').get(game.id),run:db.prepare('SELECT evidence_saved FROM match_runs WHERE id=?').get(game.id)}));
+        if(previous.archived&&(!previous.run||previous.run.evidence_saved))continue;
+        const completed=await runs.complete(game,game.outcome);if(completed.created)imported++;
+        const evidence=await pickEvidence(runtime,game,new Set(game.captureIds));
+        guard();
+        const preserved=await runs.storeImages(game.id,evidence);skipped+=preserved.skipped;
+        images+=await withDatabase(false,db=>{
+          db.exec('BEGIN IMMEDIATE');
           try{
-            // Recheck under the write lock in case another process imported this match.
-            if(!exists.get(game.id)){
-              addGame.run(game.id,game.mode,game.mode,game.outcome,game.started,game.ended,ids.size,JSON.stringify([...ids]),'partien.jsonl','');
-              addDetails.run(game.id,JSON.stringify(game));
-              for(const click of clicks){
-                const time=Date.parse(click.zeit);
-                if(ids.has(click.aufnahme)&&time>=game.started&&time<=game.ended)
-                  addClick.run(game.id,click.aufnahme,click.zeit,click.art,click.karte??null,click.ergebnis,JSON.stringify(click));
-              }
-              for(const {id,name,png} of evidence)
-                addedImages+=addImage.run(id,game.id,'Partieaufnahme '+id,name,null,
-                  png.readUInt32BE(16),png.readUInt32BE(20),'image/png',createHash('sha256').update(png).digest('hex'),png).changes;
-              imported++;
-            }
-            database.exec('COMMIT');
-            images+=addedImages;
-          }catch(error){
-            database.exec('ROLLBACK');
-            throw error;
-          }
-        }
-        return {imported,images};
-      });
-      return {...counts,status:await status()};
+            const addClick=db.prepare('INSERT INTO klickprotokoll (partie_id,aufnahme,zeit,art,karte,ergebnis,details_json) VALUES (?,?,?,?,?,?,?)');
+            const hasClick=db.prepare('SELECT 1 FROM klickprotokoll WHERE partie_id=? AND aufnahme=? AND zeit=? AND art=?');
+            for(const click of clicks)if(game.captureIds.includes(click.aufnahme)&&(!click.partie||click.partie===game.id)&&
+              Date.parse(click.zeit)>=game.started&&Date.parse(click.zeit)<=game.ended&&!hasClick.get(game.id,click.aufnahme,click.zeit,click.art))
+              addClick.run(game.id,click.aufnahme,click.zeit,click.art,click.karte??null,click.ergebnis,JSON.stringify(click));
+            const result=db.prepare(`INSERT INTO belege (aufnahme,partie_id,titel,quellbild,ausschnitt_json,breite,hoehe,mime,sha256,bild)
+              SELECT capture,match_id,'Partieaufnahme '||capture,'capture-'||capture||'.png',NULL,width,height,'image/png',sha256,zeroblob(0)
+              FROM run_images WHERE match_id=? ON CONFLICT(aufnahme) DO NOTHING`).run(game.id);
+            db.prepare('UPDATE match_runs SET evidence_saved=1 WHERE id=?').run(game.id);
+            db.exec('COMMIT');return result.changes;
+          }catch(error){db.exec('ROLLBACK');throw error;}
+        });
+      }
+      return {imported,images,skipped,status:await status()};
+
     });
   }
   function sendBackup(response){
@@ -134,12 +126,17 @@ export function createArchive(file,runtime){
       }
     });
   }
-  return {status,archiveGames,sendBackup,initializeReview,review:reviewQueries(journal,withDatabase,runtime),knowledge:createKnowledgeStore(withDatabase),get busy(){return busy;}};
+  async function preserveRunImages(game){return runs.storeImages(game.id,await pickEvidence(runtime,game,new Set(game.captureIds)));}
+  const sendBundle=(response,python)=>exclusive(()=>sendFullBackup(response,{runtime,databaseFile:file,python,
+    copyDatabase:destination=>withDatabase(true,db=>backup(db,destination))}));
+  return {status,archiveGames,sendBackup,sendBundle,initializeReview,runs,preserveRunImages,
+    review:reviewQueries(journal,withDatabase,runtime,runs),knowledge:createKnowledgeStore(withDatabase),get busy(){return busy;}};
 }
 
 async function pickEvidence(runtime,game,ids){
   const candidates=selectEvidenceIds(game);
   const evidence=[];
+  const hashes=new Map();let bytes=0;
   for(const id of candidates){
     if(id===undefined)continue;
     const name='capture-'+id+'.png';
@@ -148,7 +145,10 @@ async function pickEvidence(runtime,game,ids){
       throw error;
     });
     if(!png||png.length<24||png.readUInt32BE(0)!==0x89504e47)continue;
-    evidence.push({id,name,png});
+    const hash=createHash('sha256').update(png).digest('hex');
+    if(!hashes.has(hash)&&bytes+png.length>imageLimits.perMatchBytes)continue;
+    if(!hashes.has(hash)){hashes.set(hash,png);bytes+=png.length;}
+    evidence.push({id,name,png:hashes.get(hash)});
     if(evidence.length===80)break;
   }
   return evidence;

@@ -8,6 +8,8 @@ Draft Coach ist ein lokaler Begleiter für **Draft Showdown**. Er holt Android-S
 
 Am Host-PC führt **Partien und Auswertung → Wissen und Prüfaufträge** Taktikregeln, gespeicherte Prüffälle, Prüfbilder und Archivbeobachtungen zusammen. Kennung, Herkunft und Änderungsverlauf bleiben erhalten. Bearbeitung und fachlicher Prüfstand sind getrennt. Allgemeine Mechaniken lassen sich ohne Einzelkarte oder Punktgewicht sammeln. „Bearbeitet“ aktiviert keine Regel; automatische Prüfungen und Freigabevorschläge folgen in späteren Arbeitspaketen.
 
+**Partiesicherung und Hintergrundaufträge:** Laufende Partien werden zwischengespeichert und nach einem Neustart zur bewussten Wiederaufnahme angeboten. Abgeschlossene Ergebnisse werden genau einmal gespeichert. Lokale Aufträge für Belege und Datenvollständigkeit warten während des Spiels. Die vollständige ZIP-Sicherung enthält zusätzlich Regeln und Prüfbilder, ohne Zugangsdaten. [Umsetzung und Wiederherstellung](docs/p2-partiesicherung.md). Die Datenprüfung ist noch kein taktischer Wirksamkeitsnachweis.
+
 ## Screenshots
 
 Diese Spielansichten nutzt der Coach als Eingabe. In den beiden Sammlungen steht die aktive Aufstellung jeweils oben.

@@ -450,7 +450,8 @@ test('third saved loss stops capture, auto taps and continuum before advancing',
     appendFile:async()=>{},logResetAt:0,recentMatchResults:[],matchLogEntry:x=>x,addMatchStats:()=>{},setMatchArchiveStatus:(id,status)=>{const game=ctx.recentMatchResults.find(item=>item.id===id);if(game)game.archiveStatus=status;},
     nextLossStreak,stopAfterLosses:true,lossStreak:0,lossStopEvent:null,continuum:true,continuation:{step:'saving'},
     autoTap:true,readTipEnabled:true,pendingSpeech:null,interruptibleCapture:null,tapMessage:'',
-    state:{auto:true,gameLanguage:'de'},archive:{archiveGames:async()=>{}},
+    state:{auto:true,gameLanguage:'de'},archive:{runs:{complete:async(match,outcome)=>({created:true,game:{...match,outcome}})},preserveRunImages:async()=>{}},
+    refreshRecovery:async()=>{},backgroundRunner:{tick:async()=>{}},
     setAuto(value){ctx.state.auto=value;if(!value)ctx.continuation=null;},setAutoTap(value){ctx.autoTap=value;}};
   vm.createContext(ctx);vm.runInContext(source.slice(start,end),ctx);
   for(const [index,outcome] of ['verloren','abgebrochen','verloren','verloren'].entries()){
@@ -461,16 +462,11 @@ test('third saved loss stops capture, auto taps and continuum before advancing',
   assert.equal(ctx.lossStreak,3);assert.equal(ctx.state.auto,false);assert.equal(ctx.autoTap,false);
   assert.equal(ctx.continuum,false);assert.equal(ctx.continuation,null);assert.equal(ctx.readTipEnabled,false);
   assert.equal(ctx.lossStopEvent.matchId,'match-3');
-  await Promise.resolve();assert.equal(ctx.recentMatchResults.find(item=>item.id==='match-3').archiveStatus,'archived');
+  assert.equal(ctx.recentMatchResults.find(item=>item.id==='match-3').outcome,'verloren');
   ctx.stopAfterLosses=false;ctx.lossStreak=2;ctx.lossStopEvent=null;ctx.state.auto=true;ctx.continuum=true;ctx.autoTap=true;
   ctx.stoppedMatch={id:'disabled',mode:'arena',started:1,ended:10,captureDone:Promise.resolve(),captureIds:[],heartTimeline:[],variantEvidence:[],reviewFrames:[]};
   await ctx.saveMatchOutcome({matchId:'disabled',outcome:'verloren'});
   assert.equal(ctx.lossStreak,3);assert.equal(ctx.state.auto,true);assert.equal(ctx.autoTap,true);assert.equal(ctx.continuum,true);assert.equal(ctx.lossStopEvent,null);
-  ctx.console={error:()=>{}};ctx.archive.archiveGames=async()=>{throw Error('archive unavailable');};
-  ctx.stoppedMatch={id:'failed-archive',mode:'arena',started:1,ended:11,captureDone:Promise.resolve(),captureIds:[],heartTimeline:[],variantEvidence:[],reviewFrames:[]};
-  await ctx.saveMatchOutcome({matchId:'failed-archive',outcome:'gewonnen'});
-  await Promise.resolve();await Promise.resolve();
-  assert.equal(ctx.recentMatchResults.find(item=>item.id==='failed-archive').archiveStatus,'failed');
 });
 
 

@@ -1,6 +1,6 @@
 import http from 'node:http';
 import {DatabaseSync} from 'node:sqlite';
-import {appendFile,readFile,writeFile,readdir,unlink,mkdir,rename} from 'node:fs/promises';
+import {appendFile,readFile,writeFile,readdir,unlink,mkdir,rename,stat} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -19,6 +19,7 @@ import {CARDS} from './data/coach-engine.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 import {EN_CARD_NAMES,tacticText} from './public/language.mjs';
 import {createArchive} from './archive.mjs';
+import {createJobRunner} from './match-store.mjs';
 import {makeReviewFrame,selectEvidenceIds,followVariantChoice,observeVariantEvidence,reviewReplay} from './review.mjs';
 import {answerTactics,proposeReview,translateTactic,extractResearchFacts} from './review-gpt.mjs';
 const ROOT=path.dirname(fileURLToPath(import.meta.url)), IMAGES=path.join(ROOT,'references'), RUNTIME=path.join(ROOT,'runtime');
@@ -84,6 +85,37 @@ let lastCardTap=null;
 let lastSpellTap=null;
 let latestRelevant=null, manualTapPending=false;
 let activeMatch=null, stoppedMatch=null;
+let recoveryMatches=[],runVersionSet={},runCollectionHash=null,persistenceReady=false,backupInProgress=false;
+const checkpointTimers=new Map();
+async function refreshRecovery(){recoveryMatches=(await archive.runs.recoverable()).filter(row=>row.id!==activeMatch?.id);}
+async function checkpointNow(match,status='active'){
+  clearTimeout(checkpointTimers.get(match.id));checkpointTimers.delete(match.id);
+  await archive.runs.checkpoint(match,status);await refreshRecovery();
+}
+function scheduleCheckpoint(match){
+  if(checkpointTimers.has(match.id))return;
+  const timer=setTimeout(()=>{checkpointTimers.delete(match.id);void checkpointNow(match,activeMatch?.id===match.id?'active':'paused')
+    .catch(error=>{state.error='Partie-Zwischenstand konnte nicht gesichert werden: '+error.message;});},1000);
+  timer.unref();checkpointTimers.set(match.id,timer);
+}
+async function recordMatchAction(entry,item){
+  if(entry.partie){
+    entry.offerSignature=JSON.stringify((item.offers??[]).map(({name,action,quantity})=>[name,action,quantity]));
+    await archive.runs.action(entry.partie,{...entry,versions:item.versions??runVersionSet});
+  }
+  await appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n');
+}
+async function captureVersions(){
+  const hash=createHash('sha256').update(JSON.stringify(collection)).digest('hex');
+  if(hash!==runCollectionHash){runVersionSet={...runVersionSet,collection:await archive.runs.version('collection',collection)};runCollectionHash=hash;}
+  return {...runVersionSet};
+}
+function backgroundBusy(ignoreArchive=false){return !persistenceReady||backupInProgress||state.auto||state.capturing||state.recognizing||Boolean(activeMatch)||queue.running||manualTapPending||importing||savingTactics||referenceSaving||fieldLearningRunning||lossGuardSaving||Boolean(stoppedMatch?.saving)||!ignoreArchive&&archive.busy;}
+const backgroundRunner=createJobRunner(archive.runs,{busy:backgroundBusy,playing:()=>backgroundBusy(true),handlers:{
+  archive:async(job,guard)=>{const result=await archive.archiveGames(job.match_id,guard);setMatchArchiveStatus(job.match_id,'archived');return {kind:'archive',images:result.images,skipped:result.skipped};},
+  prepare_review:async(job,guard)=>{guard();await syncKnowledge();guard();return archive.runs.report(job.match_id);}
+}});
+setInterval(()=>void backgroundRunner.tick().catch(error=>console.error('Hintergrundauftrag:',error.message)),1500).unref();
 let recentMatchResults=[];
 const logResetFile=path.join(RUNTIME,'log-reset.json');
 let logResetAt=0, logResetting=false, matchStats=null;
@@ -202,7 +234,7 @@ function fieldLearningStatus(){
     readiness:{own:fieldReadiness(metrics?.own),enemy:fieldReadiness(metrics?.enemy)},eligibleCases:plan.cases.length};
 }
 async function evaluateFieldLearning(){
-  if(fieldLearningRunning||state.auto||state.capturing||state.recognizing||activeMatch||queue.running)return;
+  if(fieldLearningRunning||backupInProgress||state.auto||state.capturing||state.recognizing||activeMatch||queue.running)return;
   const plan=buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision);
   if(fieldLearning?.fingerprint===plan.fingerprint||!plan.cases.length||!plan.examples.length)return;
   fieldLearningRunning=true;fieldLearningError=null;
@@ -496,6 +528,7 @@ async function persistTactics(next,affectsAdvice){
     await writeFile(temp,JSON.stringify(next,null,2)+'\n');
     await rename(temp,tacticsFile);
     tactics=next;
+    runVersionSet={...runVersionSet,tactics:await archive.runs.version('tactics',next)};
     await syncKnowledge().catch(error=>console.error('Wissensabgleich:',error.message));
     if(affectsAdvice)tapGeneration++;
     for(const item of new Set([state.current,latestRelevant])){
@@ -568,11 +601,14 @@ function record(job,result) {
     for(const name of ambiguousReinforcementNames(result.offers))match.ownVariantUncertain.add(name);
   }
   const rawRecognition=result;
+  if(liveMatch){
+    void archive.runs.observeTransition(match.id,job.id,result).catch(error=>console.error('Klickfolge:',error.message));
+  }
   result=withObservedEnemies(result,job);
   const ageMs=Date.now()-job.started;
   const expired=job.source!=='reference' && ageMs>6000;
   const advice=expired?{best:null,withheld:true,warnings:['Antwortfrist von 6 Sekunden überschritten.'],evaluated:[]}:calculateAdvice(result);
-  const item={...job,path:undefined,...result,ageMs,expired,advice};
+  const item={...job,path:undefined,...result,versions:job.versions??runVersionSet,ageMs,expired,advice};
   state.current=item;state.error=null;
   recordTiming(job,result,ageMs);
   recordRecognitionIssues(job,result,advice,job.started+ageMs);
@@ -607,6 +643,7 @@ function record(job,result) {
      (['deck_choice','battle_choice','spell_choice'].includes(item.phase)||rawRecognition.enemyEvent)){
     match.reviewFrames.push(makeReviewFrame(job,rawRecognition,item,match));
   }
+  if(liveMatch)scheduleCheckpoint(match);
   if(job.source!=='reference'&&(cardChoice||item.phase==='spell_choice'))latestRelevant=item;
   if(job.source!=='reference'&&cardChoice){
     // A newer result can arrive between displaying a frame and receiving its click.
@@ -762,7 +799,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       kontrollaufnahmeMs:checkCaptureMs,kontrollerkennungMs:checkVisionMs,gesamtMs:Date.now()-job.started,
       gegner:item.enemy?.map(({name,action,quantity})=>({name,action,quantity})),
       bewertung:item.advice?.evaluated[best.index]};
-    await appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n').catch(error=>console.error('Antipp-Protokoll:',error.message));
+    await recordMatchAction(entry,item).catch(error=>{state.error=error.message;console.error('Antipp-Protokoll:',error.message);});
   }
 }
 function automaticSpell(result,advice){
@@ -804,6 +841,7 @@ async function scanDevices() {
 }
 function selectDevice(target) {
   if(target!==device){
+    if(activeMatch)stopMatch();
     lastTappedChoice=null;
     if(lastCardTap)lastCardTap.choice=null;
     activeMatch?.enemyEvents.clear();
@@ -864,6 +902,7 @@ const queue=new LatestQueue(async job=>{
       }
       await updateDraftLineup(match,result);
       if(activeMatch===match&&job.target===device)await updateOwnCardValues(match,result,job.target);
+      job.versions=await captureVersions();
     }
     return result;
   } finally {state.recognizing=false;}
@@ -889,20 +928,32 @@ function execAdb(args,timeout=12000,input=null,signal) {
     });
   });
 }
+let trimRunning=false,lastTrimAt=0;
 async function trimRuntime(){
+  if(trimRunning||Date.now()-lastTrimAt<30000)return;
+  trimRunning=true;lastTrimAt=Date.now();
+  try{
   const captures=(await readdir(RUNTIME))
     .map(file=>({file,match:capturePattern.exec(file)}))
     .filter(entry=>entry.match)
     .sort((a,b)=>Number(b.match[1])-Number(a.match[1]));
   // Preserve the chosen review images of an unfinished match until it can be archived.
-  const protectedIds=new Set([...(activeMatch?selectEvidenceIds(activeMatch):[]),...(stoppedMatch?selectEvidenceIds(stoppedMatch):[])]);
-  for(const {file,match} of captures.slice(captureLimit))if(!protectedIds.has(Number(match[1])))await unlink(path.join(RUNTIME,file)).catch(()=>{});
+  const recoverable=await archive.runs.games(true);
+  const protectedIds=new Set([...(activeMatch?selectEvidenceIds(activeMatch):[]),...(stoppedMatch?selectEvidenceIds(stoppedMatch):[]),
+    ...recoverable.filter(game=>game.runStatus!=='completed').flatMap(game=>selectEvidenceIds(game))]);
+  let bytes=0;
+  for(const [index,{file,match}] of captures.entries()){
+    bytes+=(await stat(path.join(RUNTIME,file)).catch(()=>({size:0}))).size;
+    if((index>=captureLimit||bytes>1024*1024*1024)&&!protectedIds.has(Number(match[1])))await unlink(path.join(RUNTIME,file)).catch(()=>{});
+  }
+  }finally{trimRunning=false;}
 }
 async function capture({probe = false, scheduled = false, interruptible = scheduled} = {}) {
   if(state.capturing||manualTapPending)throw Error('Eine Aufnahme oder Kartenauswahl läuft bereits.');
   if(importing)throw Error('Bitte warte, bis der Sammlungsimport fertig ist.');
   const preparationKind=state.mode==='prep'?state.preparationKind:null;
   if(!probe&&!preparationKind&&!state.ready)throw Error('Die lokale Erkennung startet noch.');
+  if(!probe&&!preparationKind&&!continuation&&!activeMatch&&(stoppedMatch||recoveryMatches.length))throw Error('Bitte zuerst die offene Partie fortsetzen oder mit unbekanntem Ergebnis abschließen.');
   state.capturing=true;state.error=null;
   const controller=interruptible?new AbortController():null;
   if(controller)interruptibleCapture=controller;
@@ -915,7 +966,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   if(!probe&&!preparationKind&&!continuation){
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
       draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),ownVariantUncertain:new Set(),pendingReinforcement:null,variantEvidence:[],pendingVariantEvidence:null,
-      lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
+      device:target,language:gameLanguage,versions:{...runVersionSet},lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
     match=activeMatch;
     captureDone=Promise.withResolvers();
     match.captureDone=captureDone.promise;
@@ -925,6 +976,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
     }
   }
   try {
+    if(match&&!match.persisted){await checkpointNow(match);match.persisted=true;}
     const timeout=probe||preparationKind?12000:playCaptureTimeout;
     const png=await execAdb(['-s',target,'exec-out','screencap','-p'],timeout,null,controller?.signal);
     if(controller?.signal.aborted)return;
@@ -947,6 +999,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
     }
     const file=`capture-${id}.png`,dest=path.join(RUNTIME,file);await writeFile(dest,png,{flag:'wx'});
     match?.captureIds.push(id);
+    if(match)scheduleCheckpoint(match);
     const source=transportOf(target);
     const frame={target,width:png.readUInt32BE(16),height:png.readUInt32BE(20)};
     liveFrames.set(id,frame);
@@ -1142,7 +1195,7 @@ async function tapImage({id,u,v}){
     throw error;
   }finally{
     manualTapPending=false;
-    void appendFile(path.join(RUNTIME,'antippen.jsonl'),JSON.stringify(entry)+'\n').catch(error=>console.error('Antipp-Protokoll:',error.message));
+    await recordMatchAction(entry,result).catch(error=>{state.error=error.message;console.error('Antipp-Protokoll:',error.message);});
   }
   if(generation===tapGeneration&&!state.auto)void capture({interruptible:true}).catch(error=>{state.error=error.message;});
   return {ok:true};
@@ -1154,23 +1207,30 @@ function stopMatch(keepAuto=false){
     setAuto(false);
     setAutoTap(false);
   }
-  if(activeMatch&&activeMatch.mode!=='auto'){
+  if(activeMatch){
     stoppedMatch={...activeMatch,ended:Date.now()};
+    const paused=stoppedMatch;
+    void checkpointNow(paused,'paused').then(()=>archive.preserveRunImages(paused)).catch(error=>{state.error=error.message;});
   }
   activeMatch=null;
   return {matchId:stoppedMatch?.id??null};
 }
 async function saveMatchOutcome({matchId,outcome}){
-  if(!['gewonnen','verloren','abgebrochen'].includes(outcome))throw Error('Ungültiges Partieergebnis.');
+  if(!['gewonnen','verloren','abgebrochen','unbekannt'].includes(outcome))throw Error('Ungültiges Partieergebnis.');
   const match=stoppedMatch;
+  if(!match||match.id!==matchId){
+    const previous=await archive.runs.read(matchId);
+    if(previous?.status==='completed'&&previous.outcome===outcome)return {ok:true,alreadySaved:true};
+  }
   if(!match||match.id!==matchId||match.saving)throw Error('Für diese Partie kann gerade kein Ergebnis gespeichert werden.');
   match.saving=true;
   try {
     await match.captureDone;
-    const {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,resultCapture}=match;
-    const game={id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,
-      reviewFrames,variantEvidence,resultCapture,outcome,language:reviewFrames.at(-1)?.language??state.gameLanguage};
-    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify(game)+'\n');
+    const {created,game}=await archive.runs.complete(match,outcome);const {id}=game;
+    if(!created){if(stoppedMatch===match)stoppedMatch=null;await refreshRecovery();return {ok:true,alreadySaved:true};}
+    await archive.preserveRunImages(match).catch(error=>console.error('Partiebelege:',error.message));
+    const {reviewFrames:storedFrames,...journalSummary}=game;
+    await appendFile(path.join(RUNTIME,'partien.jsonl'),JSON.stringify({...journalSummary,detailsInDatabase:true})+'\n').catch(error=>console.error('Partienjournal:',error.message));
     lossStreak=nextLossStreak(lossStreak,outcome);
     if(stopAfterLosses&&lossStreak>=3&&outcome==='verloren'){
       setAuto(false);setAutoTap(false);continuum=false;continuation=null;
@@ -1183,9 +1243,8 @@ async function saveMatchOutcome({matchId,outcome}){
       addMatchStats(game);
     }
     if(stoppedMatch===match)stoppedMatch=null;
-    void archive.archiveGames(id).then(()=>setMatchArchiveStatus(id,'archived')).catch(error=>{
-      setMatchArchiveStatus(id,'failed');console.error('Partiebelege:',error.message);
-    });
+    await refreshRecovery();
+    void backgroundRunner.tick().catch(error=>console.error('Hintergrundauftrag:',error.message));
     return {ok:true};
   } finally {match.saving=false;}
 }
@@ -1343,6 +1402,22 @@ async function handleRequest(req,res){
     if(req.method==='POST') {
       if(req.headers['x-coach-token']!==token)return json(res,403,{error:'Anfrage nicht freigegeben'});
       const data=await body(req);
+      if(backupInProgress&&url.pathname!=='/api/browser/leave')throw Error('Bitte warten, bis die vollständige Sicherung beendet ist.');
+      if(url.pathname==='/api/admin/jobs/retry'){await archive.runs.retry(data.id);return json(res,200,{ok:true});}
+      if(url.pathname==='/api/matches/recover'){
+        if(state.auto||state.capturing||state.recognizing||activeMatch||queue.running)throw Error('Bitte zuerst die Aufnahme stoppen.');
+        const row=await archive.runs.read(data.id);
+        if(!row||row.status==='completed')throw Error('Keine offene Partie mit dieser Kennung.');
+        if(data.action==='resume'){
+          if(!device)throw Error('Bitte zuerst das Spielgerät verbinden.');
+          const match=row.match;delete match.ended;match.persisted=true;match.device=device;
+          activeMatch=match;stoppedMatch=null;state.mode=match.mode;state.gameLanguage=match.language??state.gameLanguage;
+          if(state.mode==='auto')autoMode=true;
+          await checkpointNow(match);return json(res,200,{ok:true});
+        }
+        if(!['unbekannt','abgebrochen'].includes(data.action))throw Error('Ungültige Wiederaufnahme.');
+        stoppedMatch={...row.match,ended:Date.now()};return json(res,200,await saveMatchOutcome({matchId:row.id,outcome:data.action}));
+      }
       if(url.pathname.startsWith('/api/admin/review/')||url.pathname.startsWith('/api/reference/')||url.pathname==='/api/admin/archiv/uebernehmen')
         res.once('finish',()=>{if(res.statusCode<400)void syncKnowledge().catch(error=>console.error('Wissensabgleich:',error.message));});
       if(url.pathname==='/api/admin/knowledge/create'){
@@ -1388,6 +1463,8 @@ async function handleRequest(req,res){
         setAutoTap(false);
         if(state.capturing||queue.running||manualTapPending||importing||savingTactics||lossGuardSaving||stoppedMatch?.saving||archive.busy)
           return json(res,409,{error:'Coach schließt den laufenden Vorgang ab.'});
+        if(activeMatch)await checkpointNow(activeMatch,'paused');
+        if(stoppedMatch)await checkpointNow(stoppedMatch,'paused');
         res.once('finish',()=>{shutdown();process.exit();});
         return json(res,200,{ok:true});
       }
@@ -1511,6 +1588,7 @@ async function handleRequest(req,res){
           audioClient=null;
           setAuto(false);
           setAutoTap(false);
+          if(activeMatch){stopMatch();if(stoppedMatch)await checkpointNow(stoppedMatch,'paused');}
         }
         return json(res,200,{ok:true});
       }
@@ -1614,7 +1692,7 @@ async function handleRequest(req,res){
           if(state.capturing)throw Error('Aufnahme zuerst abwarten.');
           if((autoMode?'auto':state.mode)!==data.mode){
             if(continuation)setAuto(false);
-            continuum=false;setAutoTap(false);activeMatch=null;stoppedMatch=null;
+            continuum=false;setAutoTap(false);if(activeMatch)stopMatch();
             autoMode=data.mode==='auto';
             state.mode=data.mode;
           }
@@ -1685,6 +1763,7 @@ async function handleRequest(req,res){
       return json(res,404,{error:'Nicht gefunden'});
     }
     if(req.method!=='GET')return json(res,405,{error:'Nicht unterstützt'});
+    if(url.pathname==='/api/admin/jobs')return json(res,200,{jobs:await archive.runs.jobs(),recoveries:recoveryMatches,paused:backgroundBusy(),images:await archive.runs.imageStatus()});
     if(url.pathname==='/api/admin/knowledge'){
       await syncKnowledge();return json(res,200,await archive.knowledge.list());
     }
@@ -1709,7 +1788,7 @@ async function handleRequest(req,res){
       };
       const minute=timingMinute();
       const timingTrend=[...timingBuckets.values()].filter(bucket=>bucket.minute>minute-60);
-      return json(res,200,{...state,savedReferences,stopAfterLosses,lossStreak,lossStopEvent,activeMatchId:activeMatch?.id??null,ownCardValueChanges:activeMatch?.cardValueChanges.slice(-3)??[],recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
+      return json(res,200,{...state,recoveryMatches,backgroundWorking:backgroundRunner.working,savedReferences,stopAfterLosses,lossStreak,lossStopEvent,activeMatchId:activeMatch?.id??null,ownCardValueChanges:activeMatch?.cardValueChanges.slice(-3)??[],recentMatchResults,timingTrend,recognitionIssues,logResetAt,matchStats,matchHours:[...matchHours.values()].filter(bucket=>bucket.hour>Math.floor(Date.now()/3600000)-24),pendingSpeech:pendingSpeech?.client===client?{id:pendingSpeech.id,tip:pendingSpeech.tip}:null,modeSelection:autoMode?'auto':state.mode,current:showSent(state.current),latestRelevant:showSent(relevantView),enemyEvents,hearts,activeLineup,observedDraftUnits,extendedPool,autoTap,continuum,continuing:!!continuation,tapMessage,autoTapResult,lastCardTap,lastSpellTap,manualTapPending,hasAudioClient:!!audioClient,audioHere:!!client&&client===audioClient});
     }
     if(url.pathname==='/api/devices') {
       const devices=await scanDevices();
@@ -1718,7 +1797,7 @@ async function handleRequest(req,res){
     if(url.pathname==='/api/admin/ai')return json(res,200,aiSettings());
     if(url.pathname==='/api/admin/review/matches'){
       const games=await archive.review.matches();
-      return json(res,200,{games:games.map(({id,mode,outcome,ended,archived,evidenceCount,hasDetails})=>({id,mode,outcome,ended,archived,evidenceCount,hasDetails})),cards:tacticCards(),gpt:gptReviewEnabled()});
+      return json(res,200,{games:games.map(({id,mode,outcome,ended,archived,evidenceCount,hasDetails,runStatus,archiveStatus})=>({id,mode,outcome,ended,archived,evidenceCount,hasDetails,runStatus,archiveStatus})),cards:tacticCards(),gpt:gptReviewEnabled()});
     }
     if(url.pathname==='/api/admin/review/match'){
       const {id,mode,outcome,captureIds,availableCaptureIds,hasDetails,frames}=await archive.review.match(url.searchParams.get('id'));
@@ -1738,6 +1817,17 @@ async function handleRequest(req,res){
       await archive.sendBackup(res);
       return;
     }
+    if(url.pathname==='/api/admin/archiv/vollsicherung'){
+      if(backgroundBusy()||backgroundRunner.working)throw Error('Für die vollständige Sicherung zuerst die Partie und Aufnahme stoppen.');
+      backupInProgress=true;
+      try{
+        for(const id of checkpointTimers.keys())clearTimeout(checkpointTimers.get(id));checkpointTimers.clear();
+        if(stoppedMatch){await checkpointNow(stoppedMatch,'paused');await archive.preserveRunImages(stoppedMatch);}
+        for(const row of recoveryMatches){const saved=await archive.runs.read(row.id);if(saved)await archive.preserveRunImages(saved.match);}
+        await archive.sendBundle(res,PYTHON);
+      }finally{backupInProgress=false;}
+      return;
+    }
     if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
     if(url.pathname==='/api/config')return json(res,200,{token,collection,unitNames:[...new Set([...CARDS.filter(card=>card.kind==='unit').map(card=>card.name),...collection.units.units.map(card=>card.name)])],version,build,buildInfo,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
@@ -1747,13 +1837,22 @@ async function handleRequest(req,res){
     else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs','/persistence.mjs':'persistence.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
     const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));
   }catch(e){if(res.headersSent)res.destroy();else json(res,400,{error:e.message});}
 }
 await archive.initializeReview();
+await archive.runs.recover();await refreshRecovery();
+serial=Math.max(serial,await archive.runs.maxCapture());
+runVersionSet={program:await archive.runs.version('program',{version,buildInfo,vision:fieldLearningRevision,
+  node:process.version,adviceHash:createHash('sha256').update(await readFile(path.join(ROOT,'advice.mjs'))).digest('hex'),
+  engineHash:createHash('sha256').update(await readFile(path.join(ROOT,'data','coach-engine.mjs'))).digest('hex'),
+  matchupsHash:createHash('sha256').update(await readFile(path.join(ROOT,'data','matchups.json'))).digest('hex')}),tactics:await archive.runs.version('tactics',tactics)};
+await captureVersions();
+for(const game of await archive.review.matches())if(!game.archived&&!game.runStatus&&['gewonnen','verloren','abgebrochen','unbekannt'].includes(game.outcome))
+  await archive.runs.complete(game,game.outcome);
 await syncKnowledge();
 try{
   const reset=JSON.parse(await readFile(logResetFile,'utf8').catch(error=>{
@@ -1763,7 +1862,7 @@ try{
   if(Number.isSafeInteger(reset.resetAt)&&reset.resetAt>=0)logResetAt=reset.resetAt;
   const allGames=await archive.review.matches();
   for(const game of allGames){
-    if(game.outcome==='abgebrochen')continue;
+    if(!['gewonnen','verloren'].includes(game.outcome))continue;
     if(game.outcome!=='verloren')break;
     lossStreak++;
   }
@@ -1775,6 +1874,7 @@ try{
   console.error('Partienprotokoll:',error.message);
 }
 learnedBanners=await archive.review.templates();
+persistenceReady=true;
 const server=http.createServer(handleRequest);
 server.on('error',error=>{
   console.error(error.code==='EADDRINUSE'?`Port ${PORT} ist bereits belegt. Ein Coach könnte bereits laufen.`:'Coach-Start fehlgeschlagen: '+error.message);
@@ -1786,5 +1886,11 @@ server.listen(PORT,'127.0.0.1',()=>console.log('Draft Coach: http://127.0.0.1:'+
 const lanServer=lanAddress?http.createServer(handleRequest):null;
 lanServer?.on('error',error=>console.error('LAN-Zugriff:',error.message));
 lanServer?.listen(PORT,lanAddress,()=>console.log('Draft Coach LAN: http://'+lanAddress+':'+PORT));
-function shutdown(){setAuto(false);worker.kill();server.close();lanServer?.close();}
-process.on('SIGINT',()=>{shutdown();process.exit();});process.on('SIGTERM',()=>{shutdown();process.exit();});
+function shutdown(){setAuto(false);for(const timer of checkpointTimers.values())clearTimeout(timer);worker.kill();server.close();lanServer?.close();}
+async function stopSignal(){
+  setAuto(false);setAutoTap(false);
+  try{if(activeMatch)await checkpointNow(activeMatch,'paused');if(stoppedMatch)await checkpointNow(stoppedMatch,'paused');}
+  catch(error){console.error('Letzter Partiestand:',error.message);}
+  shutdown();process.exit();
+}
+process.on('SIGINT',()=>void stopSignal());process.on('SIGTERM',()=>void stopSignal());

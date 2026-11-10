@@ -233,6 +233,11 @@
 .knowledge-source pre{white-space:pre-wrap;max-height:260px;overflow:auto;font-size:.75rem}.knowledge-form{display:grid;gap:12px;padding:14px 0}
 .knowledge-form textarea{font:inherit;color:inherit;background:var(--field,#263248);border:1px solid var(--line);padding:12px;border-radius:8px;resize:vertical}
 .knowledge-message:empty{display:none}.knowledge-message{color:#ec928c}.knowledge-history{font-size:.8rem;color:var(--muted)}
+.persistence-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.persistence-actions h3{margin:0}.persistence-filter{display:grid;gap:6px;max-width:280px;font-size:.85rem}
+.background-job,.recovery-entry{border:1px solid var(--line);border-radius:9px;padding:12px;margin:12px 0;overflow-wrap:anywhere}
+.background-job p,.recovery-entry p{margin:8px 0;font-size:.85rem}.persistence-error{color:#e88e87;font-size:.85rem}
+#recovery-panel h3{margin:0}#persistence-panel summary{font-weight:600}
 [data-theme=light] .knowledge-form textarea{background:#edf3fb;color:#182336}
 @media(max-width:800px){.knowledge-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.knowledge-filters{grid-template-columns:1fr}.knowledge-actions{align-items:stretch}.knowledge-actions label{flex:1 1 120px}.knowledge-heading h3{font-size:1.1rem}}

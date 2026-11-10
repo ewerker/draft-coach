@@ -6,6 +6,8 @@ Draft Coach is a local companion for **Draft Showdown**. It reads the screen of 
 
 On the host PC, **Matches and review → Knowledge and review tasks** now brings together tactical rules, saved cases, review images and archived observations. Each task has a stable identity, source history and separate work/review states. General mechanics can be recorded without a specific card or weight. Marking a task done does not activate a rule. Automatic evidence checks and activation proposals are later work packages in the [learning plan](docs/lernprozess-gesamtplan.md).
 
+**Match persistence and background jobs:** ongoing matches are checkpointed and offered for explicit recovery after a restart. Completed results are committed once and queue local evidence/data checks that pause during play. A full ZIP backup includes the required runtime data, rules and review images while excluding credentials. See the [P2 implementation and restore guide](docs/p2-partiesicherung.md). These data checks do not yet prove tactical effectiveness.
+
 ## Screenshots
 
 Examples of the Android game screens the Coach works with. The first row in each collection shows the active lineup.

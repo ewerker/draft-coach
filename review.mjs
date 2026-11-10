@@ -65,8 +65,9 @@ export function selectEvidenceIds(game, limit=80){
 
 export function makeReviewFrame(job,raw,item,match){
   const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
-  return structuredClone({id:item.id,capturedAt:job.started,language:job.gameLanguage,mode:job.mode,phase,offers,enemy,own,ownDeckPicks,
+  return structuredClone({id:item.id,capturedAt:job.started,language:job.gameLanguage,mode:job.mode,versions:job.versions??match.versions??null,phase,offers,enemy,own,ownDeckPicks,
     ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice,
+    geometry:item.geometry??null,width:job.width??null,height:job.height??null,source:job.source??null,
     observedInFrame:{enemy:raw.enemy??[],own:raw.own??[],enemyVisual:raw.enemyVisual??[],ownVisual:raw.ownVisual??[],enemyEvent:raw.enemyEvent??null},
     knownState:{enemyDeck:[...match.enemyDeck.values()],enemyEvents:[...match.enemyEvents.values()],
       ownDeckPicks:[...match.ownDeckPicks],enemyAdditions:Object.fromEntries(match.enemyAdditions),ownReinforcements:Object.fromEntries(match.ownReinforcements)},
@@ -82,9 +83,9 @@ export function reviewReplay(frame, mode, collection, db, rules, proposed){
   return {before:score(rules),after:score(proposed?[...rules,{...proposed,status:'aktiv'}]:rules)};
 }
 
-export function reviewQueries(journal,withDatabase,runtime){
+export function reviewQueries(journal,withDatabase,runtime,runs=null){
   async function matches(){
-    const games=await journal('partien.jsonl');
+    const games=[...await journal('partien.jsonl'),...await runs?.games()??[]];
     const merged=new Map(games.map(game=>[game.id,game]));
     const stored=await withDatabase(true,db=>db.prepare(`SELECT p.id,p.modus,p.ergebnis,p.beginn_ms,p.ende_ms,p.aufnahme_ids_json,d.details_json,
       (SELECT COUNT(*) FROM belege b WHERE b.partie_id=p.id) AS images
@@ -110,9 +111,11 @@ export function reviewQueries(journal,withDatabase,runtime){
     const ids=new Set(game.captureIds);
     const clicks=(await journal('antippen.jsonl')).filter(click=>ids.has(click.aufnahme)&&Date.parse(click.zeit)>=game.started&&Date.parse(click.zeit)<=game.ended);
     const archived=await withDatabase(true,db=>db.prepare('SELECT details_json FROM klickprotokoll WHERE partie_id=?').all(id).map(row=>JSON.parse(row.details_json)));
-    const allClicks=[...new Map([...archived,...clicks].map(click=>[JSON.stringify([click.aufnahme,click.zeit,click.art]),click])).values()];
+    const durable=runs?await runs.actions(id):[];
+    const allClicks=[...new Map([...archived,...clicks,...durable].map(click=>[JSON.stringify([click.aufnahme,click.zeit,click.art]),click])).values()];
     const frames=new Map((game.reviewFrames??[]).map(frame=>[frame.id,frame]));
-    const savedImages=await withDatabase(true,db=>db.prepare('SELECT aufnahme AS id FROM belege WHERE partie_id=? UNION SELECT capture AS id FROM review_cases WHERE match_id=? AND image IS NOT NULL').all(id,id).map(row=>row.id));
+    const savedImages=await withDatabase(true,db=>db.prepare('SELECT aufnahme AS id FROM belege WHERE partie_id=? UNION SELECT capture AS id FROM review_cases WHERE match_id=? AND image IS NOT NULL'+
+      (runs?' UNION SELECT capture AS id FROM run_images WHERE match_id=?':'')).all(...(runs?[id,id,id]:[id,id])).map(row=>row.id));
     const captureIds=[...new Set([...(game.captureIds??[]),...savedImages].filter(Number.isSafeInteger))];
     const availableCaptureIds=captureIds.filter(capture=>savedImages.includes(capture)||existsSync(path.join(runtime,'capture-'+capture+'.png')));
     for(const click of allClicks)if(!frames.has(click.aufnahme))frames.set(click.aufnahme,{id:click.aufnahme});
@@ -120,7 +123,9 @@ export function reviewQueries(journal,withDatabase,runtime){
   }
   async function image(game,capture){
     if(!Number.isSafeInteger(capture)||!game.captureIds.includes(capture))return null;
-    const stored=await withDatabase(true,db=>db.prepare('SELECT bild AS image FROM belege WHERE partie_id=? AND aufnahme=? UNION ALL SELECT image FROM review_cases WHERE match_id=? AND capture=? AND image IS NOT NULL LIMIT 1').get(game.id,capture,game.id,capture));
+    const stored=await withDatabase(true,db=>db.prepare('SELECT bild AS image FROM belege WHERE partie_id=? AND aufnahme=? AND length(bild)>0 UNION ALL SELECT image FROM review_cases WHERE match_id=? AND capture=? AND image IS NOT NULL'+
+      (runs?' UNION ALL SELECT a.image FROM run_images r JOIN evidence_assets a ON a.sha256=r.sha256 WHERE r.match_id=? AND r.capture=?':'')+' LIMIT 1')
+      .get(...(runs?[game.id,capture,game.id,capture,game.id,capture]:[game.id,capture,game.id,capture])));
     if(stored?.image)return Buffer.from(stored.image);
     return readFile(path.join(runtime,'capture-'+capture+'.png')).catch(error=>{
       if(error.code==='ENOENT')return null;

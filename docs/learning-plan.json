@@ -45,7 +45,7 @@
     {
       "id": "P2",
       "title": "Dauerhafte Partiedaten und Hintergrundaufträge",
-      "status": "planned",
+      "status": "implemented",
       "dependsOn": [
         "P1"
       ],
@@ -137,6 +137,7 @@
     }
   ],
   "approvedWorkPackages": [
-    "P1"
+    "P1",
+    "P2"
   ]
 }
