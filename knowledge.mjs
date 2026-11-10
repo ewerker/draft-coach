@@ -46,7 +46,10 @@ export function knowledgeSources({rules=[],cases=[],references=[],findings=[]}){
         origin:ref.source??'reference',issues:ref.issues??[],corrections:ref.corrections??[],complete:ref.complete??{},original:ref}})),
     ...findings.map(finding=>{
       let details={};try{details=parse(finding.details_json??'{}');}catch{}
-      return {type:'finding',id:finding.id,kind:'tactic',data:{texts:{},language:details.language??null,
+      // The original archive predates language metadata and was written in German.
+      const language=languages.includes(details.language)?details.language:'de';
+      return {type:'finding',id:finding.id,kind:'tactic',data:{texts:details.texts??{[language]:{title:finding.titel??'',reason:finding.beobachtung??''}},language,
+        languageOrigin:details.language?'recorded':'legacy_de',
         observation:finding.beobachtung??'',title:finding.titel??'',origin:'archive',details,original:finding,
         evidence:finding.evidence??[]}};
     })

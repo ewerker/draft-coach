@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Punkt 1 ist zur Umsetzung freigegeben. Die übrigen Pakete sind geplant und noch nicht begonnen.**
+**Status: Punkt 1 ist umgesetzt und technisch geprüft; die Benutzerabnahme steht aus. Die übrigen Pakete sind geplant und noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 

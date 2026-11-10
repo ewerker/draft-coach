@@ -24,10 +24,23 @@
     {
       "id": "P1",
       "title": "Gemeinsamer Wissens- und Prüfprozess",
-      "status": "implemented",
+      "status": "verified",
       "dependsOn": [],
       "acceptance": "A1",
-      "evidence": []
+      "evidence": [
+        {
+          "type": "implementation_commit",
+          "value": "b6afdd3"
+        },
+        {
+          "type": "test_report",
+          "path": "docs/p1-wissensablage.md"
+        },
+        {
+          "type": "acceptance_evidence",
+          "value": "A1: 71 passing tests; browser DE/EN and restart; 163 production sources preserved. User acceptance pending."
+        }
+      ]
     },
     {
       "id": "P2",

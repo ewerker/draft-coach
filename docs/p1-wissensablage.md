@@ -24,7 +24,10 @@ Die vorhandene **SQLite-Sicherung** enthält auch die neuen Tabellen, ihre Quell
 
 ## Prüfung A1
 
+Die ursprünglichen deutschen Archivbeobachtungen entstanden vor der Sprachtrennung. Sie werden mit gekennzeichneter Legacy-Herkunft als Deutsch übernommen; eine fehlende englische Fassung bleibt sichtbar. Die Arbeitsliste wird vor der potenziell langsameren Partienliste geladen.
+
 - Sieben neue automatisierte Prüfungen: Zusammenführung aller vier Quellarten, wiederholbarer Import, gemeinsame Sprachidentität, getrennte Arbeits-/Regelzustände, allgemeine Mechanik ohne Karte/Gewicht, Historie bei entfernten Quellen, nachträgliche Verknüpfung, Doppelungshinweise, Schutz vor überschreibenden alten Änderungen sowie Migration/Neustart/SQLite-Sicherung.
+- Gesamter Node-Testlauf: **71 bestanden, 0 fehlgeschlagen**. Es wurde keine neue Bilderkennung in den Live-Aufnahmeweg eingebaut.
 - Browserprüfung in einer getrennten Instanz ohne Gerätezugriff: Beobachtung anlegen, als bearbeitet markieren, englische Fassung unter derselben Kennung ergänzen und nach Serverneustart wiederfinden. Suche, Filter und schmale Darstellung geprüft.
 - Probe mit echten Metadaten in einer separaten temporären Datenbank: 146 Regeln, 0 gespeicherte Partie-Prüffälle, 4 Prüfbilder und 13 Archivbeobachtungen ergeben 163 Aufträge. Alle 163 Quellen erhalten, erneuter Import unverändert, Original-Regeldatei unverändert. Keine Spielbilder oder persönlichen Partiekennungen wurden in dieses Dokument übernommen.
 

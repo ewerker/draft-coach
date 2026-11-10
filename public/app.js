@@ -687,6 +687,7 @@ async function refreshReviewMatchList(){
 async function openReview(){
   await reviewAction(async()=>{
     clearReviewFrame();
+    await knowledgePanel.load();
     const {games,cards,gpt}=await reviewGet('matches');
     reviewGptEnabled=gpt;
     $('review-banner-name').replaceChildren(...cards.map(card=>new Option(displayCardNames(card),card)));
@@ -698,7 +699,6 @@ async function openReview(){
     $('review-language').value=language;
     await loadReviewCaptures();
     renderReviewCases(await reviewGet('cases'));
-    await knowledgePanel.load();
   });
 }
 $('close-review').onclick=returnToGame;

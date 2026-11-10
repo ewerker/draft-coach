@@ -28,6 +28,8 @@ test('all four legacy stores share one bilingual task per logical source and rep
     assert.equal(entry.sources.length,2);assert.equal(entry.sources.find(s=>s.type==='case').matchId,'match');
     assert.equal(knowledgeText(entry,'de').title,'Schnecken schützen');assert.equal(knowledgeText(entry,'en').title,'Protect snails');
     assert.match(knowledgeText(first.items.find(item=>item.kind==='recognition'),'en').reason,/Snail/);
+    assert.equal(knowledgeText(first.items.find(item=>item.sources[0].type==='finding'),'de').title,'Alt');
+    assert.equal(knowledgeText(first.items.find(item=>item.sources[0].type==='finding'),'en'),null);
     assert.equal((await store.revisions(entry.id)).length,2);
   }finally{db.close();}
 });
