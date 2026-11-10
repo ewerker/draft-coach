@@ -481,6 +481,14 @@ async function deleteTactic(id){
 function tacticLibrary(){
   return {rules:tactics,cards:tacticCards(),baseCount:db.length};
 }
+let knowledgeSync=Promise.resolve();
+function syncKnowledge(){
+  knowledgeSync=knowledgeSync.catch(()=>{}).then(async()=>{
+    const [cases,findings]=await Promise.all([archive.review.list(),archive.knowledge.findings()]);
+    await archive.knowledge.sync({rules:tactics,cases,references:savedReferences,findings});
+  });
+  return knowledgeSync;
+}
 async function persistTactics(next,affectsAdvice){
   savingTactics=true;
   try {
@@ -488,6 +496,7 @@ async function persistTactics(next,affectsAdvice){
     await writeFile(temp,JSON.stringify(next,null,2)+'\n');
     await rename(temp,tacticsFile);
     tactics=next;
+    await syncKnowledge().catch(error=>console.error('Wissensabgleich:',error.message));
     if(affectsAdvice)tapGeneration++;
     for(const item of new Set([state.current,latestRelevant])){
       if(item&&!item.expired&&(item.source==='reference'||Date.now()-item.started<=6000))item.advice=calculateAdvice(item);
@@ -1334,6 +1343,18 @@ async function handleRequest(req,res){
     if(req.method==='POST') {
       if(req.headers['x-coach-token']!==token)return json(res,403,{error:'Anfrage nicht freigegeben'});
       const data=await body(req);
+      if(url.pathname.startsWith('/api/admin/review/')||url.pathname.startsWith('/api/reference/')||url.pathname==='/api/admin/archiv/uebernehmen')
+        res.once('finish',()=>{if(res.statusCode<400)void syncKnowledge().catch(error=>console.error('Wissensabgleich:',error.message));});
+      if(url.pathname==='/api/admin/knowledge/create'){
+        await syncKnowledge();const created=await archive.knowledge.create(data);
+        return json(res,200,{...await archive.knowledge.list(),createdId:created.id});
+      }
+      if(url.pathname==='/api/admin/knowledge/update'){
+        await syncKnowledge();await archive.knowledge.update(data);return json(res,200,await archive.knowledge.list());
+      }
+      if(url.pathname==='/api/admin/knowledge/edit'){
+        await syncKnowledge();await archive.knowledge.edit(data);return json(res,200,await archive.knowledge.list());
+      }
       if(url.pathname==='/api/learning/check') {fieldLearningError=null;void evaluateFieldLearning();return json(res,202,fieldLearningStatus());}
       if(url.pathname==='/api/learning/suggest') {
         if(state.auto||state.capturing||state.recognizing||activeMatch||queue.running)throw Error('Bitte zuerst den Automodus nach der Partie stoppen.');
@@ -1664,6 +1685,10 @@ async function handleRequest(req,res){
       return json(res,404,{error:'Nicht gefunden'});
     }
     if(req.method!=='GET')return json(res,405,{error:'Nicht unterstützt'});
+    if(url.pathname==='/api/admin/knowledge'){
+      await syncKnowledge();return json(res,200,await archive.knowledge.list());
+    }
+    if(url.pathname==='/api/admin/knowledge/history')return json(res,200,{history:await archive.knowledge.revisions(url.searchParams.get('id'))});
     if(url.pathname==='/api/learning/status')return json(res,200,fieldLearningStatus());
     if(url.pathname==='/api/state'){
       if(!audioClient||client===audioClient)lastClientSeen=Date.now();
@@ -1722,13 +1747,14 @@ async function handleRequest(req,res){
     else if(url.pathname.startsWith('/reference/')){const name=url.pathname.slice(11);if(refs.some(r=>r.file===name))file=path.join(IMAGES,name);}
     else if(url.pathname.startsWith('/capture/')){const name=url.pathname.slice(9);if(/^capture-\d+\.png$/.test(name))file=path.join(RUNTIME,name);}
     else if(url.pathname.startsWith('/preparation/')){const name=url.pathname.slice(13);if(preparationPattern.test(name))file=path.join(PREPARATION,name);}
-    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs'})[url.pathname]);
+    else file=({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs'})[url.pathname] && path.join(ROOT,'public',({'/':'index.html','/app.js':'app.js','/style.css':'style.css','/language.mjs':'language.mjs','/knowledge.mjs':'knowledge.mjs'})[url.pathname]);
     if(!file||!existsSync(file))return json(res,404,{error:'Nicht gefunden'});
     const ext=path.extname(file),type={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.png':'image/png'}[ext];
     res.writeHead(200,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'"});res.end(await readFile(file));
   }catch(e){if(res.headersSent)res.destroy();else json(res,400,{error:e.message});}
 }
 await archive.initializeReview();
+await syncKnowledge();
 try{
   const reset=JSON.parse(await readFile(logResetFile,'utf8').catch(error=>{
     if(error.code==='ENOENT')return '{}';

@@ -1,10 +1,12 @@
 # Draft Coach
 
-Ausbau zur Abnahme: [Gesamtplan für den Lern- und Freigabeprozess](docs/lernprozess-gesamtplan.md) mit nummerierten Abnahmekriterien und [prüfbarem Paketstatus](docs/learning-plan.json). Die Umsetzung beginnt nach Planfreigabe.
+Ausbau: [Gesamtplan für den Lern- und Freigabeprozess](docs/lernprozess-gesamtplan.md) mit nummerierten Abnahmekriterien und [prüfbarem Paketstatus](docs/learning-plan.json). Punkt 1 ist zur Umsetzung freigegeben; weitere Pakete folgen getrennt.
 
 [English](README.md)
 
 Draft Coach ist ein lokaler Begleiter für **Draft Showdown**. Er holt Android-Screenshots per ADB, erkennt sichtbare Wahlangebote mit OpenCV und bewertet sie anhand bearbeitbarer Taktikregeln. Du bedienst ihn im Browser. Die Bildverarbeitung läuft auf dem Host-PC.
+
+Am Host-PC führt **Partien und Auswertung → Wissen und Prüfaufträge** Taktikregeln, gespeicherte Prüffälle, Prüfbilder und Archivbeobachtungen zusammen. Kennung, Herkunft und Änderungsverlauf bleiben erhalten. Bearbeitung und fachlicher Prüfstand sind getrennt. Allgemeine Mechaniken lassen sich ohne Einzelkarte oder Punktgewicht sammeln. „Bearbeitet“ aktiviert keine Regel; automatische Prüfungen und Freigabevorschläge folgen in späteren Arbeitspaketen.
 
 ## Screenshots
 

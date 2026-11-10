@@ -1,4 +1,5 @@
 import {tacticText,reviewMessage,reviewTapReason,displayNames,translate} from './language.mjs';
+import {createKnowledgePanel} from './knowledge.mjs';
 const $=id=>document.getElementById(id);
 const displayCardNames=text=>typeof text==='string'?text.replaceAll('Zerstörer','Verwüster'):text;
 const browserId=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -97,7 +98,7 @@ $('language').onchange=()=>{
     renderTactics(tacticsData);
     editTactic(listedTactics.find(rule=>rule.id===editingTactic));
   }
-  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);}
+  if(coachView==='review'){renderReviewMatches();renderReviewCaptures();renderPreferredOffers();renderReviewFacts();renderReviewCases(reviewCases);knowledgePanel.render();}
   if(coachView==='admin'&&lastArchiveData)renderArchive(lastArchiveData);
   void refreshFieldLearning(true);
   void action(()=>post('/api/settings',{gameLanguage:language}));
@@ -697,6 +698,7 @@ async function openReview(){
     $('review-language').value=language;
     await loadReviewCaptures();
     renderReviewCases(await reviewGet('cases'));
+    await knowledgePanel.load();
   });
 }
 $('close-review').onclick=returnToGame;
@@ -860,8 +862,7 @@ function renderReviewCases(cases){
   panel.replaceChildren();
   const pending=cases.filter(item=>!item.reviewed).length;
   $('review-queue-count').textContent=language==='en'?`${pending} open · ${cases.length-pending} done · ${cases.length} total`:`${pending} offen · ${cases.length-pending} erledigt · ${cases.length} insgesamt`;
-  const filter=$('review-queue-filter').value;
-  const visible=cases.filter(item=>filter==='all'||(filter==='done'?item.reviewed:!item.reviewed));
+  const visible=cases.filter(item=>item.id===openedKnowledgeCase);
   if(!visible.length)panel.append(textEl('p',language==='en'?'No cases in this view.':'Keine Prüffälle in dieser Ansicht.','muted'));
   for(const item of visible){
     const article=document.createElement('article');
@@ -916,6 +917,26 @@ function renderReviewCases(cases){
   }
 }
 $('review-queue-filter').onchange=()=>renderReviewCases(reviewCases);
+let openedKnowledgeCase=null;
+const knowledgePanel=createKnowledgePanel({root:$('knowledge-panel'),getLanguage:()=>language,post,
+  onOpen:async source=>{
+    if(source.type==='rule'){
+      showCoachView('tactics');await openTactics();
+      const rule=listedTactics.find(item=>item.id===source.id);if(rule)editTactic(rule);return;
+    }
+    if(source.type==='reference'){
+      const response=await fetchState(),state=await response.json();
+      if(state.auto||state.capturing||state.recognizing||state.activeMatchId)throw Error(language==='en'?'Stop capture after the match before editing images.':'Bitte nach der Partie die Aufnahme stoppen, bevor du Bilder bearbeitest.');
+      await post('/api/settings',{mode:'prep'});gameMode='prep';showCoachView('game');
+      await post('/api/reference',{file:source.id});await refresh();return;
+    }
+    if(source.type==='case'){
+      const item=reviewCases.find(item=>item.id===source.id);if(!item)return;
+      openedKnowledgeCase=item.id;$('review-queue').hidden=false;renderReviewCases(reviewCases);
+      $('review-queue').scrollIntoView({block:'start'});
+      const button=$('review-cases').querySelector('button');button?.click();
+    }
+  }});
 let archiveBusy=false,lastArchiveData=null;
 function renderArchive(data){
   lastArchiveData=data;

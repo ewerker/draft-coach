@@ -2,7 +2,7 @@
 
 Stand: 10. November 2026. Ausgangspunkt: GitHub-Release **v0.7.6**, Commit **90f6107**.
 
-**Status: Zur Abnahme vorgelegt. Die Umsetzung der Punkte 1–9 beginnt nach Freigabe dieses Plans.**
+**Status: Punkt 1 ist zur Umsetzung freigegeben. Die übrigen Pakete sind geplant und noch nicht begonnen.**
 
 ## Ziel und verbindliche Arbeitsweise
 
@@ -29,11 +29,13 @@ Verbindliche Statusliste: [learning-plan.json](learning-plan.json). Jedes Arbeit
 
 **Umfang:** Jeder Hinweis erhält eine dauerhafte Kennung, Herkunft, Sprache, Version und zugehörige Partien/Bilder. Drei fachliche Arten werden unterschieden: taktische Entscheidung, allgemeine Spielmechanik und Erkennungsproblem. Die Benutzeroberfläche fasst sie als Prüfaufträge in einer zentralen Arbeitsliste zusammen.
 
-- [ ] P1.1 Bestehende Notizen, Regelbelege und Prüffälle zusammenführen bzw. verknüpfen; Dopplungen vorschlagen, Originale erhalten.
-- [ ] P1.2 Zustände sichtbar machen: gesammelt, Rückfrage nötig, prüfbar, Prüfung läuft, weitere Belege nötig, Freigabe vorgeschlagen, aktiv, zurückgestellt.
-- [ ] P1.3 „Erledigt“ als Bearbeitungsstatus von fachlicher Freigabe unterscheiden. DE/EN-Fassungen teilen dieselbe Regel und Prüfhistorie.
+- [x] P1.1 Bestehende Notizen, Regelbelege und Prüffälle zusammenführen bzw. verknüpfen; Dopplungen vorschlagen, Originale erhalten.
+- [x] P1.2 Zustände sichtbar machen: gesammelt, Rückfrage nötig, prüfbar, Prüfung läuft, weitere Belege nötig, Freigabe vorgeschlagen, aktiv, zurückgestellt.
+- [x] P1.3 „Erledigt“ als Bearbeitungsstatus von fachlicher Freigabe unterscheiden. DE/EN-Fassungen teilen dieselbe Regel und Prüfhistorie.
 
 **Abnahme A1:** Ein Hinweis aus Spracheingabe, Internetnotiz oder Partie erscheint genau einmal als bearbeitbarer Auftrag mit Herkunft. Sprachwechsel erzeugt keinen zweiten Auftrag. Ein mechanischer Hinweis für alle Karten benötigt weder künstliche Karte noch Punktgewicht. Bestehende Datensicherung und Rückmigration sind geprüft.
+
+Umsetzung und Prüfnachweise: [P1 Wissensablage](p1-wissensablage.md). Der Status „geprüft“ ersetzt nicht die anschließende Abnahme durch den Benutzer.
 
 ## 2. Dauerhafte Partiedaten und Hintergrundaufträge
 
@@ -142,6 +144,6 @@ Quellen zu Werkzeugoptionen: [GitHub-Aufgabenlisten und Unteraufgaben](https://d
 
 ## English summary
 
-This is a proposed plan awaiting user approval, based on release v0.7.6. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
+This plan is based on release v0.7.6. The user has authorized implementation of P1; later work packages have not started. The numbered work packages are: P1 shared knowledge/case lifecycle; P2 durable matches and background jobs; P3 live recognition of unit types, counts and evolution forms for both armies; P4 targeted user verification; P5 explicit general game mechanics and form-specific inventories; P6 automatic independent replay checks; P7 shadow evaluation and controlled prospective trials; P8 evidence-based activation/withdrawal proposals; P9 standalone bilingual end-to-end acceptance.
 
 German and English share canonical identifiers, evidence, rule versions and activation. Language-dependent recognition coverage is measured separately. Users receive concrete questions and proposals instead of mandatory technical forms. Saved notes, machine predictions, image confirmations, calculation correctness and evidence of tactical benefit remain distinguishable. No guaranteed win-rate improvement or fixed number of matches is promised. No new paid service is purchased as part of planning.

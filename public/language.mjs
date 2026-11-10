@@ -54,6 +54,11 @@ Spielfeld nach der Variantenwahl|Field after the variant choice
 Folgeaufnahme nicht verfügbar.|Follow-up capture unavailable.
 Partie auswerten|Review match
 Partien und Auswertung|Matches and review
+Wissen und Prüfaufträge|Knowledge and review tasks
+Details zum gewählten Prüffall|Details of the selected review case
+Wo finde ich Wissen und Prüfaufträge?|Where can I find knowledge and review tasks?
+Öffne am Host-PC Partien und Auswertung. Wissen und Prüfaufträge vereint Taktikregeln, Partie-Prüffälle, Prüfbilder und frühere Archivbeobachtungen. Du kannst nach Art, Prüfstand und Bearbeitung filtern. Herkunft und Originale zeigt die Quellen und ihren Verlauf.|On the host PC, open Matches and review. Knowledge and review tasks brings together tactical rules, match review cases, review images and earlier archived observations. Filter by type, review stage and work status. Sources and originals shows provenance and history.
+Als bearbeitet markieren ändert nur den Arbeitsstand. Es aktiviert keine Regel. Allgemeine Spielmechaniken kannst du ohne Einzelkarte und Punktgewicht als Beobachtung speichern. Deutsch und Englisch teilen dieselbe Kennung und denselben Prüfstand. Fehlende Übersetzungen werden angezeigt. Automatische Tests und Freigabevorschläge folgen in späteren Ausbauschritten.|Marking a task done changes only its work status. It does not activate a rule. General game mechanics can be saved as observations without a specific card or point weight. German and English share the same identity and review stage. Missing translations are shown. Automatic checks and activation proposals will follow in later work packages.
 Wähle eine Partie und Aufnahme, um die Erkennung und den damaligen Tipp zu prüfen.|Choose a match and capture to review recognition and the recommendation made at the time.
 Gespeicherte Prüffälle öffnen und nach der Bearbeitung als erledigt markieren.|Open saved review cases and mark them done after reviewing them.
 Kurze Überschrift der Regel|Short rule heading

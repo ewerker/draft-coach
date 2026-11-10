@@ -4,6 +4,8 @@
 
 Draft Coach is a local companion for **Draft Showdown**. It reads the screen of an Android device via ADB, identifies visible draft and combat offers with OpenCV, and ranks those offers using editable tactical rules. The browser is the control surface. The host PC does the image processing.
 
+On the host PC, **Matches and review → Knowledge and review tasks** now brings together tactical rules, saved cases, review images and archived observations. Each task has a stable identity, source history and separate work/review states. General mechanics can be recorded without a specific card or weight. Marking a task done does not activate a rule. Automatic evidence checks and activation proposals are later work packages in the [learning plan](docs/lernprozess-gesamtplan.md).
+
 ## Screenshots
 
 Examples of the Android game screens the Coach works with. The first row in each collection shows the active lineup.

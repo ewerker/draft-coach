@@ -1,4 +1,5 @@
 import {reviewQueries,reviewSchema,selectEvidenceIds} from './review.mjs';
+import {createKnowledgeStore,knowledgeSchema} from './knowledge.mjs';
 import {DatabaseSync,backup} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {createReadStream,existsSync} from 'node:fs';
@@ -34,6 +35,15 @@ export function createArchive(file,runtime){
     await withDatabase(false,db=>db.exec(`CREATE TABLE IF NOT EXISTS partie_protokoll (
       partie_id TEXT PRIMARY KEY REFERENCES partien(id), details_json TEXT NOT NULL
     ); `+reviewSchema));
+    await withDatabase(false,db=>{
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        db.exec(knowledgeSchema);
+        if(db.prepare('PRAGMA user_version').get().user_version<1)db.exec('PRAGMA user_version=1');
+        db.exec('COMMIT');
+      }
+      catch(error){db.exec('ROLLBACK');throw error;}
+    });
   }
   async function exclusive(operation){
     if(busy)throw Error('Ein Archivvorgang läuft bereits.');
@@ -124,7 +134,7 @@ export function createArchive(file,runtime){
       }
     });
   }
-  return {status,archiveGames,sendBackup,initializeReview,review:reviewQueries(journal,withDatabase,runtime),get busy(){return busy;}};
+  return {status,archiveGames,sendBackup,initializeReview,review:reviewQueries(journal,withDatabase,runtime),knowledge:createKnowledgeStore(withDatabase),get busy(){return busy;}};
 }
 
 async function pickEvidence(runtime,game,ids){

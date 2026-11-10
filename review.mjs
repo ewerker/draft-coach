@@ -139,9 +139,9 @@ export function reviewQueries(journal,withDatabase,runtime){
       SELECT id,match_id,capture,created,data,
         (SELECT data FROM review_revisions WHERE case_id=review_cases.id ORDER BY id DESC LIMIT 1) AS revision
       FROM review_cases ORDER BY created DESC`).all().map(row=>{
-      const {observation,rule,template,preferred,reviewed}=JSON.parse(row.data);
+      const {observation,rule,template,preferred,reviewed,frame}=JSON.parse(row.data);
       return {id:row.id,matchId:row.match_id,capture:row.capture,created:row.created,observation,rule,preferred,
-        reviewed:reviewed===true,template:template?{name:template.name,language:template.language,enabled:template.enabled!==false}:null,revision:row.revision?JSON.parse(row.revision):null};
+        language:frame?.language??template?.language??null,reviewed:reviewed===true,template:template?{name:template.name,language:template.language,enabled:template.enabled!==false}:null,revision:row.revision?JSON.parse(row.revision):null};
     }));
   }
   async function setReviewed(id,reviewed){

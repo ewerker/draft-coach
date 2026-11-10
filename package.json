@@ -4,6 +4,6 @@
   "build": "0.7.6",
   "private": true,
   "type": "module",
-  "scripts": {"start":"node --env-file-if-exists=.env server.mjs", "test":"node --test tests.mjs reference-store.test.mjs collection-lineup.test.mjs learning.test.mjs field-learning.test.mjs review-queue.test.mjs review-matches.test.mjs"},
+  "scripts": {"start":"node --env-file-if-exists=.env server.mjs", "test":"node --test tests.mjs reference-store.test.mjs collection-lineup.test.mjs learning.test.mjs field-learning.test.mjs review-queue.test.mjs review-matches.test.mjs knowledge.test.mjs"},
   "engines": {"node": ">=22.16.0"}
 }

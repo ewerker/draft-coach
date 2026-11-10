@@ -221,6 +221,21 @@
 @media(max-width:560px){.review-card{padding:12px}.review-select-grid{grid-template-columns:minmax(0,1fr)}.review-search-row span{padding:0}.review-select-grid button{width:100%}}
 
 /* Match observations: one clear composer and grouped actions. */
+.knowledge-heading,.knowledge-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.knowledge-heading h3{margin:0}.knowledge-count{font-variant-numeric:tabular-nums}
+.knowledge-filters{display:grid;grid-template-columns:minmax(160px,2fr) repeat(4,minmax(100px,1fr));gap:12px;margin:18px 0}
+.knowledge-filters label,.knowledge-actions label,.knowledge-form label{display:grid;gap:6px;font-size:.85rem;min-width:0}
+.knowledge-filters input,.knowledge-filters select,.knowledge-actions select,.knowledge-form input,.knowledge-form textarea,.knowledge-form select{width:100%;min-width:0;box-sizing:border-box}
+.knowledge-cards{display:grid;gap:14px;margin:16px 0}.knowledge-card{padding:16px;border:1px solid var(--line);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.knowledge-card h4{margin:0;font-size:1rem}.knowledge-meta,.knowledge-card .muted{font-size:.8rem;color:var(--muted)}
+.knowledge-description{line-height:1.55;white-space:pre-wrap}.knowledge-card>details{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.knowledge-card details>summary{font-size:.85rem;margin-bottom:10px}.knowledge-source{margin:12px 0;padding:10px;border-left:2px solid var(--line)}
+.knowledge-source pre{white-space:pre-wrap;max-height:260px;overflow:auto;font-size:.75rem}.knowledge-form{display:grid;gap:12px;padding:14px 0}
+.knowledge-form textarea{font:inherit;color:inherit;background:var(--field,#263248);border:1px solid var(--line);padding:12px;border-radius:8px;resize:vertical}
+.knowledge-message:empty{display:none}.knowledge-message{color:#ec928c}.knowledge-history{font-size:.8rem;color:var(--muted)}
+[data-theme=light] .knowledge-form textarea{background:#edf3fb;color:#182336}
+@media(max-width:800px){.knowledge-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.knowledge-filters{grid-template-columns:1fr}.knowledge-actions{align-items:stretch}.knowledge-actions label{flex:1 1 120px}.knowledge-heading h3{font-size:1.1rem}}
 #review-form:not([hidden]){margin-top:24px;border-top:1px solid var(--line);padding-top:20px}
 #review-form>h3{margin:0;font-size:1.1rem}
 #review-form>h3+p{margin:6px 0 18px;color:var(--muted);font-size:.9rem}
