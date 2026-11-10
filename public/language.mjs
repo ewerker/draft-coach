@@ -546,6 +546,8 @@ for(const name of ['Snail','Cupid','Sniper']){
   fragments.set(`Direkter Angriff auf die gegnerische Hinterreihe (${name}) wird bevorzugt.`,`Direct backline attacks against ${name} are preferred.`);
   fragments.set(`Sniper als verfügbare Fernkampfoption gegen ${name} aufbauen; direkter Hinterlandangriff wird nicht angeboten.`,`Build Snipers as a ranged option against ${name}; no direct backline attacker is offered.`);
 }
+fragments.set('Gegen verstärkte Draklinge die schwach beobachtete Front mit Spartheus stärken; Fernkämpfer brauchen Schutz.','Strengthen the lightly observed Spartheus front against reinforced Whelps; ranged units need protection.');
+fragments.set('Sniper zurückstellen, solange gegen verstärkte Draklinge nur wenige Spartheus beobachtet wurden und eine Frontverstärkung angeboten wird.','Hold back on Snipers against reinforced Whelps when few Spartheus have been observed and a frontline reinforcement is offered.');
 const fragmentPattern=new RegExp('(?<![\\p{L}\\p{N}])(?:'+[...fragments.keys()].map(escapeRegExp).join('|')+')(?![\\p{L}\\p{N}])','gu');
 const preparationLabels=new Map([
   ['Einheiten','Units'],['Zauber','Spells'],

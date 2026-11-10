@@ -15,6 +15,20 @@ import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from '.
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
 const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
+test('reinforces a thin observed Spartheus front against developed Whelps',()=>{
+  const profile=structuredClone(collection);profile.units.active_lineup=['Agent B','Schnecke','Sniper','Spartheus'];
+  const frame={phase:'battle_choice',enemy:[{name:'Schnecke'},{name:'Drakling',action:'upgrade'}],ownReinforcements:{Spartheus:3,'Agent B':16,Sniper:2},offers:[{name:'Schnecke',action:'add',quantity:1},{name:'Spartheus',action:'add',quantity:3},{name:'Sniper',action:'add',quantity:2}]};
+  for(const mode of ['draft','arena']){
+    const advice=recommend(frame,mode,profile,db);assert.equal(advice.best?.name,'Spartheus');
+    assert.match(advice.best.reason,/Fernkämpfer brauchen Schutz/);
+    const established=recommend({...frame,ownReinforcements:{...frame.ownReinforcements,Spartheus:6}},mode,profile,db);
+    assert.doesNotMatch(established.evaluated[1].reason,/Fernkämpfer brauchen Schutz/);
+    const unknown=recommend({...frame,ownReinforcements:{'Agent B':16}},mode,profile,db);
+    assert.doesNotMatch(unknown.evaluated[1].reason,/Fernkämpfer brauchen Schutz/);
+    const noPressure=recommend({...frame,enemy:[{name:'Schnecke'}]},mode,profile,db);
+    assert.doesNotMatch(noPressure.evaluated[1].reason,/Fernkämpfer brauchen Schutz/);
+  }
+});
 test('direct backline attackers are preferred against Snail, Cupid and Sniper',()=>{
   for(const threat of ['Schnecke','Kupid','Sniper'])for(const attacker of ['Agent B','Assassine']){
     const result={phase:'battle_choice',enemy:[{name:threat}],offers:[{name:attacker,action:'add',quantity:2},{name:'Sniper',action:'add',quantity:2},{name:'Sixshoot',action:'add',quantity:2}]};

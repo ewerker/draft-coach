@@ -142,6 +142,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
   const tracked=result.ownReinforcements??{};
+  const developedDrakling=enemy.includes('Drakling')&&((result.enemyAdditions?.Drakling??0)>=8||
+    (result.enemy??[]).some(card=>card.name==='Drakling'&&['upgrade','multiply','multiply_upgrade'].includes(card.action)));
+  const reinforceFront=result.phase==='battle_choice'&&developedDrakling&&Number.isFinite(tracked.Spartheus)&&tracked.Spartheus<6&&
+    (result.offers??[]).some(card=>card.name==='Spartheus'&&allowed.has(card.name)&&card.action!=='unknown');
   const directBacklineOffer=(result.offers??[]).some(card=>['Agent B','Assassine'].includes(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const snipers=result.enemyAdditions?.Sniper??0;
   const agentShortfall=result.phase==='battle_choice'&&enemy.includes('Sniper')&&snipers>=4?
@@ -210,6 +214,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     if(backlineThreat&&result.phase==='battle_choice'&&!directBacklineOffer&&offer.name==='Sniper'&&(tracked.Sniper??0)<4){
       score+=14;
       why+=` Sniper als verfügbare Fernkampfoption gegen ${backlineThreat} aufbauen; direkter Hinterlandangriff wird nicht angeboten.`;
+    }
+    if(reinforceFront&&offer.name==='Spartheus'){
+      score+=28;
+      why+=' Gegen verstärkte Draklinge die schwach beobachtete Front mit Spartheus stärken; Fernkämpfer brauchen Schutz.';
+    }else if(reinforceFront&&offer.name==='Sniper'){
+      score-=18;
+      why+=' Sniper zurückstellen, solange gegen verstärkte Draklinge nur wenige Spartheus beobachtet wurden und eine Frontverstärkung angeboten wird.';
     }
     if(result.phase==='deck_choice'&&enemy.includes('Kupid')&&
        !ownDeck.has('Kupid')&&!ownDeck.has('Sniper')&&['Kupid','Sniper'].includes(offer.name)){
