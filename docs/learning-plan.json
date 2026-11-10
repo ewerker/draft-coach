@@ -146,6 +146,14 @@
           "type": "implementation_report",
           "path": "docs/p6-replaypruefung.md",
           "value": "Idle-time automatic replay reports, independent mechanic fixtures and player-image comparisons. Free-text expectation proposals and full A6 acceptance remain open."
+        },
+        {
+          "type": "implementation_commit",
+          "value": "d5bdd19"
+        },
+        {
+          "type": "test_report",
+          "value": "106 automated tests pass, including automatic per-match HTTP reports after restart and confirmed-image inclusion. Initial stage verified; free-text expectations and A6 acceptance pending."
         }
       ]
     },
