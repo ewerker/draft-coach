@@ -187,3 +187,5 @@
 .reference-correction-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
 .reference-correction-row{display:grid;gap:6px;min-width:0}.reference-correction-row select{width:100%;min-width:0}
 #reference-correction button+button{margin-inline-start:8px}
+
+.enemy-reference-rows{display:grid;gap:8px;margin:12px 0}.enemy-reference-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.enemy-reference-row select{min-width:180px}.enemy-reference-canvas{display:block;width:min(100%,350px);height:auto;touch-action:none;border:1px solid var(--line);border-radius:8px;margin:12px 0;cursor:crosshair}

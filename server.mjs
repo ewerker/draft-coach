@@ -1465,6 +1465,14 @@ async function handleRequest(req,res){
           const ref=await referenceStore.add(png,{source:'manual',language:state.gameLanguage});savedReferences.unshift(ref);return json(res,200,{ok:true});
         } finally {state.capturing=false;}
       }
+      if(url.pathname==='/api/reference/enemy') {
+        const ref=savedReferences.find(item=>item.id===data.id), item=state.current, box=data.box;
+        const validBox=Array.isArray(box)&&box.length===4&&box.every(Number.isInteger)&&box[0]>=0&&box[1]>=250&&box[2]<=1080&&box[3]<=1170&&box[2]-box[0]>=20&&box[3]-box[1]>=20&&box[2]-box[0]<=400&&box[3]-box[1]<=400;
+        const validName=CARDS.some(card=>card.kind==='unit'&&card.name===data.name)||collection.units.units.some(card=>card.name===data.name);
+        if(!ref||item?.source!=='reference'||item.referenceId!==ref.id||!Number.isInteger(data.position)||data.position<0||data.position>3||!validBox||!validName)throw Error('Bitte einen gegnerischen Bildbereich und eine gültige Einheit auswählen.');
+        const correction={phase:'enemy_field',position:data.position,name:data.name,box};
+        const updated=await referenceStore.correct(ref.id,correction);savedReferences=savedReferences.map(old=>old.id===ref.id?updated:old);return json(res,200,{ok:true});
+      }
       if(url.pathname==='/api/reference/correct') {
         const ref=savedReferences.find(item=>item.id===data.id);
         const item=state.current;
@@ -1617,7 +1625,7 @@ async function handleRequest(req,res){
       return;
     }
     if(url.pathname==='/api/preparation/recommendation')return json(res,200,suggestLineup(collection));
-    if(url.pathname==='/api/config')return json(res,200,{token,collection,version,build,buildInfo,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
+    if(url.pathname==='/api/config')return json(res,200,{token,collection,unitNames:[...new Set([...CARDS.filter(card=>card.kind==='unit').map(card=>card.name),...collection.units.units.map(card=>card.name)])],version,build,buildInfo,desktopControl:true,localAdmin,quickAiEnabled:Boolean(openAiKey())});
     if(url.pathname==='/api/taktikregeln')return json(res,200,tacticLibrary());
     let file;
     if(url.pathname.startsWith('/saved-reference/')){const id=url.pathname.slice(17);if(referenceStore.valid(id)&&savedReferences.some(ref=>ref.id===id))file=referenceStore.image(id);}

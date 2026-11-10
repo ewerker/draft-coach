@@ -186,6 +186,28 @@ def apply_learned_references(img,phase,offers,examples):
         if ranked and ranked[0][1]>=.99 and (len(ranked)==1 or ranked[0][1]-ranked[1][1]>=.04):
             card.update(name=ranked[0][0],candidate=ranked[0][0],learnedReference=True)
 
+enemy_reference_cache={}
+def match_enemy_references(img,examples):
+    # Experimental image evidence only: never treat detections as exact counts.
+    candidates=[entry for entry in examples if entry.get('phase')=='enemy_field' and len(entry.get('box',[]))==4][-40:]
+    if not candidates: return []
+    field=cv2.resize(cv2.cvtColor(img,cv2.COLOR_BGR2GRAY),None,fx=.5,fy=.5,interpolation=cv2.INTER_AREA)[125:585]
+    best={}
+    for entry in candidates:
+        key=(entry.get('path'),tuple(entry['box']))
+        try:
+            if key not in enemy_reference_cache:
+                source=cv2.resize(cv2.cvtColor(load(key[0]),cv2.COLOR_BGR2GRAY),None,fx=.5,fy=.5,interpolation=cv2.INTER_AREA)
+                x1,y1,x2,y2=entry['box']
+                enemy_reference_cache[key]=source[y1//2:y2//2,x1//2:x2//2]
+            template=enemy_reference_cache[key]
+            if template.shape[0]>field.shape[0] or template.shape[1]>field.shape[1] or np.std(template)<8: continue
+            _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(field,template,cv2.TM_CCOEFF_NORMED))
+            if score>=.95 and (entry['name'] not in best or score>best[entry['name']]['similarity']):
+                h,w=template.shape;best[entry['name']]={'name':entry['name'],'similarity':round(float(score),3),'box':[x*2,y*2+250,(x+w)*2,(y+h)*2+250]}
+        except (OSError,ValueError,cv2.error): continue
+    return sorted(best.values(),key=lambda row:-row['similarity'])[:4]
+
 def number(img,box):
     f=digit_feature(cut(img,box)); scores={}
     for value,t in numbers: scores[value]=max(scores.get(value,0),similarity(f,t))
@@ -610,6 +632,7 @@ def recognize(path,preferred=None,language='de',learned_banners=(),learned_refer
     enemy_started=time.perf_counter()
     enemy_event=read_enemy_banner(img,language,learned_banners) if phase in ('battle','battle_choice','spell_choice') or (phase=='unknown' and hearts is not None) else None
     enemy_ms=(time.perf_counter()-enemy_started)*1000
+    enemy_visual=match_enemy_references(img,learned_references) if phase in ('battle','battle_choice','spell_choice') else []
     if any(card.get('experimentalLanguage') for card in offers):
         notes.append('Englische Spielbilder werden probeweise erkannt. Automatisches Antippen bleibt für experimentell erkannte Angebote aus.')
     spell_button=None
@@ -617,7 +640,7 @@ def recognize(path,preferred=None,language='de',learned_banners=(),learned_refer
         star=cut(img,[950,1627,1020,1702])
         if cv2.matchTemplate(star,spell_button_star,cv2.TM_SQDIFF_NORMED)[0,0]<.025:
             spell_button=[950,1627,1020,1702]
-    return {'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'lastDeckReroll':last_deck_reroll,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'visionProfile':{'captionMs':round(caption_ms,1),'enemyBannerMs':round(enemy_ms,1)},'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
+    return {'enemyVisual':enemy_visual,'spellButton':spell_button,'phase':phase,'specialStep':special_step,'deckEvidence':deck_evidence,'lastDeckReroll':last_deck_reroll,'offers':offers,'enemy':enemies,'own':own,'enemyEvent':enemy_event,'hearts':hearts,'notes':notes,'visionMs':round((time.perf_counter()-start)*1000,1),'visionProfile':{'captionMs':round(caption_ms,1),'enemyBannerMs':round(enemy_ms,1)},'engine':'Lokaler OpenCV-Vergleich; Ähnlichkeiten sind keine Wahrscheinlichkeiten','geometry':geometry,'layout':'1080×2340, experimentell'}
 
 def lettering(img):
     return ((img.min(axis=2)>200)&(np.ptp(img,axis=2)<45)).astype(np.uint8)
