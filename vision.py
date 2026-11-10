@@ -882,6 +882,19 @@ def _read_battle_caption_uncached(img, x, preferred, icon=None, language='de'):
         if name not in matches or score>matches[name][0]:
             matches[name]=(score,left,top,pattern.shape[1])
     ranked=sorted(matches,key=lambda name:matches[name][0],reverse=True)
+    if language=='en' and (matches[ranked[0]][0]<.70 or matches[ranked[0]][0]-matches[ranked[1]][0]<.06):
+        # These labels have identical spelling in both game languages. Animated
+        # enlarged cards can fit a German-calibrated font scale more accurately.
+        # Keep the full competing English vocabulary and the original margin;
+        # never translate an arbitrary German label into an English match.
+        shared={'Agent B','Astra','Boomling','Merlinor','Sniper','Spartheus','Splime','TNT','Totem'}
+        for candidate,pattern in battle_names:
+            if candidate not in shared or pattern.shape[1]>footer.shape[1] or pattern.shape[0]>footer.shape[0]:
+                continue
+            _,likeness,_,(left,top)=cv2.minMaxLoc(cv2.matchTemplate(footer,pattern,cv2.TM_CCOEFF_NORMED))
+            if likeness>matches.get(candidate,(-1,))[0]:
+                matches[candidate]=(likeness,left,top,pattern.shape[1])
+        ranked=sorted(matches,key=lambda candidate:matches[candidate][0],reverse=True)
     name=ranked[0]
     score,left,top,width=matches[name]
     margin=score-matches[ranked[1]][0]
