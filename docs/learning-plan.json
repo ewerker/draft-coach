@@ -109,7 +109,7 @@
     {
       "id": "P5",
       "title": "Allgemeine Mechaniken und Entwicklungsformen",
-      "status": "implemented",
+      "status": "verified",
       "dependsOn": [
         "P1",
         "P2"
@@ -120,6 +120,14 @@
           "type": "test_report",
           "path": "docs/p5-entwicklungsformen.md",
           "value": "A5 source-form-only arithmetic, durable DE/EN labels, independent card binding and unknown-state guards; visual recognition remains P3."
+        },
+        {
+          "type": "implementation_commit",
+          "value": "f8c72fa"
+        },
+        {
+          "type": "acceptance_evidence",
+          "value": "102 automated tests passed; controlled DE/EN browser arithmetic, restart and backup checks. User acceptance pending; automatic visual form recognition remains P3."
         }
       ]
     },
