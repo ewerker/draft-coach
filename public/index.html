@@ -244,8 +244,8 @@
   </form>
 </dialog>
 <div id="error" role="alert" hidden></div>
-<section class="panel preparation" id="preparation" hidden>
-  <div class="panel-head"><h2>Sammlung und Aufstellung aufnehmen</h2><span class="pill" id="prep-count">0 Bilder</span></div>
+<details class="panel preparation collapsible-section" id="preparation" open hidden>
+  <summary><h2>Sammlung und Aufstellung aufnehmen</h2> <span class="pill" id="prep-count">0 Bilder</span></summary>
   <label for="prep-kind">Was möchtest du aufnehmen?</label>
   <select id="prep-kind">
     <optgroup label="Sammlung"><option value="units">Sammlung · Einheiten</option><option value="spells">Sammlung · Zauber</option></optgroup>
@@ -263,15 +263,15 @@
   <p id="import-status" role="status"></p>
   <div id="import-review" hidden></div>
   <button id="apply-collection" type="button" class="primary" hidden>Geprüfte Sammlung übernehmen</button>
-</section>
-<section class="panel preparation" id="reference-panel" hidden>
-  <div class="panel-head"><h2>Referenzbilder und Korrekturen</h2><span class="muted">Lokale Bilderkennung</span></div>
+</details>
+<details class="panel preparation collapsible-section" id="reference-panel" open hidden>
+  <summary><h2>Referenzbilder und Korrekturen</h2> <span class="muted">Lokale Bilderkennung</span></summary>
   <p>Unerkannte Wahlangebote werden automatisch gesammelt. Für eine gezielte Aufnahme öffne das gewünschte Bild auf dem Handy.</p>
   <button id="reference-capture" type="button">Referenzbild aufnehmen</button>
   <h3>Gesammelte Prüfbilder</h3><div id="saved-references" class="references"></div>
   <div id="reference-correction" hidden></div>
   <h3>Frühere Testbilder</h3><div id="references" class="references"></div>
-</section>
+</details>
 <section class="workspace"><article class="panel screen"><div class="panel-head"><h2 id="screen-heading">Letzte Aufnahme</h2><span id="phase" class="pill">Noch kein Bild</span></div><div id="image-empty">Nimm ein Bild auf oder wähle eine Referenz.</div><div class="image-wrap" hidden><img id="screenshot" alt="Aufgenommener Handybildschirm"><svg id="overlay" viewBox="0 0 1080 2340" aria-label="Erkannte Bildbereiche"></svg></div><div id="image-caption" class="muted"></div><div id="image-tap-status" class="muted" role="status"></div></article>
 <div class="right">
   <article class="panel">
@@ -287,7 +287,7 @@
     <div id="timing-charts" class="timing-charts"></div>
   </details>
 </div></section>
-<section class="panel measurement"><div class="log-header"><h2>Log-Protokoll</h2>
+<details class="panel measurement collapsible-section" open><summary><h2>Log-Protokoll</h2></summary><div class="log-header">
   <label for="log-filter">Filter</label><select id="log-filter">
     <option value="all">Alle Einträge</option>
     <option value="timing">Aufnahmezeiten</option>
@@ -300,5 +300,5 @@
   <div id="match-stats" class="match-stats" aria-live="polite"></div>
   <p class="muted">Spiele pro Stunde · letzte 24 Stunden</p>
   <div id="match-hours" class="match-hours"></div>
-</section>
+</details>
 </div></main><footer id="collection-footer">Draft Coach · Prototyp</footer><script type="module" src="/app.js"></script></body></html>

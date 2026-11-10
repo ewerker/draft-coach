@@ -178,3 +178,8 @@
 @media(max-width:600px){.review-images:has(#review-variant:not([hidden])){grid-template-columns:1fr}}
 
 .copy-match-id{margin-left:6px;padding:3px 8px;vertical-align:middle}
+
+/* Collapsible preparation and log panels */
+.collapsible-section > summary h2{display:inline;font-size:1em}
+.collapsible-section > summary .pill,.collapsible-section > summary .muted{margin-inline-start:.6rem;vertical-align:middle}
+.collapsible-section:not([open]) > summary{margin-bottom:0}
