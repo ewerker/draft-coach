@@ -11,8 +11,9 @@ from collections import defaultdict
 import cv2
 import numpy as np
 
-VERSION = 'army-prototypes-v1'
+VERSION = 'army-prototypes-v2'
 CANON = {'Verwüster': 'Zerstörer', 'Bientank': 'Bienenkorb'}
+BODY_SCALES = (.62, .74, .86, 1., 1.14, 1.28, 1.42)
 
 
 def canonical(name):
@@ -32,6 +33,22 @@ def descriptor(patch):
     vertical = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
     vector = np.concatenate([gray.ravel(), edge.ravel()*.15, vertical.ravel()*.15])
     return vector / max(1e-8, float(np.linalg.norm(vector)))
+
+
+def body_patterns(gray):
+    height, width = gray.shape
+    # Keep the body and its outline. The head and nearby sprites can change
+    # with evolution, spell effects, or a tighter formation.
+    body = gray[int(.33 * height):int(.90 * height), int(.15 * width):int(.85 * width)]
+    patterns = []
+    for scale in BODY_SCALES:
+        h, w = (round(length * .35 * scale) for length in body.shape)
+        if min(h, w) < 9:
+            continue
+        pattern = cv2.resize(body, (w, h), interpolation=cv2.INTER_AREA)
+        if np.std(pattern) >= 8:
+            patterns.append(pattern)
+    return patterns
 
 
 class PrototypeDetector:
@@ -61,10 +78,12 @@ class PrototypeDetector:
                 patch = image[y1:y2, x1:x2]
                 if min(patch.shape[:2]) < 16 or np.std(patch) < 8:
                     continue
+                full_gray = cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY)
                 self.templates.append(dict(name=canonical(entry['name']), stage=entry.get('stage'),
                     appearanceId=hashlib.sha256(patch.tobytes()).hexdigest()[:16],
-                    gray=cv2.resize(cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY), None, fx=.35, fy=.35, interpolation=cv2.INTER_AREA),
-                    fullGray=cv2.cvtColor(patch, cv2.COLOR_BGR2GRAY),
+                    gray=cv2.resize(full_gray, None, fx=.35, fy=.35, interpolation=cv2.INTER_AREA),
+                    fullGray=full_gray, side=entry['phase'].split('_')[0],
+                    bodyPatterns=body_patterns(full_gray),
                     vector=descriptor(patch), source=entry.get('referenceId'), matchId=entry.get('matchId')))
                 if len(self.templates) >= 80:
                     break
@@ -88,14 +107,46 @@ class PrototypeDetector:
             options.inter_op_num_threads = 1
             self.session = ort.InferenceSession(self.model.SerializeToString(), sess_options=options, providers=['CPUExecutionProvider'])
 
+    def detect_bodies(self, field, side, top, deadline, pool):
+        best = {}
+        truncated = False
+        for template in self.templates:
+            if template['side'] != side:
+                continue
+            name = template['name']
+            conflict = bool(pool and name not in pool)
+            for pattern in template['bodyPatterns']:
+                if time.perf_counter() >= deadline:
+                    truncated = True
+                    break
+                height, width = pattern.shape
+                if height > field.shape[0] or width > field.shape[1]:
+                    continue
+                _, score, _, (x, y) = cv2.minMaxLoc(cv2.matchTemplate(field, pattern, cv2.TM_CCOEFF_NORMED))
+                threshold = .90 if conflict else .82
+                if score < threshold or (name in best and score <= best[name]['score']):
+                    continue
+                box = [round(x/.35)+25, round(y/.35)+top,
+                       round((x+width)/.35)+25, round((y+height)/.35)+top]
+                best[name] = dict(name=name, box=box, score=float(score), stage=None,
+                                  formConfidence='unknown', appearanceId=template['appearanceId'],
+                                  poolConflict=conflict, typeConfidence='candidate',
+                                  countConfidence='lower_bound', source='body_template')
+            if truncated:
+                break
+        return sorted(best.values(), key=lambda row: -row['score']), truncated
+
     def detect(self, image, side, phase='battle_choice', budget_ms=700, candidates=()):
         started = time.perf_counter()
         # Never search choice-card illustrations as if they were deployed troops.
         top, bottom = (325, 1015) if side == 'enemy' else ((1580, 2090) if phase in ('battle_choice', 'spell_choice') else (1170, 2090))
         field = image[top:bottom, 25:1055]
         small = cv2.resize(cv2.cvtColor(field, cv2.COLOR_BGR2GRAY), None, fx=.35, fy=.35, interpolation=cv2.INTER_AREA)
+        pool = {canonical(name) for name in candidates}
+        # Partition proposal time so each method can contribute under load.
+        body_deadline = started + .55 * budget_ms / 1000
+        bodies, truncated = self.detect_bodies(small, side, top, body_deadline, pool)
         proposals = []
-        truncated = False
         for template in self.templates:
             if (time.perf_counter()-started)*1000 > budget_ms:
                 truncated = True
@@ -138,7 +189,6 @@ class PrototypeDetector:
                     row['box'] = [left+x,above+y,left+x+x2-x1,above+y+y2-y1]
             features = np.stack([descriptor(image[r['box'][1]:r['box'][3], r['box'][0]:r['box'][2]]) for r in spatial]).astype(np.float32)
             scores = self.session.run(None, {'features': features})[0] if self.session else features @ self.weights
-            pool = {canonical(name) for name in candidates}
             for row, values in zip(spatial, scores):
                 ranked = sorted(enumerate(values), key=lambda pair: -pair[1])
                 best, score = ranked[0]
@@ -155,6 +205,21 @@ class PrototypeDetector:
                     stage=stage, formConfidence='labelled_prototype' if stage is not None else 'unknown',
                     appearanceId=exemplar['appearanceId'], poolConflict=conflict,
                     typeConfidence='candidate', countConfidence='lower_bound', source='onnx_prototype' if self.session else 'numpy_prototype'))
+        detected_names = {row['name'] for row in instances}
+        for body in bodies:
+            if body['name'] in detected_names:
+                continue
+            if any(overlap(body['box'], row['box']) > .65 for row in instances):
+                unknown.append(dict(box=body['box'], reason='ambiguous_type'))
+                continue
+            if any(other['name'] != body['name'] and abs(other['score'] - body['score']) < .055
+                   and overlap(body['box'], other['box']) > .65 for other in bodies):
+                unknown.append(dict(box=body['box'], reason='ambiguous_type'))
+                continue
+            # A body match provides one example of the type. Other instances
+            # and the evolution stage need separate evidence.
+            body['score'] = round(body['score'], 4)
+            instances.append(body)
         groups = []
         by_name = defaultdict(list)
         for instance in instances:

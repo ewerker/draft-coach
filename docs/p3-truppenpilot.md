@@ -59,6 +59,12 @@ In einer während der Entwicklung gespielten verlorenen Draft-Partie fehlte Agen
 
 Offizielle technische Grundlagen: [ONNX Runtime Python](https://onnxruntime.ai/docs/get-started/with-python.html), [ONNX-Operatoren](https://onnx.ai/onnx/operators/).
 
+## Nachprüfung vom 11. November 2026
+
+Der Pilot vergleicht zusätzlich den Körperausschnitt mit Vorlagen derselben Spielfeldseite und mehreren Bildgrößen. Das hilft bei veränderten oder verdeckten Köpfen. Ein solcher Treffer gibt einen Hinweis auf den Typ und ein sichtbares Exemplar. Die Entwicklungsform bleibt offen. Der Test mit verdecktem Kopf deckt diesen Fall ab.
+
+Auf 15 Spielerbildern aus fünf Partien stiegen die Typentreffer bei einem Suchbudget von 350 ms je Seite von 7 auf 26 der 65 bestätigten Typvorkommen. Jeweils die gesamte Testpartie wurde aus den Vorlagen ausgeschlossen. Keine zusätzlichen Typen auf vollständig beschrifteten Seiten. Königlop erschien auf einem der drei Bilder der verlorenen Schlacht. Bei einem separaten Lauf mit 700 ms je Seite waren es 29 Treffer, darunter auch Schnecke. Die Bilder wurden während der Entwicklung betrachtet. 25 von 30 Seiten wurden beim 350-ms-Lauf wegen des Zeitlimits oder der Vorschlaggrenze als unvollständig markiert. Der Nachweis für A3 steht weiterhin aus.
+
 ## English summary
 
 P3 now has a bounded asynchronous CPU observation pipeline, a local ONNX prototype-classifier candidate with NumPy fallback, separate army/position histories, uncertain visible counts and evolution labels, immutable frame/match provenance, and a bilingual diagnostic report. It does not use an API key. Pilot estimates do not drive recommendations or taps. The first match-held-out diagnostic failed the type-quality targets for both methods; counting and evolution are not validated. Cold start and long-tail latency need more measurements. P3 remains in progress until fresh match-level verification with representative player labels meets A3. Existing rule-review marks and deliberate open cases are preserved.

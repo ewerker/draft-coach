@@ -38,6 +38,19 @@ class ArmyVision(unittest.TestCase):
             self.assertEqual(detector.detect(blank,side)['groups'],[])
         self.assertEqual(army.PrototypeDetector([],lambda _:self.image).detect(self.image,'own')['groups'],[])
 
+    def test_body_can_identify_type_when_the_head_is_covered(self):
+        example = {**self.example, 'stage': 2}
+        detector = army.PrototypeDetector([example], lambda _: self.image)
+        covered = np.full_like(self.image, 120)
+        sprite = self.pattern.copy()
+        # An overlay changes the upper third but leaves the body visible.
+        sprite[:33] = np.random.default_rng(7).integers(0, 255, sprite[:33].shape, dtype=np.uint8)
+        covered[420:520, 200:280] = sprite
+        result = detector.detect(covered, 'enemy')
+        self.assertEqual([(row['name'], row['source'], row['stage']) for row in result['instances']],
+                         [('Zerstörer', 'body_template', None)])
+        self.assertIsNone(result['groups'][0]['visibleMaximum'])
+
     @unittest.skipUnless(importlib.util.find_spec('onnx') and importlib.util.find_spec('onnxruntime'),'optional ONNX dependencies not installed')
     def test_onnx_and_numpy_detector_agree(self):
         numpy=army.PrototypeDetector([self.example],lambda _:self.image,'numpy')
