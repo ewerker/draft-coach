@@ -167,7 +167,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const warnings=[];
   const ownDeck=new Set([...(result.ownDeckPicks??[]),...(result.own??[]).map(card=>card.name)]);
   const hasRanged=[...ownDeck].some(name=>deckRanged.has(name));
-  const reroll=result.phase==='deck_choice'&&result.lastDeckReroll===true&&
+  const reroll=result.phase==='deck_choice'&&!result.forceCardChoice&&result.lastDeckReroll===true&&
     (result.own??[]).filter(card=>card.name).length===3&&!hasRanged&&
     result.offers.length===3&&result.offers.every(card=>card.name&&!card.poolHint&&!deckRanged.has(card.name));
   const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));

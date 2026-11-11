@@ -41,7 +41,7 @@ test('HTTP lifecycle: capture, stop/restart, explicit resume, one result, backgr
     await writeFile(serverFile,portableServer);
     await cp(path.join(source,'data'),path.join(dir,'data'),{recursive:true});await cp(path.join(source,'public'),path.join(dir,'public'),{recursive:true});
     await mkdir(path.join(dir,'references'));
-    await writeFile(path.join(dir,'test-device'),"import sys\nfrom pathlib import Path\nif 'exec-out' in sys.argv: sys.stdout.buffer.write(Path('data/opponent-deck-30830.png').read_bytes())\n");
+    await writeFile(path.join(dir,'test-device'),"import sys\nfrom pathlib import Path\nif 'exec-out' in sys.argv: sys.stdout.buffer.write(Path('data/opponent-deck-30830.png').read_bytes())\nif 'tap' in sys.argv:\n with Path('tap-record').open('a') as log: log.write(' '.join(sys.argv[-2:])+'\\n')\n");
     await writeFile(path.join(dir,'devices'),"print('List of devices attached\\ntest-device device model:Test_Device')\n");
     const worker=`import sys,json
 from pathlib import Path
@@ -49,7 +49,11 @@ print(json.dumps({'ready':True}),flush=True)
 for line in sys.stdin:
  j=json.loads(line); g={'width':1080,'height':2340,'content':[0,0,1080,2340],'referenceWidth':1080,'referenceHeight':2340}
  offers=[{'name':name,'position':i,'action':'add','quantity':2,'box':[40+i*340,1000,300+i*340,1500],'similarity':0.99,'margin':0.3} for i,name in enumerate(['Agent B','Merlinor','Schnecke'])]
- if Path('new-match-empty').exists():
+ if Path('reroll-test').exists():
+  g.update(width=910,height=370,content=[0,0,910,370])
+  offers=[{'name':name,'position':i,'action':'add','quantity':None,'box':[40+i*340,1000,300+i*340,1200]} for i,name in enumerate(['Gans','Drakling','TNT'])]
+  result={'phase':'deck_choice','offers':offers,'own':[{'name':n} for n in ['Totem','Spartheus','Kapitän']], 'lastDeckReroll':True,'deckRerollButton':[200,1400,900,1500]}
+ elif Path('new-match-empty').exists():
   result={'phase':'battle','offers':[]}
  else:
   result={'phase':'battle_choice','offers':offers,'enemyEvent':{'name':'Agent B','action':'add','quantity':3}}
@@ -119,6 +123,16 @@ for line in sys.stdin:
     let lastAudit;const audit=await eventually(async()=>{const v=await get('/api/admin/replay-checks');lastAudit=v;return v.reports.find(r=>r.data.matchId===original)?.data;},400).catch(error=>{throw Error(error.message+JSON.stringify({waiting:lastAudit?.waiting,reports:lastAudit?.reports.map(r=>r.match_id),error:lastAudit?.error}));});
     assert.equal(audit.mechanics.filter(c=>c.status==='passed').length,5);assert.equal(audit.automaticActivation,false);assert.equal(audit.tacticalEffect,'not_established');
     assert.ok(audit.recognition.some(r=>r.capture===q.capture_id&&r.side==='own'));
+    await writeFile(path.join(dir,'reroll-test'),'');
+    await post('/api/settings',{mode:'arena',auto:true,autoTap:true,continuum:true});
+    const taps=await eventually(async()=>{
+      await get('/api/state');
+      const rows=(await readFile(path.join(dir,'tap-record'),'utf8').catch(()=>'' )).trim().split(/\r?\n/).filter(Boolean);
+      return rows.length>=2?rows:null;
+    },180);
+    assert.equal(taps[0],'463 229');
+    assert.equal(taps.filter(tap=>tap==='463 229').length,1);
+    assert.match(taps[1],/^\d+ 174$/);
   }catch(error){throw Error(error.message+'\n'+logs,{cause:error});}
   finally{
     if(child){try{await stop();}catch{const process=child;if(process.exitCode===null){const exited=once(process,'exit');process.kill();await exited;}}}

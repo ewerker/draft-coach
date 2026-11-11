@@ -185,6 +185,10 @@ test('reroll is suggested only with a verified last slot and no ranged unit',()=
   const frame={phase:'deck_choice',own,offers,lastDeckReroll:true};
   const evaluate=changes=>recommend({...frame,...changes},'arena',collection,db).reroll;
   assert.equal(evaluate({}),true);
+  const continuum=recommend({...frame,forceCardChoice:true},'arena',collection,db);
+  assert.equal(continuum.reroll,false);
+  assert.equal(continuum.incompleteSlots,false);
+  assert.ok(continuum.best?.name);
   assert.equal(evaluate({lastDeckReroll:false}),false);
   assert.equal(evaluate({own:own.slice(0,2)}),false);
   assert.equal(evaluate({ownDeckPicks:['Merlinor']}),false);

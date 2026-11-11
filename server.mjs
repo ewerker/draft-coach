@@ -754,6 +754,8 @@ function record(job,result) {
     void archive.runs.observeTransition(match.id,job.id,result).catch(error=>console.error('Klickfolge:',error.message));
   }
   result=withObservedEnemies(result,job);
+  if(liveMatch&&state.auto&&continuum&&autoTap&&result.phase==='deck_choice'&&(match.rerollAttempted||!result.deckRerollButton))
+    result={...result,forceCardChoice:true};
   const ageMs=Date.now()-job.started;
   const expired=job.source!=='reference' && ageMs>6000;
   const advice=expired?{best:null,withheld:true,warnings:['Antwortfrist von 6 Sekunden überschritten.'],evaluated:[]}:calculateAdvice(result);
@@ -823,7 +825,9 @@ function shouldOpenSpell(item,match,checking=false){
   return shouldTrySpell(item,match,state.auto,collection.spells.active_loadout.length,choiceSignature(item,true),checking);
 }
 async function tapRecommendation(job,item,choice,selection=null){
-  if(!selection&&(item.advice?.reroll||item.advice?.incompleteSlots))return;
+  const reroll=!selection&&item.advice?.reroll&&continuum&&state.auto&&autoTap&&
+    activeMatch&&activeMatch.id===job.matchId&&!activeMatch.rerollAttempted&&item.deckRerollButton?.length===4;
+  if(!selection&&(item.advice?.incompleteSlots||item.advice?.reroll&&!reroll))return;
   const openSpell=!selection&&shouldOpenSpell(item,activeMatch);
   const chooseSpell=!selection&&item.phase==='spell_choice'&&activeMatch?.id===job.matchId&&
     Date.now()<(activeMatch?.spellOpenedUntil??0)&&!activeMatch.spellChosen;
@@ -834,12 +838,13 @@ async function tapRecommendation(job,item,choice,selection=null){
   const isCurrent=()=>job.tapGeneration===tapGeneration&&job.target===device&&job.mode===state.mode&&
     Date.now()-lastClientSeen<10000&&(selection?Date.now()<selection.deadline:
       autoTap&&!manualTapPending&&job.id===state.latestId&&Date.now()<verificationDeadline);
-  const best=openSpell?{index:-1,name:null}:selection?{index:selection.index,name:item.offers[selection.index]?.name}:
+  const best=openSpell||reroll?{index:-1,name:null}:selection?{index:selection.index,name:item.offers[selection.index]?.name}:
     chooseSpell?automaticSpell(item,item.advice):automaticPick(item,item.advice);
   if(!best||!isCurrent()||(!selection&&(item.expired||Date.now()-job.started>6000))||lastTappedChoice===choice||state.capturing)return;
-  const offer=openSpell?{name:null,box:item.spellButton}:item.offers[best.index];
+  const offer=openSpell||reroll?{name:null,box:reroll?item.deckRerollButton:item.spellButton}:item.offers[best.index];
   if(!offer||offer.name!==best.name||offer.box?.length!==4)return;
   if(openSpell&&activeMatch?.id===job.matchId)activeMatch.spellAttemptChoice=choice;
+  if(reroll)activeMatch.rerollAttempted=true;
   state.capturing=true;
   const checkPath=path.join(RUNTIME,'tap-check-'+job.id+'.png');
   let outcome='abgebrochen',reason='Wahlfenster hat sich geändert oder konnte nicht bestätigt werden',coordinates,stage='control_capture';
@@ -849,7 +854,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       await new Promise(resolve=>setTimeout(resolve,650));
       if(!isCurrent())return;
     }
-    const direct=!selection&&!openSpell&&['deck_choice','battle_choice','spell_choice'].includes(item.phase)&&
+    const direct=!selection&&!openSpell&&!reroll&&['deck_choice','battle_choice','spell_choice'].includes(item.phase)&&
       item.offers.length===3&&[0,1,2].every(position=>item.offers.some(card=>
         card.position===position&&card.visible!==false&&card.box?.length===4))&&!item.advice?.incompleteSlots;
     let checked=item,verified=best,box=offer.box;
@@ -869,8 +874,10 @@ async function tapRecommendation(job,item,choice,selection=null){
       checked=await recognize({id:++serial,path:checkPath,gameLanguage:job.gameLanguage});
       checkVisionMs=checked.visionMs;
       if(!isCurrent()){reason='Klickprüfung abgelaufen oder Automatik unterbrochen';return;}
-      if(!selection&&!openSpell&&checked.offers.some(offer=>offer.experimentalLanguage))return;
-      if(openSpell){
+      if(!selection&&!openSpell&&!reroll&&checked.offers.some(offer=>offer.experimentalLanguage))return;
+      if(reroll){
+        if(!checked.lastDeckReroll||checked.deckRerollButton?.length!==4||choiceSignature(checked,true)!==choice)return;
+      }else if(openSpell){
         if(!shouldOpenSpell({...checked,matchId:job.matchId,advice:calculateAdvice(withObservedEnemies(checked,job),false)},activeMatch,true))return;
       }else if(battleAuto){
         const fresh=checked.offers[best.index];
@@ -880,10 +887,10 @@ async function tapRecommendation(job,item,choice,selection=null){
         const fresh=checked.offers[best.index];
         if(checked.phase!=='spell_choice'||fresh?.name!==offer.name||fresh.position!==offer.position||fresh.action!=='spell')return;
       }else if(choiceSignature(checked,!!selection,true)!==choiceSignature(item,!!selection,true))return;
-      verified=openSpell?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
+      verified=openSpell||reroll?best:selection?{index:selection.index,name:checked.offers[selection.index]?.name}:
         automaticPick(checked,calculateAdvice(withObservedEnemies(checked,job),false),chooseSpell);
-      box=openSpell?checked.spellButton:checked.offers[best.index]?.box;
-      if(!openSpell&&!sameReinforcementVariant(offer,checked.offers[best.index]))return;
+      box=reroll?checked.deckRerollButton:openSpell?checked.spellButton:checked.offers[best.index]?.box;
+      if(!openSpell&&!reroll&&!sameReinforcementVariant(offer,checked.offers[best.index]))return;
       if(!selection&&offer.variantIndex&&checked.offers.some((card,index)=>index!==best.index&&
         card.variantIndex&&card.name===offer.name&&card.action===offer.action&&sameReinforcementVariant(offer,card)))return;
       if(verified?.index!==best.index||verified.name!==best.name||(!selection&&checked.offers[best.index]?.poolHint)||
@@ -907,6 +914,10 @@ async function tapRecommendation(job,item,choice,selection=null){
     stage='send';
     await execAdb(['-s',job.target,'shell','input','tap',String(x),String(y)],Math.min(2500,sendTime));
     outcome='gesendet';reason=undefined;
+    if(reroll){
+      if(job.tapGeneration===tapGeneration)tapMessage='Neu würfeln an das Handy gesendet.';
+      return true;
+    }
     if(openSpell){
       if(activeMatch?.id===job.matchId)activeMatch.spellOpenedUntil=Date.now()+12000;
       if(job.tapGeneration===tapGeneration)tapMessage='Zauberauswahl geöffnet.';
@@ -933,7 +944,7 @@ async function tapRecommendation(job,item,choice,selection=null){
       tapMessage='Automatischer Klick: Kontrollaufnahme zu langsam.';
     }
     if(coordinates&&job.tapGeneration===tapGeneration){
-      if(!selection)lastTappedChoice=choice;
+      if(!selection&&!reroll)lastTappedChoice=choice;
       tapMessage='Antippen fehlgeschlagen: '+error.message;
     }
     if(selection)throw error;
@@ -945,7 +956,8 @@ async function tapRecommendation(job,item,choice,selection=null){
       autoTapResult={id:job.id,outcome};
     }
     const entry={partie:job.matchId??null,zeit:new Date().toISOString(),art:selection?'manuell':'automatisch',modus:job.mode,
-      aufnahme:job.id,karte:best.name,position:openSpell?undefined:best.index+1,aktion:openSpell?'zauber-oeffnen':chooseSpell?'zauber-waehlen':undefined,ergebnis:outcome,grund:reason,koordinaten:coordinates,
+      aufnahme:job.id,karte:best.name,position:openSpell||reroll?undefined:best.index+1,
+      aktion:reroll?'neu-wuerfeln':openSpell?'zauber-oeffnen':chooseSpell?'zauber-waehlen':undefined,ergebnis:outcome,grund:reason,koordinaten:coordinates,
       pruefschritt:stage,aufnahmeMs:job.captureMs,erkennungMs:item.visionMs,
       kontrollaufnahmeMs:checkCaptureMs,kontrollerkennungMs:checkVisionMs,gesamtMs:Date.now()-job.started,
       gegner:item.enemy?.map(({name,action,quantity})=>({name,action,quantity})),

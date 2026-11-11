@@ -67,6 +67,7 @@ export function makeReviewFrame(job,raw,item,match){
   const {phase,offers,enemy,own,ownDeckPicks,ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice}=item;
   return structuredClone({id:item.id,capturedAt:job.started,language:job.gameLanguage,mode:job.mode,versions:job.versions??match.versions??null,phase,offers,enemy,own,ownDeckPicks,
     ownReinforcements,ownVariantUncertain,enemyAdditions,hearts,specialStep,advice,armyAdviceEvidence:item.armyAdviceEvidence??null,
+    lastDeckReroll:item.lastDeckReroll,forceCardChoice:item.forceCardChoice,
     geometry:item.geometry??null,width:job.width??null,height:job.height??null,source:job.source??null,
     observedInFrame:{enemy:raw.enemy??[],own:raw.own??[],enemyVisual:raw.enemyVisual??[],ownVisual:raw.ownVisual??[],enemyEvent:raw.enemyEvent??null},
     knownState:{enemyDeck:[...match.enemyDeck.values()],enemyEvents:[...match.enemyEvents.values()],
