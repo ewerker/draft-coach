@@ -70,4 +70,20 @@ class ArmyVision(unittest.TestCase):
         complete = (*partial, 'Schnecke')
         self.assertTrue(detector.detect(self.image, 'enemy', candidates=complete)['groups'][0]['poolConflict'])
 
+    def test_enemy_moles_require_visual_evidence_in_a_known_formation(self):
+        image = np.full_like(self.image, 120)
+        crop = cv2.imread(str(Path(__file__).with_name('data') / 'enemy-moles.png'))
+        image[520:520+crop.shape[0], 420:420+crop.shape[1]] = crop
+        detector = army.PrototypeDetector([], lambda _: image)
+        roster = ('Maulwurf', 'Merlinor', 'Splime', 'Gans')
+        result = detector.detect(image, 'enemy', candidates=roster)
+        self.assertEqual([(row['name'], row['visibleMinimum'], row['visibleMaximum']) for row in result['groups']],
+                         [('Maulwurf', 3, None)])
+        self.assertTrue(all(row['stage'] is None and row['score'] >= .90 for row in result['instances']))
+        self.assertEqual(detector.detect(image, 'own', candidates=roster)['groups'], [])
+        self.assertEqual(detector.detect(image, 'enemy', 'battle', candidates=roster)['groups'], [])
+        self.assertEqual(detector.detect(image, 'enemy', candidates=roster[1:])['groups'], [])
+        image[520:520+crop.shape[0], 420:420+crop.shape[1]] = 120
+        self.assertEqual(detector.detect(image, 'enemy', candidates=roster)['groups'], [])
+
 if __name__=='__main__':unittest.main()

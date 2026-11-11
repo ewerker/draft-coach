@@ -1,12 +1,12 @@
 import {displayNames} from './language.mjs';
 const copy={de:{own:'Eigene Aufstellung',enemy:'Gegnerische Aufstellung',upper:'Oberer Spielfeldbereich',lower:'Unterer Spielfeldbereich',
-  unknown:'Keine Figur in diesem Bild sicher erkannt.',stockUnknown:'Bestand noch offen.',image:'Bildtreffer der letzten Aufnahme',ownChoices:'aus Wahlen geschätzt',enemyChoices:'aus Gegnerzügen geschätzt',minimum:'sichtbar mindestens',countUnknown:'Gesamtzahl unbekannt',form:'Ausbau unbekannt',
+  unknown:'Keine Figur in diesem Bild sicher erkannt.',stockUnknown:'Bestand noch offen.',image:'Bildtreffer der letzten Aufnahme',unit:'Figur',moves:'Aus Zügen',visible:'Im Bild',formationImage:'Letztes Aufstellungsbild',remembered:'Bisher sichtbar',minimum:'sichtbar mindestens',countUnknown:'Gesamtzahl unbekannt',form:'Ausbau unbekannt',
   waiting:'Noch keine getrennte Truppenbeobachtung.',stale:'Ältere Beobachtung',candidate:'Kandidat',repeated:'aufeinanderfolgende Bilder',
   warning:'Geeignete Aufstellungsbilder ergänzen die gespeicherte Aufstellung.',combat:'Während des Kampfes können sich beide Seiten im selben Bildbereich befinden.',
   conflict:'Widerspruch zum bekannten Deck',action:'Mehr sichtbar als aus sicher erfassten Hinzufügungen: Verdopplung, Eingriff oder Zählabweichung möglich.',
   labels:'Stufe / Sterne',partial:'Analyse hat ihr Zeitbudget erreicht; Ergebnis unvollständig.',error:'Truppenanalyse pausiert nach einem Fehler; Kartenerkennung läuft weiter.'},
  en:{own:'Your formation',enemy:'Enemy formation',upper:'Upper battlefield area',lower:'Lower battlefield area',
-  unknown:'No unit identified in this image.',stockUnknown:'Formation still unknown.',image:'Sightings in the latest capture',ownChoices:'estimated from choices',enemyChoices:'estimated from enemy moves',minimum:'at least visible',countUnknown:'Total unknown',form:'Evolution unknown',waiting:'No separate army observation yet.',
+  unknown:'No unit identified in this image.',stockUnknown:'Formation still unknown.',image:'Sightings in the latest capture',unit:'Unit',moves:'From moves',visible:'In image',formationImage:'Last formation image',remembered:'Previously visible',minimum:'at least visible',countUnknown:'Total unknown',form:'Evolution unknown',waiting:'No separate army observation yet.',
   stale:'Earlier observation',candidate:'Candidate',repeated:'consecutive frames',warning:'Eligible formation sightings supplement the remembered formation.',
   combat:'During combat, units from either side can occupy the same area.',conflict:'Conflicts with the known deck',
   action:'More visible than safely recorded additions suggest: doubling, manual intervention or a counting error is possible.',labels:'Level / stars',partial:'Analysis reached its time budget; incomplete result.',
@@ -17,16 +17,38 @@ export function renderArmy(root,observation,status,language,stock,now=Date.now()
   root.replaceChildren();
   if(status?.error)root.append(el('p',t.error,'muted'));
   if(stock?.finished)root.append(el('p',(language==='en'?'Last match':'Letzte Partie')+' · #'+stock.matchId.slice(0,8),'muted'));
+  if(stock?.formation){
+    const time=new Date(stock.formation.capturedAt).toLocaleTimeString(language==='en'?'en-GB':'de-DE');
+    root.append(el('p',`${t.formationImage} · #${stock.formation.frameId} · ${time}`,'muted'));
+  }
   if(stock)for(const side of ['enemy','own']){
     const section=el('section','','army-side');
     section.append(el('h4',t[side]));
-    if(!stock[side].length)section.append(el('p',t.stockUnknown,'muted'));
-    for(const row of stock[side]){
-      const source=row.source==='formation'?t.minimum:side==='own'?t.ownChoices:t.enemyChoices;
-      const count=row.source==='formation'?'≥'+row.count:'≈'+row.count;
-      const upgrade=row.upgradeSeen?(language==='en'?' · Upgrade observed':' · Aufwertung erfasst'):'';
-      section.append(el('p',`${displayNames(row.name,language)} · ${count} · ${source}${upgrade}`));
-    }
+    const roster=new Map(stock[side].map(row=>[row.name,row]));
+    const seen=new Map((stock.formation?.[side]??[]).map(row=>[row.name,row.visibleMinimum]));
+    const names=new Set([...roster.keys(),...seen.keys()]);
+    if(names.size){
+      const table=el('table','','army-counts');
+      table.setAttribute('aria-label',t[side]);
+      const header=table.createTHead().insertRow();
+      for(const title of [t.unit,t.moves,t.visible]){
+        const cell=el('th',title);cell.scope='col';header.append(cell);
+      }
+      const rows=table.createTBody();
+      for(const name of names){
+        const remembered=roster.get(name), visible=seen.get(name);
+        const actions=stock.actionCounts?.[side]?.[name];
+        const row=rows.insertRow();
+        const unit=el('th',displayNames(name,language));unit.scope='row';row.append(unit);
+        if(remembered?.source==='formation'&&remembered.count>(visible??0))
+          unit.append(el('small',`${t.remembered} ≥${remembered.count}`,'muted'));
+        if(remembered?.upgradeSeen)
+          unit.append(el('small',language==='en'?'Upgrade observed':'Aufwertung erfasst','muted'));
+        row.insertCell().append(el('span',actions!=null?`≈${actions}`:'—',actions!=null?'army-count army-count-moves':'muted'));
+        row.insertCell().append(el('span',visible!=null?`≥${visible}`:'—',visible!=null?'army-count army-count-image':'muted'));
+      }
+      section.append(table);
+    }else section.append(el('p',t.stockUnknown,'muted'));
     root.append(section);
   }
   if(!observation){root.append(el('p',t.waiting,'muted'));return;}

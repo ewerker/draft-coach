@@ -188,6 +188,16 @@
 .reference-correction-row{display:grid;gap:6px;min-width:0}.reference-correction-row select{width:100%;min-width:0}
 #reference-correction button+button{margin-inline-start:8px}
 .army-side{border-top:1px solid var(--line);padding:8px 0}.army-side h4{margin:8px 0}.army-side p{margin:6px 0}.army-warning{color:#ecad67;font-size:12px}
+.army-counts{width:100%;border-collapse:collapse;font-size:.85rem}
+.army-counts :is(th,td){padding:.4rem .35rem;border-bottom:1px solid var(--line);text-align:center}
+.army-counts th:first-child{text-align:left;overflow-wrap:anywhere}
+.army-counts thead{color:var(--muted)}
+.army-counts th small{display:block;margin-top:.2rem;font-weight:400}
+.army-count{display:inline-block;min-width:2.6em;padding:.15em .35em;border-radius:.35em;font-weight:650;font-variant-numeric:tabular-nums}
+.army-count-moves{color:#c5ddff;background:#263c58}
+.army-count-image{color:#b9edda;background:#1c443d}
+[data-theme=light] .army-count-moves{color:#1d4d83;background:#dceafe}
+[data-theme=light] .army-count-image{color:#145a45;background:#d8f3e7}
 
 .enemy-reference-rows{display:grid;gap:8px;margin:12px 0}.enemy-reference-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.enemy-reference-row select{min-width:180px}.enemy-reference-canvas{display:block;width:min(100%,350px);height:auto;touch-action:none;border:1px solid var(--line);border-radius:8px;margin:12px 0;cursor:crosshair}
 

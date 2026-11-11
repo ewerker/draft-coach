@@ -514,13 +514,17 @@ function armyStockFor(match){
   const evidence=retainedArmyEvidence(match);
   const own=summarizeArmyStock(match.ownReinforcements,evidence?.own);
   const enemy=summarizeArmyStock(match.enemyAdditions,evidence?.enemy);
+  const formation=match.lastObservedFormation;
   for(const row of own)if(match.ownUpgrades?.has(row.name))row.upgradeSeen=true;
   for(const row of enemy){
     const event=match.enemyEvents.get(row.name);
     if(event?.upgradeSeen||['upgrade','multiply_upgrade'].includes(event?.action))row.upgradeSeen=true;
   }
   return {matchId:match.id,device:match.device,mode:match.mode,
-    own,enemy};
+    own,enemy,actionCounts:{own:Object.fromEntries(match.ownReinforcements),enemy:Object.fromEntries(match.enemyAdditions)},
+    formation:formation?{frameId:formation.frameId,capturedAt:formation.capturedAt,
+      own:formation.sides.own.groups.map(({name,visibleMinimum})=>({name,visibleMinimum})),
+      enemy:formation.sides.enemy.groups.map(({name,visibleMinimum})=>({name,visibleMinimum}))}:null};
 }
 function clearMatchDisplay(){
   lastArmyStock=null;

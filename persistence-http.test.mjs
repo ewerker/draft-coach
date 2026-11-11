@@ -73,6 +73,10 @@ for line in sys.stdin:
     const army=await eventually(async()=>{const state=await get('/api/state');return state.armyObservation?.frameId===first?state.armyObservation:null;});
     assert.equal(army.use,'observation_only');assert.equal(army.sides.own.groups[0].visibleMinimum,9);
     assert.equal(army.sides.own.groups[0].visibleMaximum,null);
+    const comparison=(await get('/api/state')).armyStock;
+    assert.equal(comparison.actionCounts.enemy['Agent B'],3);
+    assert.equal(comparison.actionCounts.own.Schnecke,undefined);
+    assert.deepEqual(comparison.formation.own,[{name:'Schnecke',visibleMinimum:9}]);
     await stop();await start();
     const restoredRule=(await get('/api/taktikregeln')).rules.find(r=>r.id===ruleId);assert.equal(restoredRule.condition,'enemy_reinforced');assert.equal(restoredRule.status,'aktiv');assert.equal(restoredRule.weight,-20);assert.ok(restoredRule.texts.en);
     let state=await get('/api/state');assert.equal(state.activeMatchId,null);assert.equal(state.auto,false);assert.equal(state.recoveryMatches.length,1);assert.equal(state.recoveryMatches[0].id,original);

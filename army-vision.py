@@ -11,7 +11,7 @@ from collections import defaultdict
 import cv2
 import numpy as np
 
-VERSION = 'army-prototypes-v2'
+VERSION = 'army-prototypes-v3'
 CANON = {'Verwüster': 'Zerstörer', 'Bientank': 'Bienenkorb'}
 BODY_SCALES = (.62, .74, .86, 1., 1.14, 1.28, 1.42)
 PILOT_SIDE_BUDGET_MS = 500
@@ -52,6 +52,32 @@ def body_patterns(gray):
         if np.std(pattern) >= 8:
             patterns.append(pattern)
     return patterns
+
+
+def enemy_mole_instances(field, left, top):
+    """Count distinct visible caps supported by the outline and brown body below."""
+    hue, saturation, value = cv2.split(cv2.cvtColor(field, cv2.COLOR_BGR2HSV))
+    caps = ((hue <= 4) | (hue >= 178)) & (saturation >= 125) & (saturation <= 150) & (value >= 134)
+    bodies = (hue >= 11) & (hue <= 15) & (saturation >= 95) & (saturation <= 131) & (value >= 69) & (value <= 172)
+    _, _, stats, centers = cv2.connectedComponentsWithStats(caps.astype(np.uint8))
+    instances = []
+    for (x, y, width, height, area), (center, _) in zip(stats[1:], centers[1:]):
+        if not (17 <= width <= 52 and 12 <= height <= 38 and
+                1 <= width / height <= 2.55 and .55 <= area / (width * height) <= .92):
+            continue
+        start, end = int(center - .34 * width), int(center + .34 * width) + 1
+        rim = y + height
+        body = bodies[rim + max(2, round(height * .10)):rim + round(height * .95), start:end]
+        outline = value[rim - 1:rim + max(3, round(height * .27)), start:end]
+        if not body.size or body.mean() < .51 or (outline < 70).mean() < .18:
+            continue
+        # The score is the evidence tier for this combined visual signature.
+        # The box covers only the portion used to verify this instance.
+        instances.append(dict(name='Maulwurf', box=[int(x+left), int(y+top),
+            int(x+width+left), min(top+field.shape[0], int(rim+round(height*.95)+top))],
+            score=.90, stage=None, formConfidence='unknown', appearanceId='mole-red-cap',
+            poolConflict=False, typeConfidence='candidate', countConfidence='lower_bound', source='mole_signature'))
+    return instances
 
 
 class PrototypeDetector:
@@ -149,6 +175,9 @@ class PrototypeDetector:
         # units that may be in the remaining slots.
         roster = {canonical(name) for name in candidates if name}
         pool = roster if len(roster) == 4 else set()
+        moles = []
+        if side == 'enemy' and 'Maulwurf' in pool and phase in ('battle_choice', 'spell_choice') and budget_ms > 0:
+            moles = enemy_mole_instances(image[400:945, 25:1055], 25, 400)
         # Partition proposal time so each method can contribute under load.
         body_deadline = started + .55 * budget_ms / 1000
         bodies, truncated = self.detect_bodies(small, side, top, body_deadline, pool)
@@ -226,6 +255,10 @@ class PrototypeDetector:
             # and the evolution stage need separate evidence.
             body['score'] = round(body['score'], 4)
             instances.append(body)
+        if moles:
+            instances = [row for row in instances if row['name'] != 'Maulwurf' and
+                         not any(overlap(row['box'], mole['box']) > .65 for mole in moles)]
+            instances.extend(moles)
         groups = []
         by_name = defaultdict(list)
         for instance in instances:
