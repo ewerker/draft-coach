@@ -1,5 +1,6 @@
 """Regression: enlarged English Spartheus UP! was rejected as ambiguous."""
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 import numpy as np
 import vision
@@ -34,6 +35,18 @@ class SharedCaptionTests(unittest.TestCase):
         b=vision.read_battle_caption(image,715,{'Spartheus','Schnecke'},None,'en')
         self.assertEqual(a,b)
         self.assertEqual(a['name'],'Spartheus')
+
+    def test_spartheus_double_survives_name_template_overlap(self):
+        image=np.zeros((2340,1080,3),np.uint8)
+        image[1377:1480,376:687]=vision.decode(Path(__file__).with_name('data')/'spartheus-double-en-footer.png')
+        result=vision.read_battle_caption(image,365,None,None,'en')
+        self.assertEqual((result['name'],result['action'],result['quantity']),('Spartheus','multiply',2))
+
+    def test_english_cupid_banner_keeps_the_name_and_number(self):
+        text=vision.decode(Path(__file__).with_name('data')/'cupid-banner-en-plus9.png')[:,:,0]//255
+        with patch.object(vision,'enemy_banner_region',return_value=(text,[0,0,258,58])):
+            result=vision.read_enemy_banner(None,'en')
+        self.assertEqual((result['name'],result['action'],result['quantity']),('Kupid','add',9))
 
 
 if __name__=='__main__':unittest.main()

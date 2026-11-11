@@ -927,7 +927,10 @@ def _read_battle_caption_uncached(img, x, preferred, icon=None, language='de'):
         return result
     prefix=footer[:,max(0,left-100):max(0,left-2)]
     suffix=footer[:,min(footer.shape[1],left+width+3):]
-    for part,operation in [(prefix,'add'),(suffix,'multiply')]:
+    # A wider name template can overlap the first few pixels of the x glyph.
+    # Retry with the whole glyph, keeping the same x and 2 checks.
+    restored_suffix=footer[:,max(0,left+width-8):]
+    for part,operation in [(prefix,'add'),(suffix,'multiply'),(restored_suffix,'multiply')]:
         if part.shape[1]<14:
             continue
         count,labels,stats,_=cv2.connectedComponentsWithStats(part)
@@ -1121,7 +1124,9 @@ banner_names.extend((name,cv2.resize(banner_mask(rows),None,fx=scale,fy=scale,in
                     for rows in patterns for scale in (.94,1,1.06,1.12))
 english_banner_names=[
     (name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST))
-    for name,mask in vision_english.banner_names for scale in (.94,1,1.06,1.12)]
+    for name,mask in [*vision_english.banner_names,
+                      *((name,banner_mask(rows)) for name,rows in banner_samples.get('english_names',{}).items())]
+    for scale in (.94,1,1.06,1.12)]
 spell_button_star=decode(ROOT/'data'/'spells-button.png')
 banner_glyphs={key:normalize(banner_mask(rows)*255,40) for key,rows in banner_samples['glyphs'].items()}
 banner_digits=action_digits+[(int(key),mask) for key,mask in banner_glyphs.items() if key.isdigit()]

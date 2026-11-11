@@ -180,9 +180,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   for(const {name,minimum} of field?.own??[])tracked[name]=Math.max(tracked[name]??0,minimum);
   const developedDrakling=enemy.includes('Drakling')&&(enemyMinimum(result,'Drakling')>=8||
     (result.enemy??[]).some(card=>card.name==='Drakling'&&['upgrade','multiply','multiply_upgrade'].includes(card.action)));
-  const reinforceFront=result.phase==='battle_choice'&&developedDrakling&&Number.isFinite(tracked.Spartheus)&&tracked.Spartheus<6&&
-    (result.offers??[]).some(card=>card.name==='Spartheus'&&allowed.has(card.name)&&card.action!=='unknown');
+  const frontOffer=(result.offers??[]).some(card=>card.name==='Spartheus'&&allowed.has(card.name)&&card.action!=='unknown');
+  const reinforceFront=result.phase==='battle_choice'&&developedDrakling&&Number.isFinite(tracked.Spartheus)&&tracked.Spartheus<6&&frontOffer;
+  const draklings=enemyMinimum(result,'Drakling');
+  const coverSwarm=result.phase==='battle_choice'&&frontOffer&&draklings>=8&&enemy.includes('Merlinor')&&(tracked.Spartheus??0)<draklings&&
+    (tracked['Agent B']??0)>=Math.max(8,2*enemyMinimum(result,'Merlinor'),2*backlineCount);
   const directBacklineOffer=(result.offers??[]).some(card=>['Agent B','Assassine'].includes(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
+  const enemyAssassins=enemyMinimum(result,'Assassine');
   const snipers=enemyMinimum(result,'Sniper');
   const agentShortfall=result.phase==='battle_choice'&&enemy.includes('Sniper')&&snipers>=4?
     Math.max(0,Math.ceil(snipers/2)-(tracked['Agent B']??0)):0;
@@ -263,6 +267,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score-=18;
       why+=' Sniper zurückstellen, solange gegen verstärkte Draklinge nur wenige Spartheus beobachtet wurden und eine Frontverstärkung angeboten wird.';
     }
+    if(coverSwarm&&offer.name==='Spartheus'){
+      score+=14;
+      why+=' Spartheus hält die Front gegen viele Draklinge. Agent B ist für die gegnerische Hinterreihe bereits aufgestellt.';
+    }else if(coverSwarm&&offer.name==='Agent B'&&offer.action==='add'){
+      score-=14;
+      why+=' Zusätzliche Agent B helfen der Front weniger als der angebotene Spartheus.';
+    }
     if(result.phase==='deck_choice'&&enemy.includes('Kupid')&&
        !ownDeck.has('Kupid')&&!ownDeck.has('Sniper')&&['Kupid','Sniper'].includes(offer.name)){
       score+=12;
@@ -293,6 +304,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     if(result.phase==='battle_choice'&&offer.name==='Schnecke'&&enemyAgentDeveloped){
       score-=18;
       why+=' Schnecke zurückstellen: Der Gegner hat Agent B verstärkt; Schutz und Alternativen prüfen.';
+    }
+    if(result.phase==='battle_choice'&&offer.name==='Schnecke'&&enemy.includes('Assassine')){
+      const risk=enemyAssassins>=4?32:enemyAssassins>0?24:12;
+      score-=(tracked.Ingenieur??0)>=2?Math.round(risk/2):risk;
+      why+=enemyAssassins>0
+        ?' Gegnerische Assassinen bedrohen die eigene Schnecke in der Hinterreihe.'
+        :' Der Gegner kann Assassinen einsetzen. Die Schnecke braucht Schutz.';
     }
     if(result.phase==='battle_choice'&&snail&&offer.name==='Agent B'&&
        offer.action==='add'&&(offer.quantity??0)>=2&&(tracked['Agent B']??0)<4){

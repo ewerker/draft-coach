@@ -655,6 +655,24 @@ test('build Agent B early against an observed enemy Snail without overprioritizi
  assert.ok(ownVisible.evaluated[0].score<fromField.evaluated[0].score);
 });
 
+test('confirmed Assassins reduce Snail advice more than a possible enemy deck pick',()=>{
+ const f={phase:'battle_choice',offers:[{name:'Schnecke',action:'add',quantity:1},{name:'Sniper',action:'add',quantity:2}],
+   enemy:[{name:'Assassine'}],ownReinforcements:{Spartheus:12}};
+ const score=result=>recommend(result,'arena',collection,db).evaluated[0].score;
+ const fromDeck=score(f);
+ const fromField=score({...f,armyAdviceEvidence:{enemy:[{name:'Assassine',minimum:4}],own:[]}});
+ assert.equal(fromDeck-fromField,20);
+ assert.equal(score({...f,enemyAdditions:{Assassine:4},ownReinforcements:{Ingenieur:2}})-fromField,16);
+});
+
+test('an established Agent B group can shift reinforcements to Spartheus against Drakling mass',()=>{
+ const f={phase:'battle_choice',enemy:[{name:'Merlinor'},{name:'Spartheus'},{name:'Drakling'}],
+   enemyAdditions:{Merlinor:2,Spartheus:3,Drakling:8},ownReinforcements:{Spartheus:6,'Agent B':10},
+   offers:[{name:'Spartheus',action:'multiply',quantity:2},{name:'Sniper',action:'add',quantity:2},{name:'Agent B',action:'add',quantity:2}]};
+ assert.equal(recommend(f,'arena',collection,db).best.name,'Spartheus');
+ assert.doesNotMatch(recommend({...f,ownReinforcements:{...f.ownReinforcements,Spartheus:12}},'arena',collection,db).evaluated[0].reason,/hält die Front/);
+});
+
 test('developed enemy Agent B reduces Snail reinforcement without assuming an unknown build-up',()=>{
  const frame={phase:'battle_choice',enemy:[{name:'Agent B',action:'upgrade'}],offers:[{name:'Schnecke',action:'add',quantity:1},{name:'Agent B',action:'add',quantity:2},{name:'Sniper',action:'add',quantity:2}]};
  const get=x=>recommend(x,'arena',collection,db).evaluated[0];
