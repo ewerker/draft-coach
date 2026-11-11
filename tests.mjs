@@ -685,6 +685,8 @@ test('editable active rules penalize Sniper and Snail against reinforced Agent B
  const observed=mergeEnemyEvent(null,{name:'Agent B',action:'upgrade'});
  const later=mergeEnemyEvent(observed,{name:'Agent B',action:'add',quantity:2});
  assert.equal(later.action,'add');assert.equal(later.reinforcedSeen,true);assert.equal(enemyReinforced({enemy:[later]},'Agent B'),true);
+ assert.equal(later.upgradeSeen,true);
+ assert.equal(mergeEnemyEvent(null,{name:'Agent B',action:'multiply',quantity:2}).upgradeSeen,undefined);
  assert.equal(enemyReinforced({enemy:[{name:'Agent B',orange:{value:13},blue:{value:10}}]},'Agent B'),false);
  assert.equal(enemyReinforced({enemyAdditions:{'Agent B':3}},'Agent B'),false);
  assert.equal(translate('Gegner verstärkt: Aufwertung, Verdopplung oder mindestens vier hinzugefügt','en'),'Enemy reinforced: upgrade, double, or at least four added');

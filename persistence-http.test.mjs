@@ -44,11 +44,16 @@ test('HTTP lifecycle: capture, stop/restart, explicit resume, one result, backgr
     await writeFile(path.join(dir,'test-device'),"import sys\nfrom pathlib import Path\nif 'exec-out' in sys.argv: sys.stdout.buffer.write(Path('data/opponent-deck-30830.png').read_bytes())\n");
     await writeFile(path.join(dir,'devices'),"print('List of devices attached\\ntest-device device model:Test_Device')\n");
     const worker=`import sys,json
+from pathlib import Path
 print(json.dumps({'ready':True}),flush=True)
 for line in sys.stdin:
  j=json.loads(line); g={'width':1080,'height':2340,'content':[0,0,1080,2340],'referenceWidth':1080,'referenceHeight':2340}
  offers=[{'name':name,'position':i,'action':'add','quantity':2,'box':[40+i*340,1000,300+i*340,1500],'similarity':0.99,'margin':0.3} for i,name in enumerate(['Agent B','Merlinor','Schnecke'])]
- print(json.dumps({'id':j['id'],'geometry':g,'phase':'battle_choice','offers':offers,'enemy':[],'own':[],'visionMs':1}),flush=True)
+ if Path('new-match-empty').exists():
+  result={'phase':'battle','offers':[]}
+ else:
+  result={'phase':'battle_choice','offers':offers,'enemyEvent':{'name':'Agent B','action':'add','quantity':3}}
+ print(json.dumps({'id':j['id'],'geometry':g,'enemy':[],'own':[],'visionMs':1,**result}),flush=True)
 `;
     await writeFile(path.join(dir,'vision.py'),worker);
     // Exercise the real asynchronous server wiring without a model or a phone.
@@ -102,7 +107,13 @@ for line in sys.stdin:
     const restoredForms=await get('/api/admin/forms');assert.equal(restoredForms.forms.find(f=>f.id===form.id).labels.de,'Blaue Schale');
     const restoredBinding=await post('/api/admin/mechanics/frame',{matchId:original,capture:q.capture_id});assert.equal(restoredBinding.formBindings[2].targetFormId,form.id);
     await assert.rejects(post('/api/image-review/answer',{id:q.id,revision:0,answer:verified}),/IMAGE_QUESTION_CHANGED/);
-    await capture();const partial=(await get('/api/state')).activeMatchId;assert.notEqual(partial,original);
+    state=await get('/api/state');assert.equal(state.armyStock.matchId,original);
+    assert.ok(state.armyStock.enemy.some(row=>row.name==='Agent B'&&row.count>=3&&row.source==='choices'));
+    await writeFile(path.join(dir,'new-match-empty'),'');
+    await capture();state=await get('/api/state');const partial=state.activeMatchId;assert.notEqual(partial,original);
+    assert.equal(state.armyStock.matchId,partial);
+    assert.deepEqual(state.armyStock.own,[]);assert.deepEqual(state.armyStock.enemy,[]);
+    assert.equal(state.latestRelevant,null);
     await stop();await start();state=await get('/api/state');assert.equal(state.recoveryMatches[0].id,partial);assert.equal(state.matchStats.draft.won,1);
     await post('/api/matches/recover',{id:partial,action:'unbekannt'});state=await get('/api/state');assert.equal(state.recoveryMatches.length,0);assert.equal(state.matchStats.draft.won,1);assert.equal(state.matchStats.draft.lost,0);
     let lastAudit;const audit=await eventually(async()=>{const v=await get('/api/admin/replay-checks');lastAudit=v;return v.reports.find(r=>r.data.matchId===original)?.data;},400).catch(error=>{throw Error(error.message+JSON.stringify({waiting:lastAudit?.waiting,reports:lastAudit?.reports.map(r=>r.match_id),error:lastAudit?.error}));});

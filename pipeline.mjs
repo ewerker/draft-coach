@@ -29,7 +29,9 @@ export function nextLossStreak(count,outcome) {
 export function mergeEnemyEvent(card,event) {
   const {box,position,...facts}=event;
   const reinforced=facts.reinforcedSeen===true||card?.name===event.name&&card.reinforcedSeen===true||['upgrade','multiply','multiply_upgrade'].includes(event.action);
-  return {...(card||{}),...facts,...(reinforced?{reinforcedSeen:true}:{})};
+  const upgraded=facts.upgradeSeen===true||['upgrade','multiply_upgrade'].includes(event.action)||
+    card?.name===event.name&&(card.upgradeSeen===true||['upgrade','multiply_upgrade'].includes(card.action));
+  return {...(card||{}),...facts,...(reinforced?{reinforcedSeen:true}:{}),...(upgraded?{upgradeSeen:true}:{})};
 }
 export function preferEnemyDeckCard(previous,candidate) {
   if(!candidate?.name)return false;

@@ -511,9 +511,22 @@ function retainedArmyEvidence(match){
 }
 function armyStockFor(match){
   const evidence=retainedArmyEvidence(match);
+  const own=summarizeArmyStock(match.ownReinforcements,evidence?.own);
+  const enemy=summarizeArmyStock(match.enemyAdditions,evidence?.enemy);
+  for(const row of own)if(match.ownUpgrades?.has(row.name))row.upgradeSeen=true;
+  for(const row of enemy){
+    const event=match.enemyEvents.get(row.name);
+    if(event?.upgradeSeen||['upgrade','multiply_upgrade'].includes(event?.action))row.upgradeSeen=true;
+  }
   return {matchId:match.id,device:match.device,mode:match.mode,
-    own:summarizeArmyStock(match.ownReinforcements,evidence?.own),
-    enemy:summarizeArmyStock(match.enemyAdditions,evidence?.enemy)};
+    own,enemy};
+}
+function clearMatchDisplay(){
+  lastArmyStock=null;
+  lastArmyObservation=null;
+  latestRelevant=null;
+  recentChoiceFrames.length=0;
+  if(state.current?.matchId)state.current=null;
 }
 function newDraftObservation(){
   return {seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
@@ -724,9 +737,10 @@ function record(job,result) {
   if(job.matchId&&job.matchId===match?.id&&job.target===device&&match.pendingReinforcement){
     const next=choiceSignature(result,true);
     if(result.phase==='battle'||(next&&result.offers.every(offer=>offer.name&&offer.action!=='unknown')&&next!==match.pendingReinforcement.choice)){
+      const {offer,formEffect}=match.pendingReinforcement;
       match.ownChoiceForms??=new Map();
-      observeChosenReinforcement(match.ownReinforcements,match.pendingReinforcement.offer,
-        match.pendingReinforcement.formEffect,match.ownChoiceForms);
+      observeChosenReinforcement(match.ownReinforcements,offer,formEffect,match.ownChoiceForms);
+      if(['upgrade','multiply_upgrade'].includes(offer.action))(match.ownUpgrades??=new Set()).add(offer.name);
       match.pendingReinforcement=null;
     }
   }
@@ -1104,6 +1118,7 @@ async function capture({probe = false, scheduled = false, interruptible = schedu
   const id=++serial,started=Date.now(),target=device,mode=state.mode,gameLanguage=state.gameLanguage,armedGeneration=tapGeneration;
   let match, captureDone;
   if(!probe&&!preparationKind&&!continuation){
+    if(!activeMatch)clearMatchDisplay();
     activeMatch??={id:randomBytes(12).toString('hex'),mode,started,captureIds:[],enemyDeck:new Map(),enemyEvents:new Map(),enemyAdditions:new Map(),enemyAdditionTimes:new Map(),heartTimeline:[],
       draftObservation:mode==='draft'?newDraftObservation():null,ownCardValues:new Map(),cardValueChanges:[],reviewFrames:[],ownDeckPicks:new Set(),ownReinforcements:new Map(),ownVariantUncertain:new Set(),pendingReinforcement:null,variantEvidence:[],pendingVariantEvidence:null,
       device:target,language:gameLanguage,versions:{...runVersionSet},lineup:{units:[...collection.units.active_lineup],spells:[...collection.spells.active_loadout]}};
@@ -1568,6 +1583,7 @@ async function handleRequest(req,res){
         if(data.action==='resume'){
           if(!device)throw Error('Bitte zuerst das Spielgerät verbinden.');
           const match=row.match;delete match.ended;match.persisted=true;match.device=device;
+          clearMatchDisplay();
           activeMatch=match;stoppedMatch=null;state.mode=match.mode;state.gameLanguage=match.language??state.gameLanguage;
           if(state.mode==='auto')autoMode=true;
           await checkpointNow(match);return json(res,200,{ok:true});

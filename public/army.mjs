@@ -24,7 +24,8 @@ export function renderArmy(root,observation,status,language,stock,now=Date.now()
     for(const row of stock[side]){
       const source=row.source==='formation'?t.minimum:side==='own'?t.ownChoices:t.enemyChoices;
       const count=row.source==='formation'?'≥'+row.count:'≈'+row.count;
-      section.append(el('p',`${displayNames(row.name,language)} · ${count} · ${source}`));
+      const upgrade=row.upgradeSeen?(language==='en'?' · Upgrade observed':' · Aufwertung erfasst'):'';
+      section.append(el('p',`${displayNames(row.name,language)} · ${count} · ${source}${upgrade}`));
     }
     root.append(section);
   }

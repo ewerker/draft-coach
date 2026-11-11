@@ -154,7 +154,15 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const field=result.phase==='battle_choice'?result.armyAdviceEvidence:null;
   const visibleEnemy=new Set((field?.enemy??[]).map(row=>row.name));
   const enemy=[...new Set([...(result.enemy??[]).map(c=>c.name).filter(Boolean),...visibleEnemy])];
-  const backlineThreat=enemy.find(name=>['Schnecke','Kupid','Sniper'].includes(name));
+  const enemyWeights=new Map(enemy.map(name=>{
+    const count=result.phase==='battle_choice'?enemyMinimum(result,name):0;
+    const weight=1+(visibleEnemy.has(name)?1.5:.75)*Math.min(3,Math.log2(1+count));
+    return [name,weight];
+  }));
+  const threats=[...enemy].sort((a,b)=>enemyWeights.get(b)-enemyWeights.get(a));
+  const backlineThreat=threats.find(name=>['Schnecke','Kupid','Sniper'].includes(name));
+  const backlineCount=backlineThreat?enemyMinimum(result,backlineThreat):0;
+  const backlineTarget=Math.max(6,Math.min(10,Math.ceil(backlineCount/2)));
   const strengths=new Map([...collection.units.units,...collection.spells.spells].map(c=>[c.name,c.bottom_badge]));
   const warnings=[];
   const ownDeck=new Set([...(result.ownDeckPicks??[]),...(result.own??[]).map(card=>card.name)]);
@@ -163,7 +171,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     (result.own??[]).filter(card=>card.name).length===3&&!hasRanged&&
     result.offers.length===3&&result.offers.every(card=>card.name&&!card.poolHint&&!deckRanged.has(card.name));
   const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));
-  const rearThreat=['Bienenkorb','Schnecke'].find(name=>enemy.includes(name)&&
+  const rearThreat=threats.find(name=>['Bienenkorb','Schnecke'].includes(name)&&
     (enemyMinimum(result,name)>=2||(result.enemy??[]).some(card=>card.name===name&&card.action==='add'&&card.quantity>=2)));
   const snail=enemy.includes('Schnecke');
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
@@ -210,11 +218,12 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     if(enemy.length&&!ruleOnly) {
       const scores=enemy.flatMap(e=>{
         const match=buildDatabaseAdvice({enemyItems:[e],userCards:cards,dbEntries:db,unitScope:'selection',spellScope:'selection'}).reactionRanking.find(r=>r.name===offer.name);
-        return match?[{...match,weight:visibleEnemy.has(e)?1.5:1}]:[];
+        return match?[{...match,weight:enemyWeights.get(e)}]:[];
       });
       if(scores.length){
-        score=.75*scores.reduce((s,c)=>s+c.weight*c.score,0)/scores.reduce((s,c)=>s+c.weight,0)+.25*Math.min(...scores.map(c=>c.score));
-        why=scores.sort((a,b)=>b.score-a.score)[0].reason;
+        const averageWeight=scores.some(c=>c.weight>1) ? .85 : .75;
+        score=averageWeight*scores.reduce((s,c)=>s+c.weight*c.score,0)/scores.reduce((s,c)=>s+c.weight,0)+(1-averageWeight)*Math.min(...scores.map(c=>c.score));
+        why=scores.sort((a,b)=>b.weight-a.weight||b.score-a.score)[0].reason;
       }else if(applied.length){
         ruleOnly=true;
       }else if(result.phase!=='battle_choice'&&!spellChoice)return {index,name:offer.name,score:null,reason:'Keine passende Bewertung vorhanden'};
@@ -238,9 +247,10 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     }
     if(backlineThreat&&['deck_choice','battle_choice'].includes(result.phase)&&['Agent B','Assassine'].includes(offer.name)){
       const existing=(tracked['Agent B']??0)+(tracked.Assassine??0);
-      const bonus=result.phase==='deck_choice'?24:existing>=6?8:24;
+      const covered=existing>=backlineTarget;
+      const bonus=result.phase==='deck_choice'||!covered?24:8;
       score+=bonus;
-      why+=` Direkter Angriff auf die gegnerische Hinterreihe (${backlineThreat}) wird bevorzugt${existing>=6?'; vorhandene Angreifer berücksichtigt':''}.`;
+      why+=` Direkter Angriff auf die gegnerische Hinterreihe (${backlineThreat}) wird bevorzugt${covered?'; vorhandene Angreifer berücksichtigt':''}.`;
     }
     if(backlineThreat&&result.phase==='battle_choice'&&!directBacklineOffer&&offer.name==='Sniper'&&(tracked.Sniper??0)<4){
       score+=14;
