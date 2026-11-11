@@ -206,6 +206,9 @@ test('a confirmed source group makes upgrading more valuable; tracked totals alo
   observeChosenReinforcement(counts,{name:'Parasit',action:'add',quantity:4});
   observeChosenReinforcement(counts,{name:'Parasit',action:'multiply',quantity:2});
   assert.equal(counts.get('Parasit'),4,'an unidentified multiplied form cannot double the whole addition ledger');
+  const verifiedCounts=new Map(counts);
+  observeChosenReinforcement(verifiedCounts,{name:'Parasit',action:'multiply',quantity:2},{known:true,addedCount:2});
+  assert.equal(verifiedCounts.get('Parasit'),6);
   const offers=[{name:'Parasit',action:'upgrade'},{name:'TNT',action:'add',quantity:2}];
   const enemy=[{name:'Drakling'},{name:'TNT'}];
   const rules=[{offer:'TNT',enemy:'Drakling',phase:'battle_choice',mode:'beide',weight:5,status:'aktiv'}];
@@ -628,6 +631,12 @@ test('build Agent B early against an observed enemy Snail without overprioritizi
  const later=recommend({...frame,ownReinforcements:{...frame.ownReinforcements,'Agent B':4}},'arena',collection,db);
  assert.ok(early.evaluated[0].score>later.evaluated[0].score);
  const noSnail=recommend({...frame,enemy:[{name:'Ritter'}]},'arena',collection,db);assert.ok(early.evaluated[0].score>noSnail.evaluated[0].score);
+ const observed={...frame,enemy:[{name:'Ritter'}],armyAdviceEvidence:{enemy:[{name:'Schnecke',minimum:2}],own:[]}};
+ const fromField=recommend(observed,'arena',collection,db);
+ assert.equal(fromField.best.name,'Agent B');
+ assert.ok(fromField.evaluated[0].score>noSnail.evaluated[0].score);
+ const ownVisible=recommend({...observed,armyAdviceEvidence:{...observed.armyAdviceEvidence,own:[{name:'Agent B',minimum:4}]}},'arena',collection,db);
+ assert.ok(ownVisible.evaluated[0].score<fromField.evaluated[0].score);
 });
 
 test('developed enemy Agent B reduces Snail reinforcement without assuming an unknown build-up',()=>{
@@ -637,6 +646,10 @@ test('developed enemy Agent B reduces Snail reinforcement without assuming an un
  assert.equal(basic.score-developed.score,18);
  assert.match(developed.reason,/Schnecke zurückstellen/);
  assert.equal(get({...frame,enemy:[{name:'Agent B',action:'add'}],enemyAdditions:{'Agent B':4}}).score,developed.score);
+ const enemy=[{name:'Agent B',action:'add'}];
+ const field={own:[],enemy:[{name:'Agent B',minimum:4}]};
+ assert.equal(get({...frame,enemy,armyAdviceEvidence:field}).score,developed.score);
+ assert.equal(get({...frame,enemy,enemyAdditions:{'Agent B':2},armyAdviceEvidence:{...field,enemy:[{name:'Agent B',minimum:2}]}}).score,basic.score);
 });
 
 test('editable active rules penalize Sniper and Snail against reinforced Agent B in both modes',()=>{

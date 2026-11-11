@@ -78,12 +78,13 @@ export function sameReinforcementVariant(before,after){
   if(!a||!b||a.length!==432||b.length!==a.length)return false;
   return a.reduce((sum,value,index)=>sum+Math.abs(value-b[index]),0)/a.length<=.65;
 }
-export function observeChosenReinforcement(counts, offer){
+export function observeChosenReinforcement(counts, offer, formEffect){
   if(!offer?.name||!Number.isInteger(offer.quantity)||offer.quantity<1)return;
   const previous=counts.get(offer.name)??0;
   if(offer.action==='add')counts.set(offer.name,previous+offer.quantity);
-  // A sent multiplier does not identify its source form. Keep the addition
-  // ledger as a lower bound; only the form model calculates an expected effect.
+  if(['multiply','multiply_upgrade'].includes(offer.action)&&formEffect?.known&&
+     Number.isSafeInteger(formEffect.addedCount)&&formEffect.addedCount>0)
+    counts.set(offer.name,previous+formEffect.addedCount);
 }
 
 const deckRanged=new Set(['Merlinor','Kupid','Sniper']);
@@ -122,8 +123,12 @@ export function suggestLineup(collection){
 }
 
 export function enemyReinforced(result,name){
-  return !!name&&((result.enemyAdditions?.[name]??0)>=4||(result.enemy??[]).some(card=>card.name===name&&
+  return !!name&&(enemyMinimum(result,name)>=4||(result.enemy??[]).some(card=>card.name===name&&
     (card.reinforcedSeen===true||['upgrade','multiply','multiply_upgrade'].includes(card.action))));
+}
+
+function enemyMinimum(result,name){
+  return Math.max(result.enemyAdditions?.[name]??0,result.armyAdviceEvidence?.enemy?.find(row=>row.name===name)?.minimum??0);
 }
 
 export function recommend(result, mode, collection, db, extended=false, rules=[], includeTests=false) {
@@ -133,7 +138,9 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     const owned=new Set(collection.units.units.map(card=>card.name));
     for(const name of result.observedDraftUnits??[])if(owned.has(name))allowed.add(name);
   }
-  const enemy=(result.enemy||[]).filter(c=>c.name).map(c=>c.name);
+  const field=result.phase==='battle_choice'?result.armyAdviceEvidence:null;
+  const visibleEnemy=new Set((field?.enemy??[]).map(row=>row.name));
+  const enemy=[...new Set([...(result.enemy??[]).map(c=>c.name).filter(Boolean),...visibleEnemy])];
   const backlineThreat=enemy.find(name=>['Schnecke','Kupid','Sniper'].includes(name));
   const strengths=new Map([...collection.units.units,...collection.spells.spells].map(c=>[c.name,c.bottom_badge]));
   const warnings=[];
@@ -144,17 +151,18 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     result.offers.length===3&&result.offers.every(card=>card.name&&!card.poolHint&&!deckRanged.has(card.name));
   const hasBacklineAccess=[...ownDeck].some(name=>deckBacklineAccess.has(name));
   const rearThreat=['Bienenkorb','Schnecke'].find(name=>enemy.includes(name)&&
-    (result.enemyAdditions?.[name]>=2||(result.enemy??[]).some(card=>card.name===name&&card.action==='add'&&card.quantity>=2)));
+    (enemyMinimum(result,name)>=2||(result.enemy??[]).some(card=>card.name===name&&card.action==='add'&&card.quantity>=2)));
   const snail=enemy.includes('Schnecke');
   const rangedOffer=(result.offers??[]).some(card=>deckRanged.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const captainOffer=(result.offers??[]).some(card=>card.name==='Kapitän'&&allowed.has(card.name)&&card.action!=='unknown');
-  const tracked=result.ownReinforcements??{};
-  const developedDrakling=enemy.includes('Drakling')&&((result.enemyAdditions?.Drakling??0)>=8||
+  const tracked={...result.ownReinforcements};
+  for(const {name,minimum} of field?.own??[])tracked[name]=Math.max(tracked[name]??0,minimum);
+  const developedDrakling=enemy.includes('Drakling')&&(enemyMinimum(result,'Drakling')>=8||
     (result.enemy??[]).some(card=>card.name==='Drakling'&&['upgrade','multiply','multiply_upgrade'].includes(card.action)));
   const reinforceFront=result.phase==='battle_choice'&&developedDrakling&&Number.isFinite(tracked.Spartheus)&&tracked.Spartheus<6&&
     (result.offers??[]).some(card=>card.name==='Spartheus'&&allowed.has(card.name)&&card.action!=='unknown');
   const directBacklineOffer=(result.offers??[]).some(card=>['Agent B','Assassine'].includes(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
-  const snipers=result.enemyAdditions?.Sniper??0;
+  const snipers=enemyMinimum(result,'Sniper');
   const agentShortfall=result.phase==='battle_choice'&&enemy.includes('Sniper')&&snipers>=4?
     Math.max(0,Math.ceil(snipers/2)-(tracked['Agent B']??0)):0;
   const underBoomlingFire=result.phase==='battle_choice'&&enemy.includes('Boomling')&&(tracked.Parasit??0)>=4;
@@ -187,9 +195,12 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     const cards=CARDS.map(c=>({...c,strength:strengths.get(c.name)??c.strength,inSelection:c.name===offer.name,inDeck:c.name===offer.name}));
     let score,why;
     if(enemy.length&&!ruleOnly) {
-      const scores=enemy.map(e=>buildDatabaseAdvice({enemyItems:[e],userCards:cards,dbEntries:db,unitScope:'selection',spellScope:'selection'}).reactionRanking.find(r=>r.name===offer.name)).filter(Boolean);
+      const scores=enemy.flatMap(e=>{
+        const match=buildDatabaseAdvice({enemyItems:[e],userCards:cards,dbEntries:db,unitScope:'selection',spellScope:'selection'}).reactionRanking.find(r=>r.name===offer.name);
+        return match?[{...match,weight:visibleEnemy.has(e)?1.5:1}]:[];
+      });
       if(scores.length){
-        score=.75*scores.reduce((s,c)=>s+c.score,0)/scores.length+.25*Math.min(...scores.map(c=>c.score));
+        score=.75*scores.reduce((s,c)=>s+c.weight*c.score,0)/scores.reduce((s,c)=>s+c.weight,0)+.25*Math.min(...scores.map(c=>c.score));
         why=scores.sort((a,b)=>b.score-a.score)[0].reason;
       }else if(applied.length){
         ruleOnly=true;
@@ -244,7 +255,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=18;
       why+=' Agent B ergänzt vorhandene Draklinge um frühen Zugriff auf die Hinterreihe; Bestand nur aus beobachteten Wahlen.';
     }
-    if(result.phase==='battle_choice'&&enemy.includes('Kupid')&&(result.enemyAdditions?.Kupid??0)>=6&&
+    if(result.phase==='battle_choice'&&enemy.includes('Kupid')&&enemyMinimum(result,'Kupid')>=6&&
        ['Schildling','Agent B','Assassine'].includes(offer.name)){
       score+=16;
       why+=' Gegen mindestens sechs beobachtete Kupid wird der Zugriff auf die Hinterreihe höher gewichtet.';
@@ -254,7 +265,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
       score+=18;
       why+=' Viele Assassinen sind bereits beobachtet; Sniper ergänzt Fernkampf gegen Boomlinge.';
     }
-    const enemyAgentDeveloped=(result.enemyAdditions?.['Agent B']??0)>=4||
+    const enemyAgentDeveloped=enemyMinimum(result,'Agent B')>=4||
       (result.enemy??[]).some(card=>card.name==='Agent B'&&['upgrade','multiply','multiply_upgrade'].includes(card.action));
     if(result.phase==='battle_choice'&&offer.name==='Schnecke'&&enemyAgentDeveloped){
       score-=18;

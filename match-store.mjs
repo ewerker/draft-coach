@@ -46,9 +46,9 @@ export function restoreMatch(text){
   return match;
 }
 export function plainGame(match,outcome=match.outcome??'unbekannt',ended=match.ended??Date.now()){
-  const {id,mode,started,captureIds=[],heartTimeline=[],lineup,learnedLineup,cardValueChanges=[],reviewFrames=[],variantEvidence=[],resultCapture,versions,device,language,armyObservations=[],lastObservedFormation,lastCombatPositions}=match;
+  const {id,mode,started,captureIds=[],heartTimeline=[],lineup,learnedLineup,cardValueChanges=[],reviewFrames=[],variantEvidence=[],resultCapture,versions,device,language,armyObservations=[],lastObservedFormation,lastCombatPositions,armyAdviceMemory}=match;
   return {id,mode,started,ended,captureIds,heartTimeline,lineup,learnedLineup,cardValueChanges,reviewFrames,variantEvidence,resultCapture,
-    outcome,language:language??reviewFrames.at(-1)?.language??'de',versions,device,armyObservations,lastObservedFormation,lastCombatPositions};
+    outcome,language:language??reviewFrames.at(-1)?.language??'de',versions,device,armyObservations,lastObservedFormation,lastCombatPositions,armyAdviceMemory};
 }
 export function createMatchStore(withDatabase,{now=Date.now}={}){
   function transaction(db,fn){db.exec('BEGIN IMMEDIATE');try{const value=fn();db.exec('COMMIT');return value;}catch(error){db.exec('ROLLBACK');throw error;}}

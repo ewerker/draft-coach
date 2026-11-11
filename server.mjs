@@ -17,7 +17,7 @@ import {buildFieldEvaluation,fieldReadiness} from './field-learning.mjs';
 import {selectImageQuestions} from './image-review.mjs';
 import {calculateFormEffect} from './form-mechanics.mjs';
 import {replayAudit,replayFingerprint} from './replay-checks.mjs';
-import {acceptArmyObservation,updateArmyHistory,armyPilotGate} from './army-state.mjs';
+import {acceptArmyObservation,updateArmyHistory,armyPilotGate,rememberArmyAdvice} from './army-state.mjs';
 import {createArmyService} from './army-service.mjs';
 import {allowedNames,ambiguousReinforcementNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,suggestLineup} from './advice.mjs';
 import {CARDS} from './data/coach-engine.mjs';
@@ -314,7 +314,7 @@ function fieldLearningStatus(){
   const fresh=fieldLearning?.fingerprint===plan.fingerprint;
   const metrics=fresh?fieldLearning.metrics:null;
   return {inventory:plan.inventory,pending:!fresh,running:fieldLearningRunning,error:fieldLearningError,
-    evaluatedAt:fresh?fieldLearning.at:null,metrics,
+    evaluatedAt:fresh?fieldLearning.at:null,metrics,liveEvidence:true,
     readiness:{own:fieldReadiness(metrics?.own),enemy:fieldReadiness(metrics?.enemy)},eligibleCases:plan.cases.length,
     pilot:fresh?fieldLearning.pilot??null:null,
     pilotGate:{own:armyPilotGate(fresh?fieldLearning?.pilot?.results?.prototype?.own:null),enemy:armyPilotGate(fresh?fieldLearning?.pilot?.results?.prototype?.enemy:null)}};
@@ -351,6 +351,13 @@ const armyService=createArmyService({python:PYTHON,root:ROOT,onResult:packet=>{
     {matchId:match.id,device,frameId:state.latestId,values,expectedOwn:Object.fromEntries(match.ownReinforcements)});
   if(!observation)return;
   lastArmyObservation=observation;updateArmyHistory(match,observation);
+  const draftUnits=match.mode==='draft'?[...collection.units.active_lineup,...(match.draftObservation?.seen??[])]:[];
+  match.armyAdviceMemory=rememberArmyAdvice(match.armyAdviceMemory,observation,{
+    now:observation.receivedAt,matchId:match.id,device,frameId:state.latestId,
+    knownEnemy:new Set([...match.enemyDeck.values()].map(row=>row.name).concat([...match.enemyEvents.keys()])),
+    knownOwn:new Set([...match.ownDeckPicks,...match.ownReinforcements.keys(),...draftUnits]),
+    unitNames:new Set(fieldUnitNames()),completeEnemyDeck:match.mode==='arena'&&match.enemyDeck.size>=4
+  });
   const frame=match.reviewFrames.find(frame=>frame.id===packet.frameId);
   if(frame)frame.armyObservation=match.armyObservations.at(-1);
   scheduleCheckpoint(match);
@@ -490,7 +497,13 @@ function withObservedEnemies(result,job){
   for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,mergeEnemyEvent(enemy.get(name),event));
   if(result.enemyEvent)enemy.set(result.enemyEvent.name,mergeEnemyEvent(enemy.get(result.enemyEvent.name),result.enemyEvent));
   const observedDraftUnits=activeMatch.draftObservation?[...activeMatch.draftObservation.seen]:[];
-  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],ownVariantUncertain:[...activeMatch.ownVariantUncertain],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements)};
+  const memory=activeMatch.armyAdviceMemory;
+  const completeDeck=job.mode==='arena'&&activeMatch.enemyDeck.size>=4;
+  const armyEvidence=result.phase==='battle_choice'&&memory?.matchId===activeMatch.id&&memory.device===device
+    ?{own:memory.own,enemy:memory.enemy.filter(row=>!completeDeck||enemy.has(row.name))}:null;
+  return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],
+    ownVariantUncertain:[...activeMatch.ownVariantUncertain],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),
+    ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements),armyAdviceEvidence:armyEvidence};
 }
 function newDraftObservation(){
   return {seen:new Set(),windows:new Set(),counts:new Map(),confirmed:false};
@@ -701,7 +714,7 @@ function record(job,result) {
   if(job.matchId&&job.matchId===match?.id&&job.target===device&&match.pendingReinforcement){
     const next=choiceSignature(result,true);
     if(result.phase==='battle'||(next&&result.offers.every(offer=>offer.name&&offer.action!=='unknown')&&next!==match.pendingReinforcement.choice)){
-      observeChosenReinforcement(match.ownReinforcements,match.pendingReinforcement.offer);
+      observeChosenReinforcement(match.ownReinforcements,match.pendingReinforcement.offer,match.pendingReinforcement.formEffect);
       match.pendingReinforcement=null;
     }
   }
@@ -875,7 +888,7 @@ async function tapRecommendation(job,item,choice,selection=null){
     lastTappedChoice=choice;
     if(job.matchId&&activeMatch?.id===job.matchId&&job.target===device){
       if(item.phase==='battle_choice'){
-        activeMatch.pendingReinforcement={choice,offer:{...offer,variantUncertain:activeMatch.ownVariantUncertain.has(offer.name)}};
+        activeMatch.pendingReinforcement={choice,offer,formEffect:item.advice?.evaluated?.[best.index]?.formEffect};
         followVariantChoice(activeMatch,job.id,offer,item.hearts,Date.now(),choiceSignature(item));
       }
       if(chooseSpell)activeMatch.spellChosen=true;
@@ -1296,7 +1309,7 @@ async function tapImage({id,u,v}){
         lastTappedChoice=choice;
         if(result.matchId&&activeMatch?.id===result.matchId){
           if(result.phase==='battle_choice'){
-            activeMatch.pendingReinforcement={choice,offer:{...card,variantUncertain:activeMatch.ownVariantUncertain.has(card.name)}};
+            activeMatch.pendingReinforcement={choice,offer:card,formEffect:result.advice?.evaluated?.[index]?.formEffect};
             followVariantChoice(activeMatch,id,card,result.hearts,Date.now(),choiceSignature(result));
           }
           if(result.phase==='deck_choice'&&card.name)activeMatch.ownDeckPicks.add(card.name);

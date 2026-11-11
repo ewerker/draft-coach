@@ -64,6 +64,32 @@ export function updateArmyHistory(match,observation){
   // Never replace built forces or ownReinforcements using survivors or lower bounds.
 }
 
+export function rememberArmyAdvice(previous,observation,{now,matchId,device,frameId,knownEnemy,knownOwn,unitNames,completeEnemyDeck}){
+  const memory=previous?.matchId===matchId&&previous?.device===device?previous:null;
+  if(!observation||observation.matchId!==matchId||observation.device!==device||
+     observation.context!=='formation'||observation.ownership!=='spatial_formation'||
+     observation.frameId>frameId||observation.frameId<=(memory?.lastCapture??0)||
+     !Number.isFinite(observation.capturedAt)||observation.capturedAt>now||now-observation.capturedAt>armyFreshMs)return memory;
+  const next={matchId,device,lastCapture:observation.frameId,own:[],enemy:[]};
+  for(const side of ['own','enemy']){
+    const seen=new Map((memory?.[side]??[]).map(row=>[row.name,row]));
+    const field=observation.sides?.[side];
+    for(const group of field?.groups??[]){
+      const name=canonical(group.name);
+      if(!unitNames.has(name)||!(group.similarity>=.90))continue;
+      const known=(side==='own'?knownOwn:knownEnemy).has(name);
+      const good=(field.instances??[]).filter(instance=>instance.name===name&&instance.score>=.90&&!instance.poolConflict);
+      if(!known&&(side==='own'||completeEnemyDeck||group.similarity<.94||
+         !(group.observedConsecutively>=2||good.length>=2)))continue;
+      if(known&&group.poolConflict&&!(group.observedConsecutively>=2))continue;
+      const minimum=Math.max(1,Math.min(group.visibleMinimum,good.length));
+      if(minimum>(seen.get(name)?.minimum??0))seen.set(name,{name,minimum,capture:observation.frameId});
+    }
+    next[side]=[...seen.values()];
+  }
+  return next;
+}
+
 export function armyPilotGate(metrics){
   const reasons=[];
   if(!metrics||metrics.images<30||metrics.matches<5)reasons.push('independent_coverage');

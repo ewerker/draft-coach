@@ -1610,7 +1610,7 @@ function renderFieldReferenceCorrection(item,references,side){
   }finally{save.disabled=false;}});
   check.onclick=()=>action(()=>post('/api/reference',{file:item.referenceId}));
   panel.append(rows,status,canvas,completeLabel,completeHelp,save,check);
-  panel.append(textEl('p',language==='en'?'Visual matches are experimental and do not yet change tactical recommendations or count units.':'Die Bilderkennung ist experimentell und verändert noch keine taktischen Empfehlungen oder Truppenzahlen.','muted'));
+  panel.append(textEl('p',language==='en'?'Reliable field sightings can supplement battle advice. Visible counts are minimums.':'Verlässliche Bildtreffer können Kampftipps ergänzen. Sichtbare Anzahlen sind Mindestwerte.','muted'));
 }
 let learningStatusAt=0,learningStatusLoading=false;
 async function refreshFieldLearning(force=false){
@@ -1650,7 +1650,9 @@ async function refreshFieldLearning(force=false){
       box.append(details);
     }
     box.append(textEl('p',data.error?(en?'Evaluation error: ':'Fehler bei der Prüfung: ')+data.error:data.running?(en?'Evaluation is running.':'Prüfung läuft.'):data.pending?(en?'Evaluation is pending; it runs after play stops when sufficient data is available.':'Prüfung ausstehend; sie läuft nach dem Spiel, sobald ausreichend Daten vorliegen.'):(en?'Evaluation is up to date.':'Prüfung ist aktuell.'),'muted'));
-    box.append(textEl('p',en?'Recognition is observational only; it does not change recommendations or automatic taps. Count and upgrade require separate validation.':'Die Erkennung dient der Beobachtung und verändert weder Tipps noch automatische Klicks. Anzahl und Ausbau benötigen eine eigene Prüfung.','muted'));
+    box.append(textEl('p',data.liveEvidence
+      ?(en?'Battle advice remembers eligible formation sightings throughout the match. Recorded choices provide an estimate for your units.':'Kampftipps berücksichtigen geeignete Aufstellungsbefunde über die ganze Partie. Das Wahlprotokoll liefert eine Schätzung für die eigenen Truppen.')
+      :(en?'Field recognition is observational.':'Die Felderkennung dient der Beobachtung.'),'muted'));
   }catch{ $('field-learning-status').textContent=language==='en'?'Learning status unavailable.':'Lernstand derzeit nicht verfügbar.'; }
   finally{learningStatusLoading=false;}
 }
@@ -1772,6 +1774,15 @@ function renderOffers(result){
     const rows=result[key]??[];
     if(rows.length)$('board').append(textEl('p',(language==='en'?en:de)+' · '+rows.map(row=>displayNames(row.name,language)+' ('+row.visualMatches+')').join(', ')+(language==='en'?' · experimental, not a verified unit count':' · experimentell, keine sichere Truppenzahl'),'muted'));
   }
+  const field=result.armyAdviceEvidence;
+  const ownEstimate=new Map(Object.entries(result.ownReinforcements??{}));
+  for(const {name,minimum} of field?.own??[])ownEstimate.set(name,Math.max(ownEstimate.get(name)??0,minimum));
+  if(field?.enemy.length)$('board').append(textEl('p',
+    (language==='en'?'Enemy sightings used':'Gegner im Tipp berücksichtigt')+' · '+field.enemy.map(({name,minimum})=>displayNames(name,language)+' (≥'+minimum+')').join(', '),'muted'));
+  if(ownEstimate.size)$('board').append(textEl('p',
+    (language==='en'?(field?.own.length?'Own estimate from choices and sightings':'Own estimate from choices'):
+      (field?.own.length?'Eigene Truppen · aus Wahlen und Bildtreffern':'Eigene Truppen · aus Wahlen geschätzt'))+
+    ' · '+[...ownEstimate].map(([name,count])=>displayNames(name,language)+' ('+count+')').join(', '),'muted'));
   $('notes').replaceChildren();for(const note of result.notes||[])$('notes').append(textEl('p',note));
 }
 function offerAction(phase,card){
