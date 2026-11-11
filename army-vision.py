@@ -11,7 +11,7 @@ from collections import defaultdict
 import cv2
 import numpy as np
 
-VERSION = 'army-prototypes-v4'
+VERSION = 'army-prototypes-v5'
 CANON = {'Verwüster': 'Zerstörer', 'Bientank': 'Bienenkorb'}
 BODY_SCALES = (.62, .74, .86, 1., 1.14, 1.28, 1.42)
 PILOT_SIDE_BUDGET_MS = 500
@@ -80,10 +80,8 @@ def enemy_mole_instances(field, left, top):
     return instances
 
 
-def own_formation_markers(image, candidates):
+def formation_markers(field, left, top, candidates):
     """Identify visible helmets and faces even when bodies overlap."""
-    top, left = 1605, 70
-    field = image[top:2070, left:1010]
     hue, saturation, value = cv2.split(cv2.cvtColor(field, cv2.COLOR_BGR2HSV))
     hits = []
 
@@ -227,14 +225,17 @@ class PrototypeDetector:
         # units that may be in the remaining slots.
         roster = {canonical(name) for name in candidates if name}
         pool = roster if len(roster) == 4 else set()
-        moles = []
-        if side == 'enemy' and 'Maulwurf' in pool and phase in ('battle_choice', 'spell_choice') and budget_ms > 0:
-            moles = enemy_mole_instances(image[400:945, 25:1055], 25, 400)
-        markers = moles
-        if side == 'own' and phase in ('battle_choice', 'spell_choice') and budget_ms > 0:
-            units = set(own_candidates).intersection(('Spartheus', 'Agent B'))
-            if units:
-                markers = own_formation_markers(image, units)
+        markers = []
+        if phase in ('battle_choice', 'spell_choice') and budget_ms > 0:
+            if side == 'enemy':
+                if 'Maulwurf' in pool:
+                    markers.extend(enemy_mole_instances(image[400:945, 25:1055], 25, 400))
+                if 'Agent B' in pool:
+                    markers.extend(formation_markers(image[380:845, 70:1010], 70, 380, {'Agent B'}))
+            else:
+                units = set(own_candidates).intersection(('Spartheus', 'Agent B'))
+                if units:
+                    markers = formation_markers(image[1605:2070, 70:1010], 70, 1605, units)
         # Partition proposal time so each method can contribute under load.
         body_deadline = started + .55 * budget_ms / 1000
         bodies, truncated = self.detect_bodies(small, side, top, body_deadline, pool)

@@ -642,6 +642,9 @@ fragments.set('Verdopplung mit Aufwertung bevorzugt','Double and upgrade preferr
 fragments.set('betroffene Form und Anzahl unbekannt','affected form and count unknown');
 fragments.set('Erste Verstärkung derselben Form: erst verdoppeln, dann aufwerten.','First reinforcement of this form: double before upgrading.');
 fragments.set('Gegen verstärkte Draklinge die schwach beobachtete Front mit Spartheus stärken; Fernkämpfer brauchen Schutz.','Strengthen the lightly observed Spartheus front against reinforced Whelps; ranged units need protection.');
+fragments.set('Boomling ergänzt die Erstauswahl um Flächenschaden aus der Distanz.','Boomling adds ranged area damage to the opening lineup.');
+fragments.set('Die Hinterreihe ist bereits abgedeckt. Weitere Angreifer helfen gegen die Drakling-Masse weniger als Frontverstärkung.','The backline is already covered. Strengthening the front helps more against the Whelp swarm.');
+fragments.set('Die Front gegen viele Draklinge stärken. Hinterlandangreifer sind bereits aufgestellt.','Strengthen the front against the Whelp swarm. Backline attackers are already deployed.');
 fragments.set('Sniper zurückstellen, solange gegen verstärkte Draklinge nur wenige Spartheus beobachtet wurden und eine Frontverstärkung angeboten wird.','Hold back on Snipers against reinforced Whelps when few Spartheus have been observed and a frontline reinforcement is offered.');
 const fragmentPattern=new RegExp('(?<![\\p{L}\\p{N}])(?:'+[...fragments.keys()].sort((a,b)=>b.length-a.length).map(escapeRegExp).join('|')+')(?![\\p{L}\\p{N}])','gu');
 const preparationLabels=new Map([

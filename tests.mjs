@@ -32,6 +32,29 @@ test('reinforces a thin observed Spartheus front against developed Whelps',()=>{
     assert.doesNotMatch(noPressure.evaluated[1].reason,/Fernkämpfer brauchen Schutz/);
   }
 });
+test('turns from already covered Snipers to the growing Whelp front',()=>{
+  const profile=structuredClone(collection);
+  profile.units.active_lineup=['Obergeist','Spartheus','Parasit','Assassine'];
+  const offers=[{name:'Assassine',action:'multiply',quantity:2},{name:'Spartheus',action:'multiply',quantity:2},{name:'Parasit',action:'add',quantity:2}];
+  const frame={phase:'battle_choice',offers,enemy:[{name:'Sniper',action:'add'},{name:'Drakling',action:'multiply'}],
+    enemyAdditions:{Sniper:2,Drakling:8},ownReinforcements:{Spartheus:6,Assassine:9},
+    ownChoiceForms:{Spartheus:'upgraded',Assassine:'base'}};
+  for(const mode of ['draft','arena']){
+    const pick=(change={})=>recommend({...frame,...change},mode,profile,db).best;
+    assert.equal(pick().name,'Spartheus');
+    assert.match(pick().reason,/Hinterlandangreifer sind bereits aufgestellt/);
+    assert.equal(pick({ownReinforcements:{Spartheus:6,Assassine:3}}).name,'Assassine');
+    assert.equal(pick({enemyAdditions:{Sniper:24,Drakling:8}}).name,'Assassine');
+    assert.doesNotMatch(pick({enemyAdditions:{Sniper:0,Drakling:8}}).reason,/Hinterlandangreifer sind bereits aufgestellt/);
+    assert.doesNotMatch(pick({ownReinforcements:{Spartheus:14,Assassine:9}}).reason,/Hinterlandangreifer sind bereits aufgestellt/);
+  }
+  const opener=recommend({phase:'deck_choice',offers:[
+    {name:'Obergeist',action:'add',orange:{value:12}},
+    {name:'Parasit',action:'add',orange:{value:12}},
+    {name:'Boomling',action:'add',orange:{value:11}}
+  ]},'arena',collection,db);
+  assert.equal(opener.best.name,'Boomling');
+});
 test('direct backline attackers are preferred against Snail, Cupid and Sniper',()=>{
   for(const threat of ['Schnecke','Kupid','Sniper'])for(const attacker of ['Agent B','Assassine']){
     const result={phase:'battle_choice',enemy:[{name:threat}],offers:[{name:attacker,action:'add',quantity:2},{name:'Sniper',action:'add',quantity:2},{name:'Sixshoot',action:'add',quantity:2}]};

@@ -371,7 +371,7 @@ function observeArmies(job,result){
     ...(activeMatch.mode==='draft'?collection.units.active_lineup:[]),...result.offers.map(offer=>offer.name).filter(Boolean)]);
   const enemyCandidates=[...activeMatch.enemyDeck.values()].map(c=>c.name);
   if(!armyPlan.examples.length&&!ownCandidates.has('Spartheus')&&!ownCandidates.has('Agent B')&&
-    !(job.mode==='arena'&&enemyCandidates.length===4&&enemyCandidates.includes('Maulwurf')))return;
+    !(job.mode==='arena'&&enemyCandidates.length===4&&enemyCandidates.some(name=>name==='Maulwurf'||name==='Agent B')))return;
   armyService.submit({id:job.id,path:job.path,matchId:job.matchId,device:job.target,capturedAt:job.started,
     language:job.gameLanguage,phase:result.phase,mode:job.mode,revision:armyPlan.fingerprint,
     examples:armyPlan.examples,testPaths:[...new Set(armyPlan.cases.map(c=>c.path))],

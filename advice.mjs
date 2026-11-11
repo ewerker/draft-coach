@@ -102,6 +102,9 @@ export function observeChosenReinforcement(counts,offer,formEffect,forms){
 
 const deckRanged=new Set(['Merlinor','Kupid','Sniper']);
 const deckBacklineAccess=new Set(['Agent B','Assassine','Maulwurf']);
+const frontlineUnits=new Set(CARDS.filter(card=>card.role==='Front').map(card=>card.name));
+const directBacklineUnits=new Set(['Agent B','Assassine']);
+const backlineThreats=new Set(['Schnecke','Kupid','Sniper']);
 
 export function suggestLineup(collection){
   const catalog=new Map(CARDS.map(card=>[card.name,card]));
@@ -160,7 +163,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     return [name,weight];
   }));
   const threats=[...enemy].sort((a,b)=>enemyWeights.get(b)-enemyWeights.get(a));
-  const backlineThreat=threats.find(name=>['Schnecke','Kupid','Sniper'].includes(name));
+  const backlineThreat=threats.find(name=>backlineThreats.has(name));
   const backlineCount=backlineThreat?enemyMinimum(result,backlineThreat):0;
   const backlineTarget=Math.max(6,Math.min(10,Math.ceil(backlineCount/2)));
   const strengths=new Map([...collection.units.units,...collection.spells.spells].map(c=>[c.name,c.bottom_badge]));
@@ -185,7 +188,13 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
   const draklings=enemyMinimum(result,'Drakling');
   const coverSwarm=result.phase==='battle_choice'&&frontOffer&&draklings>=8&&enemy.includes('Merlinor')&&(tracked.Spartheus??0)<draklings&&
     (tracked['Agent B']??0)>=Math.max(8,2*enemyMinimum(result,'Merlinor'),2*backlineCount);
-  const directBacklineOffer=(result.offers??[]).some(card=>['Agent B','Assassine'].includes(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
+  const directBacklineOffer=(result.offers??[]).some(card=>directBacklineUnits.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
+  const ownBacklineAttackers=(tracked['Agent B']??0)+(tracked.Assassine??0);
+  const deployedBackline=threats.filter(name=>backlineThreats.has(name)).reduce((total,name)=>total+enemyMinimum(result,name),0);
+  const ownFront=[...frontlineUnits].reduce((total,name)=>total+(tracked[name]??0),0);
+  const rebalanceFront=result.phase==='battle_choice'&&draklings>=8&&deployedBackline>0&&
+    ownBacklineAttackers>=Math.max(6,Math.ceil(deployedBackline/2))&&ownFront<Math.max(12,Math.ceil(draklings*.75))&&
+    (result.offers??[]).some(card=>frontlineUnits.has(card.name)&&allowed.has(card.name)&&card.action!=='unknown');
   const enemyAssassins=enemyMinimum(result,'Assassine');
   const snipers=enemyMinimum(result,'Sniper');
   const agentShortfall=result.phase==='battle_choice'&&enemy.includes('Sniper')&&snipers>=4?
@@ -249,28 +258,35 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
         why+=' Direkter Zugriff auf die gegnerische Hinterreihe ergänzt das Deck.';
       }
     }
-    if(backlineThreat&&['deck_choice','battle_choice'].includes(result.phase)&&['Agent B','Assassine'].includes(offer.name)){
-      const existing=(tracked['Agent B']??0)+(tracked.Assassine??0);
-      const covered=existing>=backlineTarget;
-      const bonus=result.phase==='deck_choice'||!covered?24:8;
+    if(result.phase==='deck_choice'&&!enemy.length&&!ownDeck.size&&offer.name==='Boomling'){
+      score+=4;
+      why+=' Boomling ergänzt die Erstauswahl um Flächenschaden aus der Distanz.';
+    }
+    if(backlineThreat&&['deck_choice','battle_choice'].includes(result.phase)&&directBacklineUnits.has(offer.name)){
+      const covered=ownBacklineAttackers>=backlineTarget;
+      const bonus=rebalanceFront?-12:result.phase==='deck_choice'||!covered?24:8;
       score+=bonus;
-      why+=` Direkter Angriff auf die gegnerische Hinterreihe (${backlineThreat}) wird bevorzugt${covered?'; vorhandene Angreifer berücksichtigt':''}.`;
+      why+=rebalanceFront?' Die Hinterreihe ist bereits abgedeckt. Weitere Angreifer helfen gegen die Drakling-Masse weniger als Frontverstärkung.':
+        ` Direkter Angriff auf die gegnerische Hinterreihe (${backlineThreat}) wird bevorzugt${covered?'; vorhandene Angreifer berücksichtigt':''}.`;
     }
     if(backlineThreat&&result.phase==='battle_choice'&&!directBacklineOffer&&offer.name==='Sniper'&&(tracked.Sniper??0)<4){
       score+=14;
       why+=` Sniper als verfügbare Fernkampfoption gegen ${backlineThreat} aufbauen; direkter Hinterlandangriff wird nicht angeboten.`;
     }
-    if(reinforceFront&&offer.name==='Spartheus'){
+    if(rebalanceFront&&frontlineUnits.has(offer.name)){
+      score+=24;
+      why+=' Die Front gegen viele Draklinge stärken. Hinterlandangreifer sind bereits aufgestellt.';
+    }else if(reinforceFront&&offer.name==='Spartheus'){
       score+=28;
       why+=' Gegen verstärkte Draklinge die schwach beobachtete Front mit Spartheus stärken; Fernkämpfer brauchen Schutz.';
     }else if(reinforceFront&&offer.name==='Sniper'){
       score-=18;
       why+=' Sniper zurückstellen, solange gegen verstärkte Draklinge nur wenige Spartheus beobachtet wurden und eine Frontverstärkung angeboten wird.';
     }
-    if(coverSwarm&&offer.name==='Spartheus'){
+    if(!rebalanceFront&&coverSwarm&&offer.name==='Spartheus'){
       score+=14;
       why+=' Spartheus hält die Front gegen viele Draklinge. Agent B ist für die gegnerische Hinterreihe bereits aufgestellt.';
-    }else if(coverSwarm&&offer.name==='Agent B'&&offer.action==='add'){
+    }else if(!rebalanceFront&&coverSwarm&&offer.name==='Agent B'&&offer.action==='add'){
       score-=14;
       why+=' Zusätzliche Agent B helfen der Front weniger als der angebotene Spartheus.';
     }
@@ -387,8 +403,8 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     ['battle_choice','deck_choice'].includes(result.phase)&&result.offers?.some(card=>Number.isInteger(card.position))?3:0;
   const incompleteSlots=evaluated.length<expectedOffers||(result.offers??[]).some(card=>card.visible===false&&!card.name);
   const complete=!result.specialStep&&!incompleteSlots&&evaluated.length>0&&scored.length===evaluated.length&&!scored.some(card=>card.ruleOnly);
-  const pick=preferReinforcement(result,scored,evaluated,strengths);
-  const fallback=complete?null:trialPick(result,evaluated,strengths);
+  const pick=preferReinforcement(result,scored,evaluated,strengths,rebalanceFront);
+  const fallback=complete?null:trialPick(result,evaluated,strengths,rebalanceFront);
   return {best:complete?pick:null,provisional:complete?null:pick,fallback,evaluated,warnings,withheld:!complete,reroll,expectedOffers,incompleteSlots};
 }
 
@@ -421,7 +437,7 @@ function reinforcementValue(result,offer,strengths){
     preferIfClose:!uncertain&&(count===null||count>2||(double&&count>=2))};
 }
 
-function preferReinforcement(result,ranked,evaluated,strengths){
+function preferReinforcement(result,ranked,evaluated,strengths,rebalanceFront){
   const first=ranked[0];
   if(!first||result.phase!=='battle_choice')return first??null;
   const offer=result.offers[first.index];
@@ -431,6 +447,7 @@ function preferReinforcement(result,ranked,evaluated,strengths){
   const preferred=offer.action==='add'&&Number.isInteger(offer.quantity)&&offer.quantity<=3?ranked.find(candidate=>{
     const alternative=result.offers[candidate.index];
     if(hasBacklineThreat&&reachesBackline(offer.name)&&!reachesBackline(alternative.name))return false;
+    if(rebalanceFront&&frontlineUnits.has(offer.name)&&directBacklineUnits.has(alternative.name))return false;
     const gap=first.score-candidate.score;
     const value=reinforcementValue(result,alternative,strengths);
     const margin=offer.quantity===1&&alternative.action==='upgrade'&&value?.count>=3?5:4;
@@ -452,7 +469,7 @@ function preferReinforcement(result,ranked,evaluated,strengths){
   return doubling?{...doubling,reason:doubling.reason+' Erste Verstärkung derselben Form: erst verdoppeln, dann aufwerten.'}:preferred;
 }
 
-function trialPick(result,evaluated,strengths){
+function trialPick(result,evaluated,strengths,rebalanceFront){
   if(!['deck_choice','battle_choice','spell_choice'].includes(result.phase))return null;
   const options=result.offers.map((card,index)=>{
     const rated=evaluated[index];
@@ -467,5 +484,5 @@ function trialPick(result,evaluated,strengths){
   });
   const positions=[1,0,2,3];
   options.sort((a,b)=>b.score-a.score||positions.indexOf(a.position)-positions.indexOf(b.position));
-  return preferReinforcement(result,options,evaluated,strengths);
+  return preferReinforcement(result,options,evaluated,strengths,rebalanceFront);
 }

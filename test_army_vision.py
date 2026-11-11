@@ -86,6 +86,18 @@ class ArmyVision(unittest.TestCase):
         image[520:520+crop.shape[0], 420:420+crop.shape[1]] = 120
         self.assertEqual(detector.detect(image, 'enemy', candidates=roster)['groups'], [])
 
+    def test_counts_enemy_agents_in_an_overlapping_battle_formation(self):
+        image = np.full_like(self.image, 120)
+        crop = cv2.imread(str(Path(__file__).with_name('data') / 'enemy-agent-formation.png'))
+        image[425:425+crop.shape[0], 235:235+crop.shape[1]] = crop
+        detector = army.PrototypeDetector([], lambda _: image)
+        roster = ('Agent B', 'Maulwurf', 'Sixshoot', 'Schildling')
+        result = detector.detect(image, 'enemy', candidates=roster)
+        group = next(row for row in result['groups'] if row['name']=='Agent B')
+        self.assertEqual((group['visibleMinimum'], group['visibleMaximum']), (8, None))
+        for phase,candidates in [('battle',roster),('battle_choice',roster[1:])]:
+            self.assertFalse(any(row['name']=='Agent B' for row in detector.detect(image,'enemy',phase,candidates=candidates)['groups']))
+
     def test_own_formation_counts_visible_faces_without_reading_a_total_from_moves(self):
         image = np.full_like(self.image, 120)
         crop = cv2.imread(str(Path(__file__).with_name('data') / 'own-formation-counts.png'))
