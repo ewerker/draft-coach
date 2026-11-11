@@ -90,6 +90,15 @@ export function rememberArmyAdvice(previous,observation,{now,matchId,device,fram
   return next;
 }
 
+export function summarizeArmyStock(choices,observations){
+  const stock=new Map(Array.from(choices??[]).filter(([,count])=>Number.isSafeInteger(count)&&count>0)
+    .map(([name,count])=>[name,{name,count,source:'choices'}]));
+  for(const {name,minimum} of observations??[]){
+    if(minimum>(stock.get(name)?.count??0))stock.set(name,{name,count:minimum,source:'formation'});
+  }
+  return [...stock.values()];
+}
+
 export function armyPilotGate(metrics){
   const reasons=[];
   if(!metrics||metrics.images<30||metrics.matches<5)reasons.push('independent_coverage');

@@ -2015,8 +2015,8 @@ async function refresh(){
   if(coachView==='review')void persistencePanel.refreshJobs();
   if(request<renderedRequest)return;
   renderedRequest=request;
-  const armyKey=JSON.stringify([language,state.armyObservation,state.armyStatus?.error,Boolean(state.armyObservation&&Date.now()-state.armyObservation.capturedAt>6000)]);
-  if($('army-observation').dataset.key!==armyKey){$('army-observation').dataset.key=armyKey;renderArmy($('army-observation'),state.armyObservation,state.armyStatus,language);}
+  const armyKey=JSON.stringify([language,state.armyStock,state.armyObservation,state.armyStatus?.error,Boolean(state.armyObservation&&Date.now()-state.armyObservation.capturedAt>6000)]);
+  if($('army-observation').dataset.key!==armyKey){$('army-observation').dataset.key=armyKey;renderArmy($('army-observation'),state.armyObservation,state.armyStatus,language,state.armyStock);}
   const prep=state.mode==='prep', conn=state.connection||{status:'checking'};
   $('setup').hidden=!prep;
   if(!setupPath&&conn.transport)showSetupPath(conn.transport==='wifi'?'pair':'usb');

@@ -221,6 +221,22 @@ test('a confirmed source group makes upgrading more valuable; tracked totals alo
   assert.match(unknown.evaluated[0].reason,/betroffene Form und Anzahl unbekannt/);
 });
 
+test('the own stock estimate doubles a single tracked form and keeps spells out of the formation',()=>{
+ const counts=new Map(),forms=new Map();
+ const choose=(action,quantity)=>observeChosenReinforcement(counts,{name:'Ingenieur',action,quantity},null,forms);
+ choose('add',4);
+ choose('multiply',2);
+ assert.equal(counts.get('Ingenieur'),8);
+ choose('upgrade');
+ assert.equal(counts.get('Ingenieur'),8);
+ choose('add',2);
+ assert.equal(forms.get('Ingenieur'),'mixed');
+ choose('multiply',2);
+ assert.equal(counts.get('Ingenieur'),11);
+ observeChosenReinforcement(counts,{name:'Feensegen',action:'spell',quantity:5},null,forms);
+ assert.deepEqual([...counts],[['Ingenieur',11]]);
+});
+
 test('eight observed Snipers increase the Agent B target to four',()=>{
   const offers=[2,4].map(quantity=>({name:'Agent B',action:'add',quantity}));
   const evaluate=count=>recommend({phase:'battle_choice',offers,enemy:[{name:'Sniper',action:'upgrade'}],

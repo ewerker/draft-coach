@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {acceptArmyObservation,updateArmyHistory,armyPilotGate,rememberArmyAdvice} from './army-state.mjs';
+import {acceptArmyObservation,updateArmyHistory,armyPilotGate,rememberArmyAdvice,summarizeArmyStock} from './army-state.mjs';
 import {plainGame,snapshotMatch,restoreMatch} from './match-store.mjs';
 const packet=(frameId=1,capturedAt=1000)=>({frameId,capturedAt,matchId:'game',device:'usb',phase:'battle_choice',language:'en',
   sides:{own:{groups:[{name:'Schnecke',visibleMinimum:3,forms:[],unknownFormCount:3}],instances:[{name:'Schnecke',box:[20,1600,100,1700]}]},enemy:{groups:[],instances:[]}}});
@@ -89,4 +89,15 @@ test('formation sightings accumulate across the match without counting the same 
     assert.equal(rememberArmyAdvice(afterRound,later,{...context,now:61000,...change}),null);
   assert.equal(rememberArmyAdvice(afterEmpty,later,{...context,now:67000}),afterEmpty);
   assert.deepEqual(restoreMatch(snapshotMatch({id:'game',started:1000,captureIds:[1,2,3,4],armyAdviceMemory:afterRound})).armyAdviceMemory,afterRound);
+});
+
+test('formation panel keeps choice estimates when the latest image is empty or sees fewer units',()=>{
+  const choices=new Map([['Drakling',4],['Spartheus',12]]);
+  const seen=[{name:'Drakling',minimum:2},{name:'Ingenieur',minimum:3}];
+  assert.deepEqual(summarizeArmyStock(choices,seen),[
+    {name:'Drakling',count:4,source:'choices'},{name:'Spartheus',count:12,source:'choices'},
+    {name:'Ingenieur',count:3,source:'formation'}
+  ]);
+  assert.equal(summarizeArmyStock(choices,[]).length,2);
+  assert.equal(summarizeArmyStock(choices,[{name:'Drakling',minimum:5}])[0].count,5);
 });

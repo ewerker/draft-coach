@@ -78,13 +78,26 @@ export function sameReinforcementVariant(before,after){
   if(!a||!b||a.length!==432||b.length!==a.length)return false;
   return a.reduce((sum,value,index)=>sum+Math.abs(value-b[index]),0)/a.length<=.65;
 }
-export function observeChosenReinforcement(counts, offer, formEffect){
-  if(!offer?.name||!Number.isInteger(offer.quantity)||offer.quantity<1)return;
-  const previous=counts.get(offer.name)??0;
-  if(offer.action==='add')counts.set(offer.name,previous+offer.quantity);
-  if(['multiply','multiply_upgrade'].includes(offer.action)&&formEffect?.known&&
-     Number.isSafeInteger(formEffect.addedCount)&&formEffect.addedCount>0)
-    counts.set(offer.name,previous+formEffect.addedCount);
+export function observeChosenReinforcement(counts,offer,formEffect,forms){
+  if(!offer?.name||!['add','upgrade','multiply','multiply_upgrade'].includes(offer.action))return;
+  const {name,action,quantity}=offer;
+  const previous=counts.get(name)??0;
+  const form=offer.variantIndex||offer.variantUncertain?'mixed':forms?.get(name)??(previous>0?'mixed':'base');
+  if(action==='add'){
+    if(!Number.isSafeInteger(quantity)||quantity<1)return;
+    counts.set(name,previous+quantity);
+    forms?.set(name,form==='upgraded'?'mixed':form);
+    return;
+  }
+  if(formEffect?.known&&Number.isSafeInteger(formEffect.addedCount)&&formEffect.addedCount>0){
+    counts.set(name,Number.isSafeInteger(formEffect.afterTotal)?formEffect.afterTotal:previous+formEffect.addedCount);
+  }else if(forms&&action==='multiply'&&quantity===2&&previous>0){
+    // One tracked form can be extrapolated. An identified doubling with mixed
+    // forms adds at least one unit, even when its exact source count is open.
+    counts.set(name,previous+(form==='mixed'?1:previous));
+  }
+  const changesForm=action==='upgrade'||action==='multiply_upgrade';
+  forms?.set(name,changesForm?(form==='mixed'||!previous?'mixed':'upgraded'):form);
 }
 
 const deckRanged=new Set(['Merlinor','Kupid','Sniper']);
