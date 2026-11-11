@@ -9,12 +9,27 @@ import vm from 'node:vm';
 import {readFile,writeFile,rename,unlink,mkdtemp,rm,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {tmpdir} from 'node:os';
-import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
+import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard,mergeEnemyDeckCard} from './pipeline.mjs';
 import {allowedNames,sameReinforcementVariant,observeChosenReinforcement,observeDraftLineup,observeOwnCardValues,shouldTrySpell,recommend,enemyReinforced} from './advice.mjs';
 import {displayNames,translate,reviewMessage,reviewTapReason,tacticText} from './public/language.mjs';
 import {quickAdvice} from './quick-advice.mjs';
 const collection=JSON.parse(await readFile(new URL('./data/sample-collection.json',import.meta.url),'utf8'));
 const db=JSON.parse(await readFile(new URL('./data/matchups.json',import.meta.url),'utf8'));
+test('enemy lineup keeps independently verified badge values across frames',()=>{
+  const deck={name:'Maulwurf',position:3,similarity:.94,nameSource:'opponent-deck-caption',
+    orange:{value:10,similarity:.74},blue:{value:12,similarity:.95}};
+  const reveal={name:'Maulwurf',position:3,similarity:.85,nameSource:'opponent-lineup-reveal',
+    orange:{value:14,similarity:.98},blue:{value:null,similarity:.80}};
+  const merged=mergeEnemyDeckCard(deck,reveal);
+  assert.equal(merged.nameSource,'opponent-lineup-reveal');
+  assert.equal(merged.orange.value,14);
+  assert.equal(merged.blue.value,12);
+  const later=mergeEnemyDeckCard({...merged,blue:undefined},{...reveal,similarity:.83,blue:{value:12,similarity:.93}});
+  assert.equal(later.similarity,.85);
+  assert.equal(later.blue.value,12);
+  const replacement=mergeEnemyDeckCard(deck,{...reveal,name:'Merlinor'});
+  assert.equal(replacement.blue.value,null);
+});
 const confirmedFormStock=(name,count)=>({id:1,matchId:'confirmed-test',formCatalog:[{id:'base',unit:name},{id:'grown',unit:name}],
  formInventory:{actor:'player',side:'own',matchId:'confirmed-test',captureId:1,units:[{name,totalCount:count,forms:[{formId:'base',count}]}]},
  formBindings:Object.fromEntries([0,1,2].map(i=>[i,{confirmed:true,scopeConfirmed:true,actor:'player',sourceFormId:'base',targetFormId:'grown'}]))});

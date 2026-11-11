@@ -39,3 +39,14 @@ export function preferEnemyDeckCard(previous,candidate) {
   const rank=card=>card.nameSource==='opponent-lineup-reveal'?2:card.nameSource==='opponent-deck-caption'?1:0;
   return rank(candidate)>rank(previous)||(rank(candidate)===rank(previous)&&(candidate.similarity??0)>(previous.similarity??0));
 }
+
+export function mergeEnemyDeckCard(previous,candidate) {
+  const preferred=preferEnemyDeckCard(previous,candidate)?candidate:previous;
+  if(!previous?.name||previous.name!==candidate?.name)return preferred;
+  const readBadge=(before,after)=>{
+    if(after?.value==null)return before??after;
+    if(before?.value==null)return after;
+    return (after.similarity??0)>(before.similarity??0)?after:before;
+  };
+  return {...preferred,orange:readBadge(previous.orange,candidate.orange),blue:readBadge(previous.blue,candidate.blue)};
+}

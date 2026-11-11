@@ -8,7 +8,7 @@ import path from 'node:path';
 import {randomBytes,timingSafeEqual,createHash} from 'node:crypto';
 import {isIPv4} from 'node:net';
 import readline from 'node:readline';
-import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,preferEnemyDeckCard} from './pipeline.mjs';
+import {LatestQueue,autoCaptureBusy,nextLossStreak,mergeEnemyEvent,mergeEnemyDeckCard} from './pipeline.mjs';
 import {resolveBuild} from './build-info.mjs';
 import {collectionLineup} from './collection-lineup.mjs';
 import {ruleEvidence} from './learning.mjs';
@@ -498,7 +498,8 @@ function withObservedEnemies(result,job){
   // Remember card identity and strength, but only draw boxes from this frame.
   const enemy=new Map([...activeMatch.enemyDeck.values()].map(({box,...card})=>[card.name,card]));
   for(const card of result.enemy||[]){
-    if(card.name&&activeMatch.enemyDeck.get(card.position)?.name===card.name)enemy.set(card.name,card);
+    if(card.name&&activeMatch.enemyDeck.get(card.position)?.name===card.name)
+      enemy.set(card.name,{...enemy.get(card.name),box:card.box});
   }
   for(const [name,event] of activeMatch.enemyEvents)enemy.set(name,mergeEnemyEvent(enemy.get(name),event));
   if(result.enemyEvent)enemy.set(result.enemyEvent.name,mergeEnemyEvent(enemy.get(result.enemyEvent.name),result.enemyEvent));
@@ -1065,13 +1066,8 @@ const queue=new LatestQueue(async job=>{
         }
       }
       for(const card of result.enemy||[]){
-        const previous=activeMatch.enemyDeck.get(card.position);
-        if(preferEnemyDeckCard(previous,card)){
-          const sameUnit=previous?.name===card.name;
-          activeMatch.enemyDeck.set(card.position,{...card,
-            orange:card.orange??(sameUnit?previous.orange:undefined),
-            blue:card.blue??(sameUnit?previous.blue:undefined)});
-        }
+        const observed=mergeEnemyDeckCard(activeMatch.enemyDeck.get(card.position),card);
+        if(observed)activeMatch.enemyDeck.set(card.position,observed);
       }
       if(result.enemyEvent){
         const {name,action,quantity}=result.enemyEvent;

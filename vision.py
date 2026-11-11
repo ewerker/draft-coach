@@ -97,15 +97,17 @@ def feature(roi):
             if stats[k,cv2.CC_STAT_AREA]>=max(20,largest*.06): keep[labels==k]=255
     return normalize(keep)
 
-def digit_feature(roi):
-    b,g,r=cv2.split(roi)
+def digit_mask(roi):
     white=((roi.min(axis=2)>175)&((roi.max(axis=2).astype(int)-roi.min(axis=2))<65)).astype(np.uint8)*255
     n,labels,stats,_=cv2.connectedComponentsWithStats(white)
     clean=np.zeros_like(white)
     for k in range(1,n):
         x,y,w,h,area=stats[k]
         if area>=5 and h>=roi.shape[0]*.28 and w<roi.shape[1]*.95: clean[labels==k]=255
-    return normalize(clean,40)
+    return clean
+
+def digit_feature(roi):
+    return normalize(digit_mask(roi),40)
 
 def similarity(a,b):
     den=np.linalg.norm(a)*np.linalg.norm(b)
@@ -226,11 +228,12 @@ def match_field_references(img,examples,side):
 def match_enemy_references(img,examples):
     return match_field_references(img,examples,'enemy')
 
-def number(img,box):
+def number(img,box,patterns=None,min_score=.70):
     f=digit_feature(cut(img,box)); scores={}
-    for value,t in numbers: scores[value]=max(scores.get(value,0),similarity(f,t))
+    for value,t in numbers if patterns is None else patterns:
+        scores[value]=max(scores.get(value,0),similarity(f,t))
     ranked=sorted(scores.items(),key=lambda x:-x[1]); v,s=ranked[0]
-    return {'value':v if s>=.70 and s-ranked[1][1]>=.025 else None,'candidate':v,'similarity':round(s,3),'box':box}
+    return {'value':v if s>=min_score and s-ranked[1][1]>=.025 else None,'candidate':v,'similarity':round(s,3),'box':box}
 
 def anchor_score(img,box,anchor):
     roi=cv2.cvtColor(cut(img,box),cv2.COLOR_BGR2GRAY)
@@ -390,8 +393,10 @@ def read_lineup_reveal(img,offset,language):
         card=read_small_deck_caption(img,x-14,1053+dy,1104+dy,language,
                                     lineup_reveal_english_names if language=='en' else ())
         if card:
+            orange=number(img,[x,1125+dy,x+54,1170+dy],lineup_badge_numbers,.86)
+            blue=number(img,[x+161,865+dy,x+215,910+dy],lineup_badge_numbers,.86)
             cards.append(dict(card,position=position,side='enemy',nameSource='opponent-lineup-reveal',
-                              box=[x,864+dy,x+205,1166+dy]))
+                              box=[x,864+dy,x+205,1166+dy],orange=orange,blue=blue))
     return cards
 
 def read_hearts(img, layout='full'):
@@ -1151,6 +1156,10 @@ lineup_reveal_vs=np.array([list(row) for row in lineup_reveal_data['vs']],dtype=
 lineup_reveal_english_names=[
     (name,np.array([list(row) for row in mask],dtype=np.uint8))
     for name,mask in lineup_reveal_data['english_names'].items()
+]
+lineup_badge_numbers=numbers+[
+    (int(value),normalize(np.array([list(row) for row in mask],dtype=np.uint8)*255,40))
+    for value,mask in lineup_reveal_data['badges'].items()
 ]
 action_digits=[(value,template) for value,template in numbers if 1<=value<=9]
 for value,rows in json.loads((ROOT/'data'/'choice-digits.json').read_text(encoding='utf-8')).items():

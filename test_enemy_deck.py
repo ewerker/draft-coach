@@ -42,6 +42,8 @@ class PaidLineupReveal(unittest.TestCase):
         self.assertEqual(result['offers'],[])
         self.assertEqual([(card['position'],card['name']) for card in result['enemy']],
                          [(0,'Splime'),(1,'Maulwurf'),(2,'Merlinor'),(3,'Sixshoot')])
+        self.assertEqual([(card['orange']['value'],card['blue']['value']) for card in result['enemy']],
+                         [(14,13),(14,11),(9,5),(9,3)])
         small=cv2.resize(image,(168,364),interpolation=cv2.INTER_AREA)
         small[189:214,65:104]=0
         self.assertIsNone(vision.lineup_reveal_offset(small))
