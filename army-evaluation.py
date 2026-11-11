@@ -96,7 +96,7 @@ def evaluate(data):
                     prediction = vision.match_field_references(image, examples, case['side'])
                     truncated = False
                 else:
-                    detected = detector.detect(image, case['side'], case.get('phase') or 'battle_choice', budget_ms=700)
+                    detected = detector.detect(image, case['side'], case.get('phase') or 'battle_choice')
                     prediction, truncated = detected['groups'], detected['truncated']
                 elapsed = round((time.perf_counter()-begin)*1000, 2)
                 score(results[engine][case['side']], case, prediction, elapsed, geometry, truncated)
@@ -120,7 +120,9 @@ def evaluate(data):
         trainingExamples=len(examples), excludedDuplicateExamples=len(data['examples'])-len(examples),
         trainingTypes=sorted(covered), missingTypes=sorted(set(data.get('unitNames', []))-covered),
         independentTestMatches=sorted({case['matchId'] for case in data['cases']}),
-        thresholds=dict(correlation=.80, descriptor=.89, outsidePoolDescriptor=.94, classMargin=.055),
+        thresholds=dict(correlation=.80, descriptor=.89, outsidePoolDescriptor=.94, classMargin=.055,
+                        bodyCorrelation=army.BODY_CORRELATION, outsidePoolBodyCorrelation=army.OUTSIDE_POOL_BODY_CORRELATION),
+        prototypeBudgetMsPerSide=army.PILOT_SIDE_BUDGET_MS,
         results=results, controlResults=controls, cases=cases,
         limits=['Type scores are not probabilities.', 'Counts are visible minima, not total army sizes.',
             'No learned evolution label when the player left stage blank.', 'Combat positions do not prove army ownership.',

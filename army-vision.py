@@ -14,6 +14,9 @@ import numpy as np
 VERSION = 'army-prototypes-v2'
 CANON = {'Verwüster': 'Zerstörer', 'Bientank': 'Bienenkorb'}
 BODY_SCALES = (.62, .74, .86, 1., 1.14, 1.28, 1.42)
+PILOT_SIDE_BUDGET_MS = 500
+BODY_CORRELATION = .82
+OUTSIDE_POOL_BODY_CORRELATION = .90
 
 
 def canonical(name):
@@ -123,7 +126,7 @@ class PrototypeDetector:
                 if height > field.shape[0] or width > field.shape[1]:
                     continue
                 _, score, _, (x, y) = cv2.minMaxLoc(cv2.matchTemplate(field, pattern, cv2.TM_CCOEFF_NORMED))
-                threshold = .90 if conflict else .82
+                threshold = OUTSIDE_POOL_BODY_CORRELATION if conflict else BODY_CORRELATION
                 if score < threshold or (name in best and score <= best[name]['score']):
                     continue
                 box = [round(x/.35)+25, round(y/.35)+top,
@@ -136,13 +139,16 @@ class PrototypeDetector:
                 break
         return sorted(best.values(), key=lambda row: -row['score']), truncated
 
-    def detect(self, image, side, phase='battle_choice', budget_ms=700, candidates=()):
+    def detect(self, image, side, phase='battle_choice', budget_ms=PILOT_SIDE_BUDGET_MS, candidates=()):
         started = time.perf_counter()
         # Never search choice-card illustrations as if they were deployed troops.
         top, bottom = (325, 1015) if side == 'enemy' else ((1580, 2090) if phase in ('battle_choice', 'spell_choice') else (1170, 2090))
         field = image[top:bottom, 25:1055]
         small = cv2.resize(cv2.cvtColor(field, cv2.COLOR_BGR2GRAY), None, fx=.35, fy=.35, interpolation=cv2.INTER_AREA)
-        pool = {canonical(name) for name in candidates}
+        # Reading only part of a Battle deck gives no negative evidence about
+        # units that may be in the remaining slots.
+        roster = {canonical(name) for name in candidates if name}
+        pool = roster if len(roster) == 4 else set()
         # Partition proposal time so each method can contribute under load.
         body_deadline = started + .55 * budget_ms / 1000
         bodies, truncated = self.detect_bodies(small, side, top, body_deadline, pool)

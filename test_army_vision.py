@@ -63,4 +63,11 @@ class ArmyVision(unittest.TestCase):
         detector=army.PrototypeDetector([self.example],lambda _:self.image)
         self.assertTrue(detector.detect(self.image,'own',budget_ms=-1)['truncated'])
 
+    def test_only_complete_enemy_roster_marks_an_outside_type(self):
+        detector = army.PrototypeDetector([self.example], lambda _: self.image)
+        partial = ('Assassine', 'Merlinor', 'Königlop')
+        self.assertFalse(detector.detect(self.image, 'enemy', candidates=partial)['groups'][0]['poolConflict'])
+        complete = (*partial, 'Schnecke')
+        self.assertTrue(detector.detect(self.image, 'enemy', candidates=complete)['groups'][0]['poolConflict'])
+
 if __name__=='__main__':unittest.main()
