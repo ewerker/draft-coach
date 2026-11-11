@@ -77,7 +77,13 @@ export function createImageReviewStore(withDatabase){
  }
  async function list(){return withDatabase(true,db=>{
   const rows=db.prepare('SELECT id,match_id,capture_id,created,purpose,partition,revision,answer_json,context_json,export_status,export_error,reference_id FROM image_questions ORDER BY created DESC,id').all();
-  const items=rows.map(({answer_json,context_json,...r})=>{const context=JSON.parse(context_json);const sides=answer_json?JSON.parse(answer_json).sides:{};return {...r,priority:context.priority??0,assisted:context.assisted===true,answered:!!sides.own&&!!sides.enemy,partial:!!sides.own!==!!sides.enemy};});
+  const items=rows.map(({answer_json,context_json,...r})=>{
+   const context=JSON.parse(context_json);
+   const answer=answer_json?JSON.parse(answer_json):null;
+   const sides=answer?.sides??{};
+   const codex=Object.values(sides).some(side=>(side.actor??answer.actor)==='codex');
+   return {...r,priority:context.priority??0,assisted:context.assisted===true,codex,answered:!!sides.own&&!!sides.enemy,partial:!!sides.own!==!!sides.enemy};
+  });
   return {items,counts:{open:items.filter(r=>!r.answered).length,answered:items.filter(r=>r.answered).length,partial:items.filter(r=>r.partial).length,exportPending:rows.filter(r=>r.export_status==='pending').length,failed:rows.filter(r=>r.export_status==='failed').length}};
  });}
  async function get(id,blind=true){return withDatabase(true,db=>{const r=decode(db.prepare('SELECT * FROM image_questions WHERE id=?').get(id));if(r&&blind&&!r.context.assisted&&(r.purpose==='control'||r.partition==='test')){r.context.proposals={};r.blind=true;}return r;});}
@@ -86,14 +92,23 @@ export function createImageReviewStore(withDatabase){
   const context=JSON.parse(row.context_json);context.assisted=true;context.revealedAt??=Date.now();
   db.prepare('UPDATE image_questions SET context_json=? WHERE id=?').run(JSON.stringify(context),id);
  });}
- async function answer(id,revision,input,names){
+ async function saveAnswer(id,revision,input,names,actor){
   const value=validateImageAnswer(input,names);
+  value.actor=actor;
+  for(const side of Object.values(value.sides))side.actor=actor;
   return withDatabase(false,db=>{
    db.exec('BEGIN IMMEDIATE');try{
     const row=db.prepare('SELECT revision,answer_json,context_json FROM image_questions WHERE id=?').get(id);
     if(!row)throw Error('IMAGE_QUESTION_NOT_FOUND');
     if(row.revision!==revision)throw Error('IMAGE_QUESTION_CHANGED');
-    value.assisted=JSON.parse(row.context_json).assisted===true;
+    const previous=row.answer_json?JSON.parse(row.answer_json):null;
+    value.assisted=JSON.parse(row.context_json).assisted===true||previous?.assisted===true||
+     (actor==='player'&&Object.values(previous?.sides??{}).some(side=>(side.actor??previous.actor)==='codex'));
+    for(const [side,prior] of Object.entries(previous?.sides??{})){
+     const priorActor=prior.actor??previous.actor??'player';
+     if((actor==='codex'&&(!value.sides[side]||priorActor==='player'))||
+        (actor==='player'&&!value.sides[side]&&priorActor==='codex'))value.sides[side]={...prior,actor:priorActor};
+    }
     const json=JSON.stringify(value),next=revision+1;
     db.prepare("UPDATE image_questions SET revision=?,answer_json=?,export_status='pending',export_error=NULL WHERE id=?").run(next,json,id);
     db.prepare('INSERT INTO image_question_history VALUES (?,?,?,?)').run(id,next,Date.now(),json);
@@ -101,9 +116,11 @@ export function createImageReviewStore(withDatabase){
    }catch(e){db.exec('ROLLBACK');throw e;}
   });
  }
+ const answer=(id,revision,input,names)=>saveAnswer(id,revision,input,names,'player');
+ const answerFromCodex=(id,revision,input,names)=>saveAnswer(id,revision,input,names,'codex');
  async function pending(){return withDatabase(true,db=>db.prepare("SELECT id FROM image_questions WHERE export_status='pending' ORDER BY created LIMIT 1").get()?.id??null);}
  async function projected(id,revision,referenceId,error=null){return withDatabase(false,db=>db.prepare("UPDATE image_questions SET export_status=?,reference_id=?,export_error=?,image=CASE WHEN ? THEN image ELSE x'' END WHERE id=? AND revision=?").run(error?'failed':'done',referenceId,error,!!error?1:0,id,revision));}
  async function image(id){return withDatabase(true,db=>{const b=db.prepare('SELECT image FROM image_questions WHERE id=?').get(id)?.image;return b?.length?Buffer.from(b):null;});}
  async function retry(id){return withDatabase(false,db=>db.prepare("UPDATE image_questions SET export_status='pending',export_error=NULL WHERE id=? AND answer_json IS NOT NULL").run(id));}
- return {add,list,get,answer,pending,projected,image,retry,reveal};
+ return {add,list,get,answer,answerFromCodex,pending,projected,image,retry,reveal};
 }

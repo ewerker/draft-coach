@@ -22,8 +22,12 @@ export function buildFieldEvaluation(references,imagePath,engineRevision=''){
   const testHashes=new Set(linked.filter(r=>testIds.has(r.matchId)&&r.imageHash).map(r=>r.imageHash));
   const training=linked.filter(r=>!testIds.has(r.matchId)&&(!r.imageHash||!testHashes.has(r.imageHash)));
   const testing=linked.filter(r=>testIds.has(r.matchId)&&r.reviewAssisted!==true);
-  const examples=training.flatMap(r=>['own','enemy'].flatMap(side=>sideTruth(r,side,true)).map(c=>({...c,path:imagePath(r.id),referenceId:r.id,matchId:r.matchId,language:r.language??'unknown'})));
-  const cases=testing.flatMap(r=>['own','enemy'].filter(side=>completeSide(r,side)).map(side=>({
+  const examples=training.flatMap(r=>['own','enemy'].flatMap(side=>sideTruth(r,side,true).map(c=>({
+    ...c,path:imagePath(r.id),referenceId:r.id,matchId:r.matchId,language:r.language??'unknown',
+    actor:r.fieldConfirmations?.[side]?.actor??'player'
+  }))));
+  examples.sort((a,b)=>Number(a.actor==='codex')-Number(b.actor==='codex'));
+  const cases=testing.flatMap(r=>['own','enemy'].filter(side=>completeSide(r,side)&&r.fieldConfirmations?.[side]?.actor!=='codex').map(side=>({
     id:r.id,matchId:r.matchId,side,path:imagePath(r.id),language:r.language??'unknown',phase:r.phase??'unknown',reviewPurpose:r.reviewPurpose??'legacy',truth:sideTruth(r,side)
   })));
   const material=references.map(r=>({id:r.id,matchId:r.matchId,corrections:r.corrections,complete:r.complete,fieldConfirmations:r.fieldConfirmations,imageHash:r.imageHash,reviewPurpose:r.reviewPurpose,reviewAssisted:r.reviewAssisted})).sort((a,b)=>a.id.localeCompare(b.id));

@@ -887,6 +887,7 @@ function renderReviewCases(cases){
     const note=document.createElement('span');
     note.dataset.reviewOriginal='';
     note.textContent=[item.rule?tacticText(item.rule,language)?.title:null,item.observation].filter(Boolean).join(' · ');
+    if(item.codexAudit)note.append(textEl('small',' · Codex · '+item.codexAudit.finding,'muted'));
     details.append(new Date(item.created).toLocaleString(language==='en'?'en-GB':'de-DE')+' · '+(language==='en'?'Match #':'Partie #')+item.matchId.slice(0,8)+' · '+(language==='en'?'Image ':'Bild ')+item.capture+' · ',note);
     if(item.preferred)details.append(' · ',reviewText('preference'),' · ',reviewCard(item.preferred));
     if(item.revision?.status)details.append(' · ',reviewText(item.revision.status));

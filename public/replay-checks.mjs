@@ -16,6 +16,12 @@ export function createReplayChecksPanel({root,getLanguage}){
    card.append(el('p',`${t().mechanics}: ${r.mechanics.filter(m=>m.status==='passed').length}/${r.mechanics.length} · ${r.blocked?t().blocked_by_mechanics:t().passed}`));
    card.append(el('p',`${r.counts.unclear}/${r.counts.decisions} ${t().basis} · ${r.counts.changes} ${t().changes} · ${r.recognition.length} ${t().compared} · ${r.counts.recognitionContradictions} ${t().recognition}`));
    const missing=[...new Set(r.basis.flatMap(b=>b.missing))];if(missing.length)card.append(el('p',t().unknown+': '+missing.map(k=>t().missing[k]??k).join(', '),'muted'));
+   if(r.codexRecognition?.length){
+    const findings=r.codexRecognition.filter(image=>image.status==='contradicted');
+    const heading=getLanguage()==='en'?'Image sides reviewed by Codex':'Von Codex geprüfte Bildseiten';
+    card.append(el('p',`${heading}: ${r.codexRecognition.length} · ${findings.length} ${t().contradicted}`));
+    for(const image of findings.slice(0,4))card.append(el('p',`${image.capture} · ${image.missing.map(n=>displayNames(n,getLanguage())).join(', ')||'Δ'}`,'muted'));
+   }
    for(const image of r.recognition.filter(v=>v.status==='contradicted').slice(0,4))card.append(el('p',`${image.capture} · ${image.side==='own'?(getLanguage()==='en'?'Own':'Eigene'):(getLanguage()==='en'?'Enemy':'Gegner')} · ${t().contradicted}: ${image.missing.map(n=>displayNames(n,getLanguage())).join(', ')||'Δ'}`));
    const relevant=r.rules.filter(rule=>rule.eligible||rule.status==='blocked_by_mechanics');const list=el('details');list.dataset.id=row.id+'-rules';list.open=open.has(list.dataset.id);list.append(el('summary',`${t().rules} (${relevant.length})`));if(!relevant.length)list.append(el('p',t().noRules));
    for(const rule of relevant){const text=rule.texts[getLanguage()]?.title??'#'+rule.id;const section=el('section');section.append(el('h4',text),el('p',`${t()[rule.status]??rule.status} · ${rule.eligible} · Δ ${rule.changed}`));

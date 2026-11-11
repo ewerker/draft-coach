@@ -144,8 +144,8 @@ export function reviewQueries(journal,withDatabase,runtime,runs=null){
       SELECT id,match_id,capture,created,data,
         (SELECT data FROM review_revisions WHERE case_id=review_cases.id ORDER BY id DESC LIMIT 1) AS revision
       FROM review_cases ORDER BY created DESC`).all().map(row=>{
-      const {observation,rule,template,preferred,reviewed,frame}=JSON.parse(row.data);
-      return {id:row.id,matchId:row.match_id,capture:row.capture,created:row.created,observation,rule,preferred,
+      const {observation,rule,template,preferred,reviewed,frame,codexAudit}=JSON.parse(row.data);
+      return {id:row.id,matchId:row.match_id,capture:row.capture,created:row.created,observation,rule,preferred,codexAudit,
         language:frame?.language??template?.language??null,reviewed:reviewed===true,template:template?{name:template.name,language:template.language,enabled:template.enabled!==false}:null,revision:row.revision?JSON.parse(row.revision):null};
     }));
   }
@@ -153,6 +153,16 @@ export function reviewQueries(journal,withDatabase,runtime,runs=null){
     if(typeof id!=='string'||typeof reviewed!=='boolean')throw Error('Ungültiger Prüfstatus.');
     const result=await withDatabase(false,db=>db.prepare("UPDATE review_cases SET data=json_set(data,'$.reviewed',json(?)) WHERE id=?").run(JSON.stringify(reviewed),id));
     if(!result.changes)throw Error('Prüffall nicht gefunden.');
+  }
+  async function saveCodexAudit({id,finding,status}){
+    if(typeof id!=='string'||typeof finding!=='string'||!finding.trim()||finding.length>2000||
+       !['supported','corrected','inconclusive'].includes(status))throw Error('Ungültiger Prüfbefund.');
+    const audit={actor:'codex',status,finding:finding.trim(),at:Date.now()};
+    const result=await withDatabase(false,db=>db.prepare(
+      "UPDATE review_cases SET data=json_set(data,'$.codexAudit',json(?),'$.reviewed',json('true')) WHERE id=?"
+    ).run(JSON.stringify(audit),id));
+    if(!result.changes)throw Error('Prüffall nicht gefunden.');
+    return audit;
   }
   async function templates(){
     return withDatabase(true,db=>db.prepare("SELECT data FROM review_cases WHERE json_extract(data,'$.template') IS NOT NULL AND coalesce(json_extract(data,'$.template.enabled'),1)=1 ORDER BY created DESC LIMIT 80").all()
@@ -167,5 +177,5 @@ export function reviewQueries(journal,withDatabase,runtime,runs=null){
     await withDatabase(false,db=>db.prepare("UPDATE review_cases SET data=json_set(data,'$.template.enabled',json(?)) WHERE id=? AND json_extract(data,'$.template') IS NOT NULL")
       .run(JSON.stringify(enabled),id));
   }
-  return {matches,match,image,save,list,setReviewed,templates,revise,toggleTemplate,clicks};
+  return {matches,match,image,save,list,setReviewed,saveCodexAudit,templates,revise,toggleTemplate,clicks};
 }

@@ -46,3 +46,9 @@ Completed matches automatically supply bounded targeted questions plus a confide
 ## Speicherhilfe
 
 Fehlende Pflichtbestätigungen werden vor der Übertragung direkt bei der betroffenen Figur angezeigt. Beim Speichern wird das erste fehlerhafte Feld fokussiert und sichtbar gemacht. Eine zusätzliche Zusammenfassung steht unmittelbar am Speichern-Button; sie verschwindet nach der Korrektur. Optionale unbestätigte Anzahlen bleiben unbekannt. Die Hinweise sind auf Deutsch und Englisch verfügbar, ohne die Benutzereingaben automatisch zu bestätigen. Geprüft: fehlender Figurentyp, Formbestätigung, leere Seite und fehlende Seitenantwort; Browserprüfung DE/EN mit anschließend erfolgreichem Speichern in isolierter Vorschau.
+
+### Sichtung durch Codex
+
+In einer Codex-Sitzung können offene Bildfragen und Partieprüffälle anhand der gespeicherten Bilder bearbeitet werden. Die Befunde erscheinen als „Von Codex geprüft“. Bereits bestätigte Spielerdaten bleiben erhalten. Beispiele aus Trainingspartien mit markierten Figuren können in die Erkennung eingehen. Die unabhängige Prüfung wertet weiterhin menschliche Befunde aus. Überlappende Figuren können mit unbekannter Anzahl gespeichert werden.
+
+Partieprüffälle erhalten einen Befund zum gespeicherten Bild und zur damaligen Erkennung. Die Entscheidung über eine taktische Regel bleibt im bestehenden Prüfablauf. Neue Fälle kann der Coach selbst sammeln. Für die hier beschriebene Sichtung ist eine aktive Codex-Sitzung erforderlich.

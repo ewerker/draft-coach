@@ -54,13 +54,16 @@ export async function createReferenceStore(root){
     const item=JSON.parse(await readFile(meta(id),'utf8'));
     item.fieldConfirmations??={};
     for(const [side,value] of Object.entries(question.answer.sides)){
+      const actor=value.actor??question.answer.actor??'player';
+      const current=item.fieldConfirmations[side];
+      if(actor==='codex'&&(current?.actor==='player'||item.complete?.[side]||item.corrections?.some(c=>c.phase===side+'_field')))continue;
       // "Cannot assess" withdraws only this question's earlier answer, never a
       // separate player's existing annotations.
       if(value.verdict==='unassessable'){
         if(item.fieldConfirmations[side]?.questionId===question.id)delete item.fieldConfirmations[side];
         continue;
       }
-      item.fieldConfirmations[side]={...value,questionId:question.id,revision:question.revision,actor:'player',confirmedAt:Date.now()};
+      item.fieldConfirmations[side]={...value,questionId:question.id,revision:question.revision,actor,confirmedAt:Date.now()};
     }
     item.guidedQuestionId=question.id;item.imageHash=question.image_hash;item.reviewPurpose=question.purpose;
     item.reviewAssisted=question.context?.assisted===true||question.answer.assisted===true;

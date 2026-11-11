@@ -26,10 +26,10 @@ export function mechanicsRegression(calculate=calculateFormEffect){
   check('conflict_blocks_calculation',()=>run('upgrade',{mechanisms:[...defaultMechanisms,{unit:'*',action:'upgrade',status:'conflict'}]}).known===false)];
 }
 
-export function compareConfirmedImage(frame,reference){
+export function compareConfirmedImage(frame,reference,actor='player'){
  const comparisons=[];
  for(const side of ['own','enemy']){
-  const truth=reference.fieldConfirmations?.[side];if(truth?.actor!=='player')continue;
+  const truth=reference.fieldConfirmations?.[side];if(truth?.actor!==actor)continue;
   const predicted=frame.armyObservation?.sides?.[side]?.groups??[],names=predicted.map(g=>canonical(g.name));
   const groups=truth.groups.filter(g=>g.typeConfirmed),missing=groups.filter(g=>!names.includes(canonical(g.name))).map(g=>canonical(g.name));
   const extra=truth.typesComplete?names.filter(n=>!groups.some(g=>canonical(g.name)===n)):[];
@@ -45,13 +45,16 @@ export async function replayAudit({game,rules,collectionFor,matchups,referenceDa
  const active=rules.filter(r=>r.status==='aktiv');
  const candidates=rules.filter(r=>['aktiv','test'].includes(r.status)&&r.offer&&Number.isFinite(r.weight));
  const reports=candidates.map(rule=>({id:rule.id,revision:replayFingerprint(rule),texts:rule.texts??{},status:'unclear',eligible:0,changed:0,unchanged:0,unverified:0,examples:[]}));
- const recognition=[],basis=[],coverage={de:0,en:0},frames=(game.reviewFrames??[]).filter(f=>['battle_choice','deck_choice','spell_choice'].includes(f.phase));
+ const recognition=[],codexRecognition=[],basis=[],coverage={de:0,en:0},frames=(game.reviewFrames??[]).filter(f=>['battle_choice','deck_choice','spell_choice'].includes(f.phase));
  for(const original of frames){
   await yieldToGame();guard();
   const refs=referenceData.filter(r=>r.matchId===game.id&&r.captureId===original.id).sort((a,b)=>(b.at??0)-(a.at??0));
   const own=refs.find(r=>r.fieldConfirmations?.own?.actor==='player')?.fieldConfirmations.own;
   const enemy=refs.find(r=>r.fieldConfirmations?.enemy?.actor==='player')?.fieldConfirmations.enemy;
-  for(const ref of refs)recognition.push(...compareConfirmedImage(original,ref).map(row=>({...row,capture:original.id})));
+  for(const ref of refs){
+   recognition.push(...compareConfirmedImage(original,ref).map(row=>({...row,capture:original.id})));
+   codexRecognition.push(...compareConfirmedImage(original,ref,'codex').map(row=>({...row,capture:original.id})));
+  }
   const context=await contextFor(game.id,original.id),frame={...original,...context,matchId:game.id,sourceCaptureId:original.id};
   const collection=await collectionFor(original.versions?.collection??game.versions?.collection);
   const missing=[];
@@ -75,7 +78,7 @@ export async function replayAudit({game,rules,collectionFor,matchups,referenceDa
  guard();
  for(const r of reports)r.status=blocked?'blocked_by_mechanics':r.eligible?'replayed':'unclear';
  return {schema:1,kind:'replay_checks',matchId:game.id,outcome:game.outcome??'unbekannt',mode:game.mode,language:game.language,engine,created:at,elapsedMs:Date.now()-at,
-  mechanics,blocked,recognition,basis,rules:reports,coverage,
+  mechanics,blocked,recognition,codexRecognition,basis,rules:reports,coverage,
   counts:{decisions:frames.length,changes:reports.reduce((n,r)=>n+r.changed,0),unclear:basis.filter(b=>b.missing.length).length,recognitionContradictions:recognition.filter(r=>r.status==='contradicted').length},
   tacticalEffect:'not_established',automaticActivation:false,expectations:'structured_rule_comparisons_only; free-text interpretation pending independent confirmation'};
 }

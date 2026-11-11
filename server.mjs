@@ -298,7 +298,8 @@ async function projectImageAnswer(){
       fieldLearningError=null;fieldLearning=null;armyPlan=null;
     }catch(error){await archive.imageReview.projected(id,question.revision,null,error.message);}
     finally{referenceSaving=false;}
-    await syncKnowledge();void evaluateFieldLearning();
+    await syncKnowledge();
+    if(!await archive.imageReview.pending())void evaluateFieldLearning();
   }catch(error){console.error('Bildbestätigung:',error.message);}
   finally{projectingImageAnswer=false;}
 }
@@ -1525,6 +1526,10 @@ async function handleRequest(req,res){
         if(projectingImageAnswer||backupInProgress)throw Error('IMAGE_REVIEW_BUSY');
         return json(res,200,await archive.imageReview.answer(data.id,data.revision,data.answer,new Set(fieldUnitNames())));
       }
+      if(url.pathname==='/api/admin/image-review/codex'){
+        if(projectingImageAnswer||backupInProgress)throw Error('IMAGE_REVIEW_BUSY');
+        return json(res,200,await archive.imageReview.answerFromCodex(data.id,data.revision,data.answer,new Set(fieldUnitNames())));
+      }
       if(url.pathname==='/api/image-review/reveal'){await archive.imageReview.reveal(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/image-review/retry'){await archive.imageReview.retry(data.id);return json(res,200,{ok:true});}
       if(url.pathname==='/api/admin/jobs/retry'){await archive.runs.retry(data.id);return json(res,200,{ok:true});}
@@ -1631,6 +1636,7 @@ async function handleRequest(req,res){
       }
       if(url.pathname==='/api/admin/review/frame')return json(res,200,await handleReview(data,'frame'));
       if(url.pathname==='/api/admin/review/mark'){await archive.review.setReviewed(data.id,data.reviewed);return json(res,200,await archive.review.list());}
+      if(url.pathname==='/api/admin/review/codex')return json(res,200,await archive.review.saveCodexAudit(data));
       if(url.pathname==='/api/admin/review/preview')return json(res,200,await handleReview(data,'preview'));
       if(url.pathname==='/api/admin/review/banner')return json(res,200,await saveBannerCorrection(data));
       if(url.pathname==='/api/admin/review/template'){

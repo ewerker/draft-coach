@@ -87,6 +87,39 @@ test('stable whole-match holdout, hash leakage prevention, complete empty cases 
  assert.equal(plan.cases.length,1);assert.deepEqual(plan.cases[0].truth,[]);assert.equal(plan.cases[0].reviewPurpose,'control');
  assert.ok(!plan.examples.some(e=>e.matchId===hold));
  refs[0].fieldConfirmations.own.groups[0].box=null;assert.equal(buildFieldEvaluation(refs,id=>id).examples.length,0);
+ const codex={...confirmed,actor:'codex',typesComplete:true,groups:[row()]};
+ refs.push({id:'d',matchId:train,fieldConfirmations:{own:codex}},{id:'e',matchId:hold,fieldConfirmations:{own:codex}});
+ const withCodex=buildFieldEvaluation(refs,id=>id);
+ assert.deepEqual(withCodex.examples.map(e=>[e.referenceId,e.actor]),[['d','codex']]);
+ assert.deepEqual(withCodex.cases.map(c=>c.id),['b']);
+});
+
+test('Codex fills the unanswered side and keeps player evidence and provenance',async()=>{
+ const dir=await mkdtemp(path.join(os.tmpdir(),'coach-codex-review-'));
+ const db=new DatabaseSync(path.join(dir,'db.sqlite'));
+ try{
+  db.exec(imageReviewSchema);
+  const store=createImageReviewStore(async(_,fn)=>fn(db));
+  const game={id:'codex-test',language:'en'};
+  const id=await store.add(game,{id:12,phase:'battle_choice'},Buffer.from('png'),'targeted');
+  await store.answer(id,0,answer(),names);
+  const enemy={verdict:'no',typesComplete:true,groups:[{...row('Agent B'),box:[30,400,100,470]}]};
+  await store.answerFromCodex(id,1,{sides:{own:{verdict:'unassessable',groups:[]},enemy}},names);
+  const saved=await store.get(id,false);
+  assert.equal(saved.answer.sides.own.actor,'player');
+  assert.equal(saved.answer.sides.own.groups[0].name,'Sniper');
+  assert.equal(saved.answer.sides.enemy.actor,'codex');
+  const refs=await createReferenceStore(path.join(dir,'refs'));
+  const ref=await refs.add(await store.image(id),{matchId:game.id,captureId:12});
+  await refs.confirmField(ref.id,saved);
+  const projected=(await refs.list())[0];
+  assert.equal(projected.fieldConfirmations.own.actor,'player');
+  assert.equal(projected.fieldConfirmations.enemy.actor,'codex');
+  const draft=imageQuestionDraft(saved);
+  assert.equal(draft.sides.enemy.groups[0].typeConfirmed,false);
+  await store.answer(id,2,{sides:{enemy}},names);
+  assert.equal((await store.get(id,false)).answer.assisted,true);
+ }finally{db.close();await rm(dir,{recursive:true,force:true});}
 });
 
 test('few diverse images include deterministic confidence-independent control and early/late candidates',()=>{
