@@ -283,6 +283,7 @@ Modus|Mode
 Draft und Schlacht|Draft and Battle
 Wahlfenster|Choice screen
 Deckwahl|Deck selection
+Aufstellungen|Lineups
 Kampfwahl|Battle selection
 Zauberauswahl|Spell selection
 Diese Angebotskarte|Offered card
@@ -689,6 +690,7 @@ const reviewMessages={
   gewonnen:['Gewonnen','Won'], verloren:['Verloren','Lost'], unbekannt:['Ergebnis unbekannt','Result unknown'], auto:['Spielmodus offen','Game mode unknown'],
   arena:['Schlacht','Battle'], draft:['Draft','Draft'],
   deck_choice:['Deckwahl','Deck choice'], battle_choice:['Kampfwahl','Battle choice'],
+  lineup_reveal:['Aufstellungen','Lineups'],
   spell_choice:['Zauberauswahl','Spell choice'], unknown:['Unbekannt','Unknown'],
   add:['Hinzufügen','Add'], upgrade:['Aufwerten','Upgrade'], multiply:['Verdoppeln','Double'],
   multiply_upgrade:['Verdoppeln und aufwerten','Double and upgrade'], spell:['Zauber einsetzen','Cast spell'],

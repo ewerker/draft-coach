@@ -550,7 +550,7 @@ function listen(){
 }
 $('mic').onclick=()=>{if(armed){stopMic();return;}armed=true;$('mic').textContent='Mikrofon aus';$('mic').classList.add('listening');listen();};
 document.addEventListener('keydown',e=>{if(e.code==='Space'&&coachView==='game'&&!matchDialog.open&&!['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement.tagName)){e.preventDefault();$('capture').click();}});
-const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung',gewonnen:'Gewonnen',verloren:'Verloren'};
+const phaseNames={unknown:'Bildschirm unklar',deck_choice:'Deckwahl',lineup_reveal:'Aufstellungen',battle:'Spielfeld',battle_choice:'Wahl im Kampf',spell_choice:'Zauberauswahl',collection:'Einheitensammlung',spells:'Zaubersammlung',gewonnen:'Gewonnen',verloren:'Verloren'};
 const pos=['Links','Mitte','Rechts','Vierte Karte'];
 function textEl(tag,text,cls){const e=document.createElement(tag);e.textContent=displayCardNames(text);if(cls)e.className=cls;return e;}
 $('organization-options').append(new Option('Partien und Auswertung','review'));

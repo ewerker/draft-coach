@@ -1,5 +1,7 @@
 import unittest
 from pathlib import Path
+from tempfile import TemporaryDirectory
+import cv2
 import numpy as np
 import vision
 
@@ -27,6 +29,22 @@ class DraftEvidence(unittest.TestCase):
         self.assertFalse(vision.normal_draft_deck_evidence('battle_choice',True,[goose],False))
         self.assertFalse(vision.normal_draft_deck_evidence('battle_choice',False,[{'name':'Assassine','action':'add','quantity':12}],False))
         self.assertFalse(vision.normal_draft_deck_evidence('battle_choice',False,[{'name':'Gans','action':'multiply_upgrade','quantity':2}],False))
+
+class PaidLineupReveal(unittest.TestCase):
+    def test_reveal_reads_four_opponents_without_offers(self):
+        image=np.zeros((2340,1080,3),dtype=np.uint8)
+        image[650:2010]=vision.decode(Path('data')/'paid-lineup-reveal.png')
+        with TemporaryDirectory() as directory:
+            path=Path(directory)/'screen.png'
+            cv2.imwrite(str(path),image)
+            result=vision.recognize(path,language='en')
+        self.assertEqual(result['phase'],'lineup_reveal')
+        self.assertEqual(result['offers'],[])
+        self.assertEqual([(card['position'],card['name']) for card in result['enemy']],
+                         [(0,'Splime'),(1,'Maulwurf'),(2,'Merlinor'),(3,'Sixshoot')])
+        small=cv2.resize(image,(168,364),interpolation=cv2.INTER_AREA)
+        small[189:214,65:104]=0
+        self.assertIsNone(vision.lineup_reveal_offset(small))
 
 class DeckCaption(unittest.TestCase):
     def test_tnt_on_real_card_can_resolve_unknown_icon(self):

@@ -283,6 +283,7 @@ def active_collection_tab(img, kind):
 def has_centered_layout(img):
     return (read_hearts(img,'centered') is not None or has_spell_choice_panel(img,'centered') or has_battle_card_tray(img) or
             deck_choice_offset(img,'centered') is not None or deck_choice_offset(img,'centered','en') is not None or
+            lineup_reveal_offset(cv2.resize(img,(168,364),interpolation=cv2.INTER_AREA)) is not None or
             max(collection_tab_scores(img,'units'))>.90 or
             max(collection_tab_scores(img,'spells'))>.90)
 
@@ -344,12 +345,12 @@ def enemy_lineup_side_dx(img,layout,dy):
     if red_fraction(40)>.90 and red_fraction(115)<.55:return 0
     return -82 if layout=='centered' else -90
 
-def read_small_deck_caption(img,x,top,bottom,language='de'):
+def read_small_deck_caption(img,x,top,bottom,language='de',extra_patterns=()):
     region=lettering(cut(img,[x+5,top,x+220,bottom]))
     if np.count_nonzero(region)<20:return {}
     matches={}
     patterns=enemy_deck_names_en if language=='en' else enemy_deck_names_de
-    for name,pattern in patterns:
+    for name,pattern in (*patterns,*extra_patterns):
         if pattern.shape[0]>region.shape[0] or pattern.shape[1]>region.shape[1]:
             continue
         score=cv2.minMaxLoc(cv2.matchTemplate(region,pattern,cv2.TM_CCOEFF_NORMED))[1]
@@ -364,6 +365,34 @@ def read_small_deck_caption(img,x,top,bottom,language='de'):
 
 def read_enemy_deck_caption(img,x,dy,language='de'):
     return read_small_deck_caption(img,x,490+dy,560+dy,language)
+
+def lineup_reveal_offset(small):
+    # The stable transition has red and blue backgrounds and a large central VS.
+    hsv=cv2.cvtColor(small[108:311,64:104],cv2.COLOR_BGR2HSV)
+    red,blue=hsv[:18],hsv[172:]
+    if np.mean(((red[:,:,0]<15)|(red[:,:,0]>170))&(red[:,:,1]>65))<.85:
+        return None
+    if np.mean((blue[:,:,0]>95)&(blue[:,:,0]<135)&(blue[:,:,1]>65))<.85:
+        return None
+    region=small[176:228,55:115]
+    dark,light=region.min(axis=2),region.max(axis=2)
+    mask=((dark>185)&(light-dark<55)).astype(np.uint8)
+    _,score,_,(x,y)=cv2.minMaxLoc(cv2.matchTemplate(mask,lineup_reveal_vs,cv2.TM_CCOEFF_NORMED))
+    if score<.87:
+        return None
+    return round((x+55-65)*REFERENCE_WIDTH/168),round((y+176-189)*REFERENCE_HEIGHT/364)
+
+def read_lineup_reveal(img,offset,language):
+    dx,dy=offset
+    cards=[]
+    for position in range(4):
+        x=100+225*position+dx
+        card=read_small_deck_caption(img,x-14,1053+dy,1104+dy,language,
+                                    lineup_reveal_english_names if language=='en' else ())
+        if card:
+            cards.append(dict(card,position=position,side='enemy',nameSource='opponent-lineup-reveal',
+                              box=[x,864+dy,x+205,1166+dy]))
+    return cards
 
 def read_hearts(img, layout='full'):
     # The scoreboard keeps four slots per side. Filled slots face outwards.
@@ -601,6 +630,7 @@ def recognize(path,preferred=None,language='de',learned_banners=(),learned_refer
     phase='unknown'; offers=[]; enemies=[]; own=[]; notes=[]; last_deck_reroll=False; deck_reroll_button=None
     deck=deck_choice_offset(img,geometry['layout'],language)
     english_deck=language=='en' and deck is None and (deck:=english_deck_offset(img)) is not None
+    reveal=lineup_reveal_offset(small) if deck is None else None
     # Deck choice has the fixed banner. Battle choices have large jagged cards.
     hsv=cv2.cvtColor(cut(img,[0,0,1080,350]),cv2.COLOR_BGR2HSV)
     red_header=float(np.mean(((hsv[:,:,0]<15)|(hsv[:,:,0]>170))&(hsv[:,:,1]>100)))
@@ -659,6 +689,9 @@ def recognize(path,preferred=None,language='de',learned_banners=(),learned_refer
                         orange=number(img,[x+7,oy+dy-23,x+48,oy+dy+23]); blue=number(img,[x+170,by+dy-19,x+205,by+dy+19])
                     card.update(position=c,side=side,orange=orange,blue=blue)
                     target.append(card)
+    elif reveal is not None:
+        phase='lineup_reveal'
+        enemies=read_lineup_reveal(img,reveal,language)
     elif active_collection_tab(img,'units') and max(collection_tab_scores(img,'units'))>.90:
         phase='collection'
     elif active_collection_tab(img,'spells') and max(collection_tab_scores(img,'spells'))>.90:
@@ -1113,6 +1146,12 @@ enemy_deck_names_de=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=
 own_captain_mask=(cv2.imdecode(np.fromfile(str(ROOT/'data'/'own-captain-caption.png'),dtype=np.uint8),cv2.IMREAD_GRAYSCALE)>0).astype(np.uint8)
 enemy_deck_names_de.extend(('Kapitän',cv2.resize(own_captain_mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for scale in (.9,.95,1,1.05,1.1))
 enemy_deck_names_en=[(name,cv2.resize(mask,None,fx=scale,fy=scale,interpolation=cv2.INTER_NEAREST)) for name,mask in vision_english.collection_names['units']+vision_english.battle_names+[('Splime',splime_caption_mask)] for scale in (.40,.45,.50,.55,.60,.65,.70,.75,.80,.85,.90,.95,1.0,1.05,1.10,1.15,1.20)]
+lineup_reveal_data=json.loads((ROOT/'data'/'lineup-reveal.json').read_text(encoding='utf-8'))
+lineup_reveal_vs=np.array([list(row) for row in lineup_reveal_data['vs']],dtype=np.uint8)
+lineup_reveal_english_names=[
+    (name,np.array([list(row) for row in mask],dtype=np.uint8))
+    for name,mask in lineup_reveal_data['english_names'].items()
+]
 action_digits=[(value,template) for value,template in numbers if 1<=value<=9]
 for value,rows in json.loads((ROOT/'data'/'choice-digits.json').read_text(encoding='utf-8')).items():
     action_digits.append((int(value),np.array([[int(pixel) for pixel in row] for row in rows],dtype=np.float32)))

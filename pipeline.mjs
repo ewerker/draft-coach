@@ -36,6 +36,6 @@ export function mergeEnemyEvent(card,event) {
 export function preferEnemyDeckCard(previous,candidate) {
   if(!candidate?.name)return false;
   if(!previous?.name)return true;
-  const rank=card=>card.nameSource==='opponent-deck-caption'?1:0;
+  const rank=card=>card.nameSource==='opponent-lineup-reveal'?2:card.nameSource==='opponent-deck-caption'?1:0;
   return rank(candidate)>rank(previous)||(rank(candidate)===rank(previous)&&(candidate.similarity??0)>(previous.similarity??0));
 }

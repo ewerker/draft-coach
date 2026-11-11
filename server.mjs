@@ -791,12 +791,12 @@ function record(job,result) {
   }
   const cardChoice=choiceSignature(item,true);
   if(job.source!=='reference'&&state.mode!=='auto'&&job.matchId&&job.matchId===match?.id&&
-     (['deck_choice','battle_choice','spell_choice'].includes(item.phase)||rawRecognition.enemyEvent)){
+     (['deck_choice','lineup_reveal','battle_choice','spell_choice'].includes(item.phase)||rawRecognition.enemyEvent)){
     match.reviewFrames.push(makeReviewFrame(job,rawRecognition,item,match));
   }
   if(liveMatch)scheduleCheckpoint(match);
   if(liveMatch)observeArmies(job,rawRecognition);
-  if(job.source!=='reference'&&(cardChoice||item.phase==='spell_choice'))latestRelevant=item;
+  if(job.source!=='reference'&&(cardChoice||['spell_choice','lineup_reveal'].includes(item.phase)))latestRelevant=item;
   if(job.source!=='reference'&&cardChoice){
     // A newer result can arrive between displaying a frame and receiving its click.
     recentChoiceFrames.unshift(item);
@@ -1036,8 +1036,12 @@ const queue=new LatestQueue(async job=>{
         activeMatch.draftObservation=state.mode==='draft'?newDraftObservation():null;
       }
       job.mode=activeMatch.mode;
-      if(job.mode==='auto')return result;
     }
+    if(result.phase==='lineup_reveal'&&job.source!=='reference'&&job.mode!=='arena'){
+      result.phase='unknown';
+      result.enemy=[];
+    }
+    if(job.mode==='auto')return result;
     if(job.matchId&&job.matchId===activeMatch?.id&&job.target===device){
       const match=activeMatch;
       if(result.hearts){
@@ -1050,7 +1054,12 @@ const queue=new LatestQueue(async job=>{
       }
       for(const card of result.enemy||[]){
         const previous=activeMatch.enemyDeck.get(card.position);
-        if(preferEnemyDeckCard(previous,card))activeMatch.enemyDeck.set(card.position,card);
+        if(preferEnemyDeckCard(previous,card)){
+          const sameUnit=previous?.name===card.name;
+          activeMatch.enemyDeck.set(card.position,{...card,
+            orange:card.orange??(sameUnit?previous.orange:undefined),
+            blue:card.blue??(sameUnit?previous.blue:undefined)});
+        }
       }
       if(result.enemyEvent){
         const {name,action,quantity}=result.enemyEvent;

@@ -49,6 +49,7 @@ export function selectEvidenceIds(game, limit=80){
   const selected=new Set();
   const add=id=>{if(ids.has(id)&&selected.size<limit)selected.add(id);};
   add(game.resultCapture); add(game.captureIds?.[0]); add(game.captureIds?.at(-1));
+  for(const frame of frames.filter(frame=>frame.phase==='lineup_reveal').slice(0,2))add(frame.id);
   for(const v of game.variantEvidence??[]){add(v.before);add(v.after);}
   let priority=0;
   for(const frame of frames)if((frame.phase==='deck_choice'||frame.observedInFrame?.enemyEvent)&&priority<20){add(frame.id);priority++;}
