@@ -356,7 +356,8 @@ const armyService=createArmyService({python:PYTHON,root:ROOT,onResult:packet=>{
     now:observation.receivedAt,matchId:match.id,device,frameId:state.latestId,
     knownEnemy:new Set([...match.enemyDeck.values()].map(row=>row.name).concat([...match.enemyEvents.keys()])),
     knownOwn:new Set([...match.ownDeckPicks,...match.ownReinforcements.keys(),...draftUnits]),
-    unitNames:new Set(fieldUnitNames()),completeEnemyDeck:match.mode==='arena'&&match.enemyDeck.size>=4
+    unitNames:new Set(fieldUnitNames()),completeEnemyDeck:match.mode==='arena'&&match.enemyDeck.size>=4,
+    recentObservations:match.armyObservations
   });
   const frame=match.reviewFrames.find(frame=>frame.id===packet.frameId);
   if(frame)frame.armyObservation=match.armyObservations.at(-1);

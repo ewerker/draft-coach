@@ -101,3 +101,20 @@ test('formation panel keeps choice estimates when the latest image is empty or s
   assert.equal(summarizeArmyStock(choices,[]).length,2);
   assert.equal(summarizeArmyStock(choices,[{name:'Drakling',minimum:5}])[0].count,5);
 });
+
+test('an unknown opponent type can be confirmed by separate formation images with combat between them',()=>{
+  const context={now:11000,matchId:'game',device:'usb',frameId:5,knownOwn:new Set(),
+    knownEnemy:new Set(),unitNames:new Set(['Agent B']),completeEnemyDeck:false};
+  const sample=(id,time,score,phase='battle_choice')=>{
+    const p={...packet(id,time),phase};
+    p.sides.enemy.groups=[{name:'Agent B',visibleMinimum:1,similarity:score}];
+    return acceptArmyObservation(p,null,{...options,now:time+100,frameId:id});
+  };
+  const early=sample(1,1000,.9249),later=sample(5,10500,.956);
+  const combat=sample(3,5000,.99,'battle');
+  assert.deepEqual(rememberArmyAdvice(null,later,{...context,recentObservations:[combat]}).enemy,[]);
+  const confirmed=rememberArmyAdvice(null,later,{...context,recentObservations:[early,combat]});
+  assert.deepEqual(confirmed.enemy,[{name:'Agent B',minimum:1,capture:5}]);
+  assert.deepEqual(rememberArmyAdvice(null,later,{...context,completeEnemyDeck:true,recentObservations:[early]}).enemy,[]);
+  assert.deepEqual(rememberArmyAdvice(null,later,{...context,recentObservations:[{...early,capturedAt:-10000}]}).enemy,[]);
+});

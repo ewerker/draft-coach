@@ -1,5 +1,6 @@
 // Visual evidence is separate from choices sent to the device and battle survivors.
 export const armyFreshMs=6000;
+const formationAgreementMs=20000;
 const canonical=name=>name==='Verwüster'?'Zerstörer':name==='Bientank'?'Bienenkorb':name;
 const validBox=box=>Array.isArray(box)&&box.length===4&&box.every(Number.isFinite)&&box[0]>=0&&box[1]>=0&&box[2]<=1080&&box[3]<=2340&&box[2]>box[0]&&box[3]>box[1];
 
@@ -64,7 +65,7 @@ export function updateArmyHistory(match,observation){
   // Never replace built forces or ownReinforcements using survivors or lower bounds.
 }
 
-export function rememberArmyAdvice(previous,observation,{now,matchId,device,frameId,knownEnemy,knownOwn,unitNames,completeEnemyDeck}){
+export function rememberArmyAdvice(previous,observation,{now,matchId,device,frameId,knownEnemy,knownOwn,unitNames,completeEnemyDeck,recentObservations=[]}){
   const memory=previous?.matchId===matchId&&previous?.device===device?previous:null;
   if(!observation||observation.matchId!==matchId||observation.device!==device||
      observation.context!=='formation'||observation.ownership!=='spatial_formation'||
@@ -77,10 +78,18 @@ export function rememberArmyAdvice(previous,observation,{now,matchId,device,fram
     for(const group of field?.groups??[]){
       const name=canonical(group.name);
       if(!unitNames.has(name)||!(group.similarity>=.90))continue;
-      const known=(side==='own'?knownOwn:knownEnemy).has(name);
+      const known=(side==='own'?knownOwn:knownEnemy).has(name)||seen.has(name);
       const good=(field.instances??[]).filter(instance=>instance.name===name&&instance.score>=.90&&!instance.poolConflict);
-      if(!known&&(side==='own'||completeEnemyDeck||group.similarity<.94||
-         !(group.observedConsecutively>=2||good.length>=2)))continue;
+      if(!known){
+        if(side==='own'||completeEnemyDeck)continue;
+        const repeated=group.similarity>=.94&&(group.observedConsecutively>=2||good.length>=2);
+        const corroborated=!group.poolConflict&&recentObservations.some(prior=>
+          prior.context==='formation'&&prior.matchId===matchId&&prior.device===device&&prior.frameId<observation.frameId&&
+          observation.capturedAt-prior.capturedAt>0&&observation.capturedAt-prior.capturedAt<=formationAgreementMs&&
+          prior.sides.enemy.groups.some(row=>row.name===name&&!row.poolConflict&&row.similarity>=.90&&
+            Math.max(row.similarity,group.similarity)>=.94));
+        if(!repeated&&!corroborated)continue;
+      }
       if(known&&group.poolConflict&&!(group.observedConsecutively>=2))continue;
       const minimum=Math.max(1,Math.min(group.visibleMinimum,good.length));
       if(minimum>(seen.get(name)?.minimum??0))seen.set(name,{name,minimum,capture:observation.frameId});
