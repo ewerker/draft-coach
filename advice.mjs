@@ -198,7 +198,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     !enemy.some(name=>name==='Verwüster'||name==='Zerstörer')&&
     (tracked.Spartheus??0)>=6&&(tracked['Kapitän']??0)<2;
   const evaluated=(result.offers||[]).map((offer,index)=>{
-    const reinforcement=reinforcementValue(result,offer);
+    const reinforcement=reinforcementValue(result,offer,strengths);
     const applicable=rules.filter(rule=>rule.offer===offer.name&&
       (rule.mode==='beide'||rule.mode===mode)&&(rule.phase==='alle'||rule.phase===result.phase)&&
       (!rule.action||rule.action===offer.action||rule.action==='upgrade'&&offer.action==='multiply_upgrade')&&
@@ -387,7 +387,7 @@ export function recommend(result, mode, collection, db, extended=false, rules=[]
     ['battle_choice','deck_choice'].includes(result.phase)&&result.offers?.some(card=>Number.isInteger(card.position))?3:0;
   const incompleteSlots=evaluated.length<expectedOffers||(result.offers??[]).some(card=>card.visible===false&&!card.name);
   const complete=!result.specialStep&&!incompleteSlots&&evaluated.length>0&&scored.length===evaluated.length&&!scored.some(card=>card.ruleOnly);
-  const pick=preferReinforcement(result,scored,evaluated);
+  const pick=preferReinforcement(result,scored,evaluated,strengths);
   const fallback=complete?null:trialPick(result,evaluated,strengths);
   return {best:complete?pick:null,provisional:complete?null:pick,fallback,evaluated,warnings,withheld:!complete,reroll,expectedOffers,incompleteSlots};
 }
@@ -396,37 +396,60 @@ function visibleAdditions(result,offer){
   return result.phase==='battle_choice'&&offer.action==='add'?Math.min(offer.quantity??0,12):0;
 }
 
-function reinforcementValue(result,offer){
+function reinforcementValue(result,offer,strengths){
   if(result.phase!=='battle_choice'||!['multiply','upgrade','multiply_upgrade'].includes(offer.action))return null;
   const uncertain=offer.variantIndex||result.ownVariantUncertain?.includes(offer.name);
   const effect=calculateFormEffect({offer,inventory:result.formInventory,binding:offer.formBinding,forms:result.formCatalog,mechanisms:result.mechanisms,matchId:result.matchId,captureId:result.sourceCaptureId??result.id});
   const tracked=uncertain?0:result.ownReinforcements?.[offer.name]??0;
-  const count=effect.known?effect.affectedCount:null;
   const upgrade=offer.action!=='multiply';
   const double=offer.action!=='upgrade';
+  const trackedForm=result.ownChoiceForms?.[offer.name];
+  const estimated=!effect.known&&(!double||offer.quantity===2)&&tracked>0&&
+    ['base','upgraded'].includes(trackedForm)?tracked:null;
+  const count=effect.known?effect.affectedCount:estimated;
+  const added=effect.known?effect.addedCount:estimated;
   const heuristic=count===null?Math.min(1,Number(tracked)/10):0;
-  const points=(upgrade?(count===null?11+heuristic*4:Math.min(count*(count>2?4:2),30)):0)+
-    (double?(count===null?14+heuristic*3:Math.min(count*3,20)):0);
+  const level=offer.orange?.value??strengths?.get(offer.name)??10;
+  const stars=offer.blue?.value??0;
+  const strength=Math.max(.8,Math.min(1.25,1+(level-10)*.035+stars*.01));
+  const upgradePoints=count===null?11+heuristic*4:count<=2?2*count:Math.min(38,8*Math.log2(1+count)*strength);
+  const points=(upgrade?upgradePoints:0)+
+    (double?(added==null?14+heuristic*3:Math.min(42,6.5*Math.log2(1+added)*strength)):0);
   const action=upgrade&&double?'Verdopplung mit Aufwertung':upgrade?'Aufwertung':'Verdopplung';
-  const scope=count===null?'betroffene Form und Anzahl unbekannt':`${count} bestätigte Figuren der Ausgangsform`;
+  const scope=count===null?'betroffene Form und Anzahl unbekannt':effect.known?`${count} bestätigte Figuren der Ausgangsform`:`etwa ${count} Figuren aus den bisherigen Zügen`;
   return {points,count,effect,reason:`${action} bevorzugt (${scope}).`,
     preferIfClose:!uncertain&&(count===null||count>2||(double&&count>=2))};
 }
 
-function preferReinforcement(result,ranked,evaluated){
+function preferReinforcement(result,ranked,evaluated,strengths){
   const first=ranked[0];
   if(!first||result.phase!=='battle_choice')return first??null;
   const offer=result.offers[first.index];
-  if(offer.action!=='add'||!Number.isInteger(offer.quantity)||offer.quantity>3)return first;
-  return ranked.find(candidate=>{
+  const reachesBackline=name=>deckRanged.has(name)||deckBacklineAccess.has(name);
+  const hasBacklineThreat=[...(result.enemy??[]),...(result.armyAdviceEvidence?.enemy??[])]
+    .some(card=>['Schnecke','Kupid','Sniper'].includes(card.name));
+  const preferred=offer.action==='add'&&Number.isInteger(offer.quantity)&&offer.quantity<=3?ranked.find(candidate=>{
     const alternative=result.offers[candidate.index];
+    if(hasBacklineThreat&&reachesBackline(offer.name)&&!reachesBackline(alternative.name))return false;
     const gap=first.score-candidate.score;
-    const value=reinforcementValue(result,alternative);
+    const value=reinforcementValue(result,alternative,strengths);
     const margin=offer.quantity===1&&alternative.action==='upgrade'&&value?.count>=3?5:4;
     return evaluated[candidate.index].score!==null&&gap<=margin&&
       (value?.preferIfClose||
        (gap===0&&offer.quantity===1&&alternative.name===offer.name&&alternative.action==='upgrade'));
-  })??first;
+  })??first:first;
+  const selected=result.offers[preferred.index];
+  if(selected.action!=='upgrade'||result.ownBoostedUnits?.includes(selected.name))return preferred;
+  const upgradeEffect=reinforcementValue(result,selected,strengths)?.effect;
+  const doubling=ranked.find(candidate=>{
+    const alternative=result.offers[candidate.index];
+    if(alternative.name!==selected.name||alternative.action!=='multiply'||alternative.quantity!==2||evaluated[candidate.index].score===null)return false;
+    const doubleEffect=reinforcementValue(result,alternative,strengths)?.effect;
+    if(upgradeEffect?.known&&doubleEffect?.known)return upgradeEffect.sourceFormId===doubleEffect.sourceFormId;
+    return result.ownChoiceForms?.[selected.name]==='base'&&!selected.variantIndex&&!alternative.variantIndex&&
+      !result.ownVariantUncertain?.includes(selected.name);
+  });
+  return doubling?{...doubling,reason:doubling.reason+' Erste Verstärkung derselben Form: erst verdoppeln, dann aufwerten.'}:preferred;
 }
 
 function trialPick(result,evaluated,strengths){
@@ -436,7 +459,7 @@ function trialPick(result,evaluated,strengths){
     const level=card.orange?.value??strengths.get(card.name)??0;
     const stars=card.blue?.value??0;
     const added=visibleAdditions(result,card);
-    const reinforcement=card.name?reinforcementValue(result,card):null;
+    const reinforcement=card.name?reinforcementValue(result,card,strengths):null;
     const score=(rated.score??(45+level+(card.name?3:0)+added*2+(reinforcement?.points??0)))+stars*.3;
     const facts=[level?`Stufe ${level}`:'',stars?`${stars} Sterne`:'',added?`+${card.quantity} Figuren`:''].filter(Boolean);
     const reason=rated.score!==null?rated.reason:reinforcement?.reason??(facts.length?facts.join(' · '):'Ersatzwahl nach sichtbarer Kartenposition.');
@@ -444,5 +467,5 @@ function trialPick(result,evaluated,strengths){
   });
   const positions=[1,0,2,3];
   options.sort((a,b)=>b.score-a.score||positions.indexOf(a.position)-positions.indexOf(b.position));
-  return preferReinforcement(result,options,evaluated);
+  return preferReinforcement(result,options,evaluated,strengths);
 }

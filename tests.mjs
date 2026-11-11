@@ -370,6 +370,37 @@ test('a visually ambiguous reinforcement never doubles the whole tracked stock',
   assert.match(replay.evaluated[0].reason,/betroffene Form und Anzahl unbekannt/);
 });
 
+test('reinforcements compare affected group size and strength while retaining the matchup score',()=>{
+  const offers=['Spartheus','Drakling'].map(name=>({name,action:'multiply',quantity:2,orange:{value:11},blue:{value:7}}));
+  const base={phase:'battle_choice',offers,ownReinforcements:{Spartheus:2,Drakling:50},
+    ownChoiceForms:{Spartheus:'base',Drakling:'upgraded'}};
+  const rated=recommend(base,'arena',collection,[]);
+  assert.equal(rated.best.name,'Drakling');
+  assert.match(rated.best.reason,/etwa 50 Figuren/);
+  assert.match(translate(rated.best.reason,'en'),/about 50 units from recorded moves/);
+  const upgraded=recommend({...base,offers:offers.map(offer=>({...offer,action:'upgrade',quantity:null}))},'arena',collection,[]);
+  assert.equal(upgraded.best.name,'Drakling');
+  const mixed=recommend({...base,ownChoiceForms:{...base.ownChoiceForms,Drakling:'mixed'}},'arena',collection,[]);
+  assert.match(mixed.evaluated[1].reason,/betroffene Form und Anzahl unbekannt/);
+  assert.ok(mixed.evaluated[1].score<rated.evaluated[1].score);
+  const matchup=recommend({...base,offers:[{name:'Spartheus',action:'multiply',quantity:2},{name:'Sniper',action:'add',quantity:2}],
+    ownReinforcements:{Spartheus:50},enemy:[{name:'Schnecke'}]},'arena',collection,db);
+  assert.equal(matchup.best.name,'Sniper');
+});
+
+test('first reinforcement doubles the same base form before upgrading it',()=>{
+  const offers=[{name:'Spartheus',action:'upgrade'},{name:'Spartheus',action:'multiply',quantity:2}];
+  const base={phase:'battle_choice',offers,ownReinforcements:{Spartheus:12},ownChoiceForms:{Spartheus:'base'}};
+  const first=recommend(base,'arena',collection,[]);
+  assert.ok(first.evaluated[0].score>first.evaluated[1].score);
+  assert.equal(first.best.index,1);
+  assert.match(first.best.reason,/erst verdoppeln, dann aufwerten/);
+  assert.equal(recommend({...base,ownBoostedUnits:['Spartheus']},'arena',collection,[]).best.index,0);
+  assert.equal(recommend({...base,offers:[offers[0]]},'arena',collection,[]).best.index,0);
+  const mixed=recommend({...base,ownVariantUncertain:['Spartheus']},'arena',collection,[]);
+  assert.doesNotMatch(mixed.best.reason,/erst verdoppeln, dann aufwerten/);
+});
+
 test('variant evidence links the first timely field image in the same round',()=>{
   const match={variantEvidence:[]},hearts={own:2,enemy:3};
   const offer={name:'Totem',action:'multiply',variantIndex:2};

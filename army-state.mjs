@@ -78,8 +78,9 @@ export function rememberArmyAdvice(previous,observation,{now,matchId,device,fram
     for(const group of field?.groups??[]){
       const name=canonical(group.name);
       if(!unitNames.has(name)||!(group.similarity>=.90))continue;
-      const known=(side==='own'?knownOwn:knownEnemy).has(name)||seen.has(name);
       const good=(field.instances??[]).filter(instance=>instance.name===name&&instance.score>=.90&&!instance.poolConflict);
+      const shownOwnType=side==='own'&&good.filter(instance=>instance.source==='formation_marker').length>=2;
+      const known=(side==='own'?knownOwn:knownEnemy).has(name)||seen.has(name)||shownOwnType;
       if(!known){
         if(side==='own'||completeEnemyDeck)continue;
         const repeated=group.similarity>=.94&&(group.observedConsecutively>=2||good.length>=2);

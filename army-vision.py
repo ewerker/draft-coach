@@ -11,7 +11,7 @@ from collections import defaultdict
 import cv2
 import numpy as np
 
-VERSION = 'army-prototypes-v3'
+VERSION = 'army-prototypes-v4'
 CANON = {'Verwüster': 'Zerstörer', 'Bientank': 'Bienenkorb'}
 BODY_SCALES = (.62, .74, .86, 1., 1.14, 1.28, 1.42)
 PILOT_SIDE_BUDGET_MS = 500
@@ -78,6 +78,58 @@ def enemy_mole_instances(field, left, top):
             score=.90, stage=None, formConfidence='unknown', appearanceId='mole-red-cap',
             poolConflict=False, typeConfidence='candidate', countConfidence='lower_bound', source='mole_signature'))
     return instances
+
+
+def own_formation_markers(image, candidates):
+    """Identify visible helmets and faces even when bodies overlap."""
+    top, left = 1605, 70
+    field = image[top:2070, left:1010]
+    hue, saturation, value = cv2.split(cv2.cvtColor(field, cv2.COLOR_BGR2HSV))
+    hits = []
+
+    def component_rows(mask):
+        _, _, stats, centers = cv2.connectedComponentsWithStats(mask.astype(np.uint8))
+        return zip(stats[1:], centers[1:])
+
+    def record(name, x, y, width, height, signature):
+        hits.append(dict(name=name, box=[int(x+left), int(y+top), int(x+width+left),
+            min(top+field.shape[0], int(y+height+top))], score=.90, stage=None,
+            formConfidence='unknown', appearanceId=signature, poolConflict=False,
+            typeConfidence='candidate', countConfidence='lower_bound', source='formation_marker'))
+
+    if 'Spartheus' in candidates:
+        gold = (hue >= 16) & (hue <= 22) & (saturation >= 164) & (saturation <= 213) & (value >= 165)
+        blue = (hue >= 113) & (hue <= 119) & (saturation >= 114) & (saturation <= 149) & (value >= 140)
+        for (x, y, width, height, area), (center, _) in component_rows(blue):
+            if not (18 <= width <= 58 and 4 <= height <= 22 and 70 <= area <= 700 and width / height >= 1.5):
+                continue
+            left_band, right_band = int(center-.35*width), int(center+.35*width)+1
+            helmet = gold[max(0,y-53):max(0,y-24), left_band:right_band]
+            visor = value[max(0,y-26):y, left_band:right_band]
+            if helmet.size and visor.size and helmet.mean() >= .24 and (visor < 45).mean() >= .46:
+                upper = max(0,y-45)
+                record('Spartheus', x, upper, width, y+height-upper, 'spartheus-visor')
+
+    if 'Agent B' in candidates:
+        skin = (hue >= 5) & (hue <= 12) & (saturation >= 40) & (saturation <= 98) & (value >= 155)
+        cap = (saturation <= 11) & (value >= 65) & (value <= 150)
+        for marker in (skin, cap):
+            for (x, y, width, height, area), (center, _) in component_rows(marker):
+                if not (20 <= width <= 63 and 8 <= height <= 39 and area >= 115 and area/(width*height) > .44):
+                    continue
+                left_band, right_band = int(center-.28*width), int(center+.28*width)+1
+                rim = y+height
+                face = skin[rim+3:rim+28, left_band:right_band]
+                glasses = value[rim-2:rim+12, left_band:right_band]
+                outfit = value[rim+23:rim+40, left_band:right_band]
+                if face.size and outfit.size and face.mean() > .15 and (glasses < 45).mean() > .35 and (outfit < 70).mean() > .3:
+                    record('Agent B', x, y, width, height+23, 'agent-b-glasses')
+    # A cap and a partially exposed forehead can belong to the same face.
+    unique = []
+    for hit in hits:
+        if not any(hit['name']==other['name'] and overlap(hit['box'],other['box'])>.50 for other in unique):
+            unique.append(hit)
+    return unique
 
 
 class PrototypeDetector:
@@ -165,7 +217,7 @@ class PrototypeDetector:
                 break
         return sorted(best.values(), key=lambda row: -row['score']), truncated
 
-    def detect(self, image, side, phase='battle_choice', budget_ms=PILOT_SIDE_BUDGET_MS, candidates=()):
+    def detect(self, image, side, phase='battle_choice', budget_ms=PILOT_SIDE_BUDGET_MS, candidates=(), own_candidates=()):
         started = time.perf_counter()
         # Never search choice-card illustrations as if they were deployed troops.
         top, bottom = (325, 1015) if side == 'enemy' else ((1580, 2090) if phase in ('battle_choice', 'spell_choice') else (1170, 2090))
@@ -178,6 +230,11 @@ class PrototypeDetector:
         moles = []
         if side == 'enemy' and 'Maulwurf' in pool and phase in ('battle_choice', 'spell_choice') and budget_ms > 0:
             moles = enemy_mole_instances(image[400:945, 25:1055], 25, 400)
+        markers = moles
+        if side == 'own' and phase in ('battle_choice', 'spell_choice') and budget_ms > 0:
+            units = set(own_candidates).intersection(('Spartheus', 'Agent B'))
+            if units:
+                markers = own_formation_markers(image, units)
         # Partition proposal time so each method can contribute under load.
         body_deadline = started + .55 * budget_ms / 1000
         bodies, truncated = self.detect_bodies(small, side, top, body_deadline, pool)
@@ -255,10 +312,15 @@ class PrototypeDetector:
             # and the evolution stage need separate evidence.
             body['score'] = round(body['score'], 4)
             instances.append(body)
-        if moles:
-            instances = [row for row in instances if row['name'] != 'Maulwurf' and
-                         not any(overlap(row['box'], mole['box']) > .65 for mole in moles)]
-            instances.extend(moles)
+        if markers:
+            marked_types = {marker['name'] for marker in markers}
+            marker_counts = {name:sum(marker['name']==name for marker in markers) for name in marked_types}
+            chosen = [marker for marker in markers if marker_counts[marker['name']] >
+                      sum(row['name']==marker['name'] for row in instances)]
+            chosen_types = {marker['name'] for marker in chosen}
+            instances = [row for row in instances if row['name'] not in chosen_types and
+                         not any(overlap(row['box'], marker['box']) > .65 for marker in chosen)]
+            instances.extend(chosen)
         groups = []
         by_name = defaultdict(list)
         for instance in instances:

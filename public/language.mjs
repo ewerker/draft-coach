@@ -640,6 +640,7 @@ fragments.set('Aufwertung bevorzugt','Upgrade preferred');
 fragments.set('Verdopplung bevorzugt','Double preferred');
 fragments.set('Verdopplung mit Aufwertung bevorzugt','Double and upgrade preferred');
 fragments.set('betroffene Form und Anzahl unbekannt','affected form and count unknown');
+fragments.set('Erste Verstärkung derselben Form: erst verdoppeln, dann aufwerten.','First reinforcement of this form: double before upgrading.');
 fragments.set('Gegen verstärkte Draklinge die schwach beobachtete Front mit Spartheus stärken; Fernkämpfer brauchen Schutz.','Strengthen the lightly observed Spartheus front against reinforced Whelps; ranged units need protection.');
 fragments.set('Sniper zurückstellen, solange gegen verstärkte Draklinge nur wenige Spartheus beobachtet wurden und eine Frontverstärkung angeboten wird.','Hold back on Snipers against reinforced Whelps when few Spartheus have been observed and a frontline reinforcement is offered.');
 const fragmentPattern=new RegExp('(?<![\\p{L}\\p{N}])(?:'+[...fragments.keys()].sort((a,b)=>b.length-a.length).map(escapeRegExp).join('|')+')(?![\\p{L}\\p{N}])','gu');
@@ -677,7 +678,10 @@ export function translate(text,language){
   if(language!=='en'||typeof text!=='string')return text;
   const core=text.trim();
   if(!core)return text;
-  const english=ui.get(core)??translatePreparation(core)??displayNames(core,'en').replace(/(\d+) bestätigte Figuren der Ausgangsform/g,'$1 confirmed units of the source form').replace(fragmentPattern,word=>fragments.get(word));
+  const english=ui.get(core)??translatePreparation(core)??displayNames(core,'en')
+    .replace(/(\d+) bestätigte Figuren der Ausgangsform/g,'$1 confirmed units of the source form')
+    .replace(/etwa (\d+) Figuren aus den bisherigen Zügen/g,'about $1 units from recorded moves')
+    .replace(fragmentPattern,word=>fragments.get(word));
   return english===core?text:text.replace(core,()=>english);
 }
 

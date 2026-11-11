@@ -102,6 +102,21 @@ test('formation panel keeps choice estimates when the latest image is empty or s
   assert.equal(summarizeArmyStock(choices,[{name:'Drakling',minimum:5}])[0].count,5);
 });
 
+test('distinct own formation markers can recover a manual pick absent from the ledger',()=>{
+  const p=packet();
+  p.sides.own.groups=[{name:'Agent B',visibleMinimum:2,similarity:.90}];
+  p.sides.own.instances=[
+    {name:'Agent B',box:[200,1800,235,1845],score:.90,source:'formation_marker'},
+    {name:'Agent B',box:[275,1800,310,1845],score:.90,source:'formation_marker'}
+  ];
+  const context={...options,knownOwn:new Set(),knownEnemy:new Set(),unitNames:new Set(['Agent B'])};
+  const observation=acceptArmyObservation(p,null,options);
+  const memory=rememberArmyAdvice(null,observation,context);
+  assert.deepEqual(memory.own,[{name:'Agent B',minimum:2,capture:p.frameId}]);
+  observation.sides.own.instances.pop();
+  assert.deepEqual(rememberArmyAdvice(null,observation,context).own,[]);
+});
+
 test('an unknown opponent type can be confirmed by separate formation images with combat between them',()=>{
   const context={now:11000,matchId:'game',device:'usb',frameId:5,knownOwn:new Set(),
     knownEnemy:new Set(),unitNames:new Set(['Agent B']),completeEnemyDeck:false};

@@ -26,7 +26,8 @@ test('HTTP lifecycle: capture, stop/restart, explicit resume, one result, backgr
     child.on('error',()=>{});
     child.stderr.on('data',chunk=>logs+=chunk.toString());child.stdout.on('data',chunk=>logs+=chunk.toString());
     token=(await eventually(()=>get('/api/config'))).token;
-    await eventually(async()=>{const state=await get('/api/state');return state.ready&&!state.capturing;});
+    await eventually(async()=>{const state=await get('/api/state');return state.ready&&!state.capturing&&
+      ['done','error'].includes(state.deviceProbe?.status);});
   }
   async function stop(){const exited=once(child,'exit');await post('/api/desktop/stop');await exited;child=null;}
   async function capture(){const result=await post('/api/capture');await eventually(async()=>{const state=await get('/api/state');return state.current?.id===result.id&&!state.recognizing;});return result.id;}

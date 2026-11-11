@@ -86,4 +86,16 @@ class ArmyVision(unittest.TestCase):
         image[520:520+crop.shape[0], 420:420+crop.shape[1]] = 120
         self.assertEqual(detector.detect(image, 'enemy', candidates=roster)['groups'], [])
 
+    def test_own_formation_counts_visible_faces_without_reading_a_total_from_moves(self):
+        image = np.full_like(self.image, 120)
+        crop = cv2.imread(str(Path(__file__).with_name('data') / 'own-formation-counts.png'))
+        image[1710:1710+crop.shape[0], 140:140+crop.shape[1]] = crop
+        detector = army.PrototypeDetector([], lambda _: image)
+        options = ('Spartheus', 'Agent B')
+        result = detector.detect(image, 'own', own_candidates=options)
+        self.assertEqual([(row['name'], row['visibleMinimum'], row['visibleMaximum']) for row in result['groups']],
+                         [('Agent B', 2, None), ('Spartheus', 9, None)])
+        self.assertEqual(detector.detect(image, 'own', 'battle', own_candidates=options)['groups'], [])
+        self.assertEqual(detector.detect(image, 'own', own_candidates=('Schnecke',))['groups'], [])
+
 if __name__=='__main__':unittest.main()

@@ -367,10 +367,15 @@ function observeArmies(job,result){
   if(!activeMatch||activeMatch.id!==job.matchId||job.source==='reference'||!['battle_choice','spell_choice','battle'].includes(result.phase))return;
   const next=buildFieldEvaluation(savedReferences,referenceStore.image,fieldLearningRevision);
   if(armyPlan?.fingerprint!==next.fingerprint)armyPlan=next;
-  if(!armyPlan.examples.length)return;
+  const ownCandidates=new Set([...activeMatch.ownDeckPicks,...activeMatch.ownReinforcements.keys(),
+    ...(activeMatch.mode==='draft'?collection.units.active_lineup:[]),...result.offers.map(offer=>offer.name).filter(Boolean)]);
+  const enemyCandidates=[...activeMatch.enemyDeck.values()].map(c=>c.name);
+  if(!armyPlan.examples.length&&!ownCandidates.has('Spartheus')&&!ownCandidates.has('Agent B')&&
+    !(job.mode==='arena'&&enemyCandidates.length===4&&enemyCandidates.includes('Maulwurf')))return;
   armyService.submit({id:job.id,path:job.path,matchId:job.matchId,device:job.target,capturedAt:job.started,
     language:job.gameLanguage,phase:result.phase,mode:job.mode,revision:armyPlan.fingerprint,
-    examples:armyPlan.examples,testPaths:[...new Set(armyPlan.cases.map(c=>c.path))],enemyCandidates:[...activeMatch.enemyDeck.values()].map(c=>c.name)});
+    examples:armyPlan.examples,testPaths:[...new Set(armyPlan.cases.map(c=>c.path))],
+    enemyCandidates,ownCandidates:[...ownCandidates]});
 }
 
 if(!existsSync(archiveFile)){
@@ -501,7 +506,9 @@ function withObservedEnemies(result,job){
   const armyEvidence=result.phase==='battle_choice'?retainedArmyEvidence(activeMatch):null;
   return {...result,enemy:[...enemy.values()],observedDraftUnits,ownDeckPicks:[...activeMatch.ownDeckPicks],
     ownVariantUncertain:[...activeMatch.ownVariantUncertain],enemyAdditions:Object.fromEntries(activeMatch.enemyAdditions),
-    ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements),armyAdviceEvidence:armyEvidence};
+    ownReinforcements:Object.fromEntries(activeMatch.ownReinforcements),
+    ownChoiceForms:Object.fromEntries(activeMatch.ownChoiceForms??[]),ownBoostedUnits:[...(activeMatch.ownBoostedUnits??[])],
+    armyAdviceEvidence:armyEvidence};
 }
 function retainedArmyEvidence(match){
   const memory=match.armyAdviceMemory;
@@ -745,6 +752,7 @@ function record(job,result) {
       const {offer,formEffect}=match.pendingReinforcement;
       match.ownChoiceForms??=new Map();
       observeChosenReinforcement(match.ownReinforcements,offer,formEffect,match.ownChoiceForms);
+      if(['multiply','upgrade','multiply_upgrade'].includes(offer.action))(match.ownBoostedUnits??=new Set()).add(offer.name);
       if(['upgrade','multiply_upgrade'].includes(offer.action))(match.ownUpgrades??=new Set()).add(offer.name);
       match.pendingReinforcement=null;
     }
@@ -1017,7 +1025,7 @@ function selectDevice(target) {
     activeMatch?.ownDeckPicks.clear();
     activeMatch?.ownReinforcements.clear();
     activeMatch?.ownVariantUncertain.clear();
-    if(activeMatch){activeMatch.pendingReinforcement=null;activeMatch.pendingVariantEvidence=null;}
+    if(activeMatch){activeMatch.pendingReinforcement=null;activeMatch.pendingVariantEvidence=null;activeMatch.ownBoostedUnits?.clear();}
     activeMatch?.enemyDeck.clear();
     if(activeMatch?.draftObservation)activeMatch.draftObservation=newDraftObservation();
   }

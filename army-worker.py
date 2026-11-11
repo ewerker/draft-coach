@@ -26,7 +26,8 @@ def analyze(request):
     sides = {}
     for side in ('enemy', 'own'):
         sides[side] = detector.detect(image, side, request.get('phase'),
-            candidates=request.get('enemyCandidates', []) if side == 'enemy' and request.get('mode') == 'arena' else ())
+            candidates=request.get('enemyCandidates', []) if side == 'enemy' and request.get('mode') == 'arena' else (),
+            own_candidates=request.get('ownCandidates', []) if side == 'own' else ())
     return dict(schemaVersion=1, frameId=request['id'], matchId=request.get('matchId'), capturedAt=request['capturedAt'],
         phase=request['phase'], language=request.get('language', 'de'), mode=request.get('mode'), geometry=geometry,
         modelRevision=revision, backend=detector.backend, sides=sides,
